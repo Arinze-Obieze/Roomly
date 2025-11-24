@@ -2,12 +2,30 @@
 import { useState } from 'react';
 import { FaBars, FaTimes } from 'react-icons/fa';
 
-const navItems = [
-  { label: 'How It Works', href: '#how-it-works' },
-  { label: 'About', href: '#about' },
-  { label: 'Features', href: '#features' },
-  { label: 'Testimonials', href: '#testimonials' },
-];
+// Centralized configuration - edit everything here
+const HEADER_CONFIG = {
+  logo: {
+    src: '/logo.jpg',
+    alt: 'Roomly',
+    text: 'Roomly'
+  },
+  navItems: [
+    { label: 'How It Works', href: '#how-it-works' },
+    { label: 'About', href: '#about' },
+    { label: 'Features', href: '#features' },
+    { label: 'Testimonials', href: '#testimonials' },
+  ],
+  authButtons: {
+    login: {
+      text: 'Sign In',
+      url: '/login'  // Change this URL
+    },
+    getStarted: {
+      text: 'Get Started', 
+      url: '/signup' // Change this URL
+    }
+  }
+};
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -21,13 +39,13 @@ export default function Header() {
             
             {/* Logo */}
             <div className="flex items-center">
-              <img src="/logo.jpg" alt="Roomly" className="h-8 w-auto" />
-              <span className="ml-2 text-xl font-bold text-primary">Roomly</span>
+              <img src={HEADER_CONFIG.logo.src} alt={HEADER_CONFIG.logo.alt} className="h-8 w-auto" />
+              <span className="ml-2 text-xl font-bold text-primary">{HEADER_CONFIG.logo.text}</span>
             </div>
 
             {/* Desktop Navigation - Hidden on mobile */}
             <nav className="hidden md:flex space-x-8">
-              {navItems.map((item) => (
+              {HEADER_CONFIG.navItems.map((item) => (
                 <a
                   key={item.label}
                   href={item.href}
@@ -40,12 +58,18 @@ export default function Header() {
 
             {/* Desktop CTA Buttons - Hidden on mobile */}
             <div className="hidden md:flex items-center space-x-4">
-              <button className="text-text hover:text-primary font-medium transition-colors duration-200">
-                Sign In
-              </button>
-              <button className="bg-primary text-white px-6 py-2 rounded-full font-medium hover:opacity-90 transition-opacity duration-200">
-                Get Started
-              </button>
+              <a
+                href={HEADER_CONFIG.authButtons.login.url}
+                className="text-text hover:text-primary font-medium transition-colors duration-200"
+              >
+                {HEADER_CONFIG.authButtons.login.text}
+              </a>
+              <a
+                href={HEADER_CONFIG.authButtons.getStarted.url}
+                className="bg-primary text-white px-6 py-2 rounded-full font-medium hover:opacity-90 transition-opacity duration-200"
+              >
+                {HEADER_CONFIG.authButtons.getStarted.text}
+              </a>
             </div>
 
             {/* Mobile Menu Button - Hidden on desktop */}
@@ -79,8 +103,8 @@ export default function Header() {
             {/* Mobile Header */}
             <div className="flex items-center justify-between p-6 border-b border-border">
               <div className="flex items-center">
-                <img src="/logo.jpg" alt="Roomly" className="h-8 w-auto" />
-                <span className="ml-2 text-xl font-bold text-primary">Roomly</span>
+                <img src={HEADER_CONFIG.logo.src} alt={HEADER_CONFIG.logo.alt} className="h-8 w-auto" />
+                <span className="ml-2 text-xl font-bold text-primary">{HEADER_CONFIG.logo.text}</span>
               </div>
               <button 
                 onClick={() => setIsMenuOpen(false)}
@@ -93,7 +117,7 @@ export default function Header() {
             {/* Mobile Navigation */}
             <nav className="flex-1 p-6">
               <div className="space-y-4">
-                {navItems.map((item) => (
+                {HEADER_CONFIG.navItems.map((item) => (
                   <a
                     key={item.label}
                     href={item.href}
@@ -109,12 +133,20 @@ export default function Header() {
             {/* Mobile CTA Buttons */}
             <div className="p-6 border-t border-border">
               <div className="space-y-4">
-                <button className="w-full bg-primary text-white py-3 rounded-full font-medium hover:opacity-90 transition-opacity duration-200">
-                  Get Started
-                </button>
-                <button className="w-full text-text py-3 rounded-full font-medium border border-border hover:border-primary transition-colors duration-200">
-                  Sign In
-                </button>
+                <a
+                  href={HEADER_CONFIG.authButtons.getStarted.url}
+                  className="block w-full bg-primary text-white py-3 rounded-full font-medium hover:opacity-90 transition-opacity duration-200 text-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {HEADER_CONFIG.authButtons.getStarted.text}
+                </a>
+                <a
+                  href={HEADER_CONFIG.authButtons.login.url}
+                  className="block w-full text-text py-3 rounded-full font-medium border border-border hover:border-primary transition-colors duration-200 text-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {HEADER_CONFIG.authButtons.login.text}
+                </a>
               </div>
             </div>
           </div>
