@@ -24,3 +24,4 @@ export default function AuthHeader({ title, subtitle, showLogo = true }) {
     </>
   );
 }
+

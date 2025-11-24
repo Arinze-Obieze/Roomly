@@ -1,73 +1,87 @@
-'use client';
-import { FaStar, FaStarHalf } from 'react-icons/fa';
+import React from 'react';
 
 const testimonials = [
   {
-    name: 'Sarah M.',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDu9G2Lwj0ZpSOq0LnQR1sDrLlEp0j0XyhZzcuJGynx8ISTBWNThHftk81LKXz2HDgKGlOAhtQ5finFPHqgv1cA_o_mKq3ICErxBLFjs2gLdEfcNvgjAFNTYkvGM8jLQZv_IR1IrsvzsNHuAMh6_u4J-6_RUVPXUHyQTnLeMI1t4uhavZZivg6SnmONi1pzGjXPkFbT_zNcV_9aHOuNUs-yHIA8Pt2sUXvztti8zWrtI0q-5fam7gmqrVN5WtCMgyUatzM3VkxF1YI',
-    rating: 5,
-    text: '"I was dreading the flatmate search, but Roomly made it so easy. Found a brilliant flatmate in just over a week!"'
+    text: "I was skeptical about an algorithm finding me a flatmate, but the match was 98% accurate. We're both night owls and neat freaks. It just works.",
+    author: "Sarah J.",
+    role: "Tech Worker in Dublin 2",
+    bg: "bg-white",
+    textColor: "text-slate-800"
   },
   {
-    name: 'David K.',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuC7wLlxvYfw_ldryX0On9qQTFOnZMYUkz1TJg3aZvIir1g-G5T2eEM8qs_1vkd79ybwbBCYO84rGscvUS7yZ00XnK7erSdxVIES82DpT5Y3yyeA3ztik-OmIIOvtgv_TSu-u1vTDhzl31VYzZln2aRiJt1p5kbJrNEmMOlu3yvTPQs5jD8sQgohE73IJ_z5jFSihsrtHrD0r02EOFbEt_I9Az6jh60JqJ-UHhzOQxtnbK6XPGtB52qXNC1wCfahVAThHmno7A59TT0',
-    rating: 4.5,
-    text: '"The compatibility quiz is a game-changer. My new flatmate and I clicked instantly. Highly recommend this platform."'
+    text: "The ID verification gave me peace of mind that I just couldn't get from Facebook groups.",
+    author: "Michael R.",
+    role: "Student, UCD",
+    bg: "bg-slate-900", // Dark card for contrast
+    textColor: "text-white"
   },
   {
-    name: 'Chloe B.',
-    image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAjIhCX8WeAI5_4ALKN1gMEkbNZduYZcGga6zkqi7rSm1Ma1N1NBscxN-JTCJPzJQqwcHYZ38emiC7iBLIZdb-anXmxlKug4elfUWaIVSO7ZnMhvZiFJ8lXjNH59Mt7Pc4AbEom5Y5d3JLwMfyAEEg09JNwkfm-VgCXIN5oFmGeCW9wckNXEScZNe66MHKRUkku7QWNaaHvCSg66e3QmzAbjGs1C44D6AFDN0DWc8W4YakIw8tt-W1MAK-6Nsdf7acdPECHWlFMu95S',
-    rating: 5,
-    text: '"Felt much safer using a platform that verifies users. The secure messaging is a great feature. Finally found a place I can call home."'
+    text: "Finally, a platform that treats renting like a professional transaction, not a blind date.",
+    author: "Ciara M.",
+    role: "Landlord, Galway",
+    bg: "bg-cyan-50",
+    textColor: "text-slate-900"
   }
 ];
 
-const renderStars = (rating) => {
-  const stars = [];
-  const fullStars = Math.floor(rating);
-  const hasHalfStar = rating % 1 !== 0;
-
-  for (let i = 0; i < fullStars; i++) {
-    stars.push(<FaStar key={i} className="text-[16px] text-secondary" />);
-  }
-  
-  if (hasHalfStar) {
-    stars.push(<FaStarHalf key="half" className="text-[16px] text-secondary" />);
-  }
-
-  return stars;
-};
-
 export default function TestimonialsSection() {
   return (
-    <section id="testimonials" className="py-8 md:py-16 lg:py-24 bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <h2 className="text-[22px] md:text-3xl lg:text-4xl font-bold text-center text-text mb-8 md:mb-12">
-          What Our Users Say
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-          {testimonials.map((testimonial, index) => (
-            <div key={index} className="flex flex-col gap-4 rounded-lg md:rounded-2xl border border-border bg-card p-6">
-              <div className="flex items-center gap-3">
-                <img 
-                  className="h-12 w-12 rounded-full object-cover" 
-                  alt={`Photo of ${testimonial.name}`} 
-                  src={testimonial.image} 
-                />
-                <div>
-                  <p className="text-text font-bold">{testimonial.name}</p>
-                  <div className="flex">
-                    {renderStars(testimonial.rating)}
-                  </div>
-                </div>
-              </div>
-              <p className="text-sm text-text-muted">
-                {testimonial.text}
-              </p>
-            </div>
-          ))}
+    <section className="py-32 bg-white overflow-hidden">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          
+          {/* Header takes up the first column */}
+          <div className="lg:sticky lg:top-32">
+            <h2 className="text-5xl font-bold text-slate-900 mb-6 tracking-tighter">
+              Real stories from <span className="underline decoration-cyan-500 decoration-4 underline-offset-4">verified</span> renters.
+            </h2>
+            <p className="text-lg text-slate-600 mb-8">
+              Join thousands of people who found their home harmony through Roomly.
+            </p>
+            <button className="text-cyan-600 font-bold flex items-center gap-2 hover:gap-4 transition-all">
+              Read all reviews <span>&rarr;</span>
+            </button>
+          </div>
+
+          {/* Reviews Staggered Column 1 */}
+          <div className="space-y-8 pt-0 lg:pt-20">
+             <ReviewCard data={testimonials[0]} />
+             <div className="h-40 rounded-3xl bg-slate-100 border-dashed border-2 border-slate-300 flex items-center justify-center text-slate-400 font-medium">
+                Your Story Here
+             </div>
+          </div>
+
+          {/* Reviews Staggered Column 2 */}
+          <div className="space-y-8">
+             <ReviewCard data={testimonials[1]} />
+             <ReviewCard data={testimonials[2]} />
+          </div>
+
         </div>
       </div>
     </section>
+  );
+}
+
+function ReviewCard({ data }) {
+  return (
+    <div className={`p-8 rounded-[2rem] ${data.bg} shadow-2xl shadow-slate-200/50 transition-transform hover:-translate-y-1 duration-300`}>
+      {/* A large stylized quote mark */}
+      <div className={`text-6xl font-serif leading-none opacity-20 mb-4 ${data.textColor === 'text-white' ? 'text-cyan-400' : 'text-slate-900'}`}>
+        &ldquo;
+      </div>
+      <p className={`text-lg font-medium leading-relaxed mb-6 ${data.textColor}`}>
+        {data.text}
+      </p>
+      <div className="flex items-center gap-3">
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${data.textColor === 'text-white' ? 'bg-white/20 text-white' : 'bg-slate-900 text-white'}`}>
+          {data.author[0]}
+        </div>
+        <div>
+          <p className={`text-sm font-bold ${data.textColor}`}>{data.author}</p>
+          <p className={`text-xs opacity-70 ${data.textColor}`}>{data.role}</p>
+        </div>
+      </div>
+    </div>
   );
 }

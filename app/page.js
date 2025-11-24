@@ -10,7 +10,7 @@ import Footer from '@/components/Footer';
 
 export default function HomePage() {
   return (
-    <div className="font-display bg-background">
+    <div className="font-display bg-gray-50 text-gray-800">
       <Header />
       <HeroSection />
       <main>

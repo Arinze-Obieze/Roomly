@@ -20,89 +20,66 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-gray-900 text-white py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Main Footer Content - Stack on mobile, grid on larger screens */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
+    <footer className="bg-slate-950 text-white pt-24 pb-12 overflow-hidden relative border-t border-white/5">
+      
+      {/* 1. Massive Watermark (The "Design" Touch) */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none opacity-[0.02]">
+        <span className="text-[12rem] md:text-[20rem] font-black tracking-tighter text-white leading-none whitespace-nowrap">
+          ROOMLY
+        </span>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
           
-          {/* Brand Section - Full width on mobile */}
-          <div className="lg:col-span-1 text-center md:text-left">
-            <div className="flex items-center justify-center md:justify-start mb-4">
-              <img src="/logo.jpg" alt="Roomly" className="h-8 w-auto" />
-              <span className="ml-2 text-xl font-bold text-white">Roomly</span>
+          {/* Brand Column */}
+          <div className="space-y-6">
+            <div className="flex items-center gap-2">
+              {/* If you have a logo image, use it, otherwise use text */}
+              <span className="text-2xl font-bold tracking-tight text-white">Roomly.</span>
             </div>
-            <p className="text-gray-300 text-sm mb-4 max-w-md md:max-w-none mx-auto md:mx-0">
-              Intelligent matching for harmonious homes in Ireland.
+            <p className="text-slate-400 text-sm leading-relaxed max-w-xs">
+              Intelligent matching for harmonious homes in Ireland. Built in Dublin, designed for trust.
             </p>
-            <div className="flex justify-center md:justify-start space-x-4">
+            <div className="flex gap-4">
               {socialIcons.map((social, index) => (
-                <a
-                  key={index}
-                  href={social.href}
-                  className="text-gray-400 hover:text-white transition-colors duration-200 p-2 rounded-full hover:bg-gray-800"
-                  aria-label={`Follow us on ${social.icon.name}`}
+                <a 
+                  key={index} 
+                  href={social.href} 
+                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:bg-cyan-500 hover:text-slate-900 hover:border-cyan-400 transition-all duration-300"
+                  aria-label="Social Link"
                 >
-                  <social.icon className="h-5 w-5" />
+                  <social.icon size={16} />
                 </a>
               ))}
             </div>
           </div>
 
-          {/* Quick Links - Stack with Legal on mobile */}
-          <div className="grid grid-cols-2 gap-8 md:block">
-            <div>
-              <h3 className="text-lg font-semibold mb-4 text-center md:text-left">Quick Links</h3>
-              <ul className="space-y-3">
-                {quickLinks.map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-gray-300 hover:text-white transition-colors duration-200 text-sm block text-center md:text-left py-1"
-                    >
-                      {link.label}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Legal - Next to Quick Links on mobile */}
-            <div className="md:hidden">
-              <h3 className="text-lg font-semibold mb-4 text-center">Legal</h3>
-              <ul className="space-y-3">
-                {legalLinks.map((link) => (
-                  <li key={link.label}>
-                    <a
-                      href={link.href}
-                      className="text-gray-300 hover:text-white transition-colors duration-200 text-sm flex flex-col items-center md:flex-row md:items-start py-1"
-                    >
-                      {link.label}
-                      {link.comingSoon && (
-                        <span className="mt-1 md:mt-0 md:ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
-                          Coming Soon
-                        </span>
-                      )}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
+          {/* Quick Links */}
+          <div>
+            <h5 className="font-bold text-white mb-6 tracking-wide">Platform</h5>
+            <ul className="space-y-4">
+              {quickLinks.map((link) => (
+                <li key={link.label}>
+                  <a href={link.href} className="text-slate-400 hover:text-cyan-400 transition-colors text-sm font-medium">
+                    {link.label}
+                  </a>
+                </li>
+              ))}
+            </ul>
           </div>
 
-          {/* Legal - Hidden on mobile (shown above), visible on desktop */}
-          <div className="hidden md:block">
-            <h3 className="text-lg font-semibold mb-4">Legal</h3>
-            <ul className="space-y-3">
+          {/* Legal Links */}
+          <div>
+            <h5 className="font-bold text-white mb-6 tracking-wide">Legal</h5>
+            <ul className="space-y-4">
               {legalLinks.map((link) => (
                 <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-gray-300 hover:text-white transition-colors duration-200 text-sm flex items-center"
-                  >
+                  <a href={link.href} className="group flex items-center gap-2 text-slate-400 hover:text-cyan-400 transition-colors text-sm font-medium">
                     {link.label}
                     {link.comingSoon && (
-                      <span className="ml-2 text-xs bg-gray-700 text-gray-300 px-2 py-1 rounded">
-                        Coming Soon
+                      <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] text-cyan-400 border border-cyan-900/50">
+                        Soon
                       </span>
                     )}
                   </a>
@@ -111,36 +88,31 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact - Full width on mobile */}
-          <div className="text-center md:text-left">
-            <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
-            <div className="space-y-3">
-              <div>
-                <p className="text-gray-300 text-sm mb-2">Have questions?</p>
-                <a
-                  href="mailto:hello@roomly.ie"
-                  className="text-primary hover:text-primary-light transition-colors duration-200 text-sm font-medium inline-block py-1"
-                >
-                  hello@roomly.ie
-                </a>
-              </div>
-              <div className="pt-2">
-                <p className="text-gray-400 text-xs max-w-xs mx-auto md:mx-0">
-                  We're here to help you find your perfect flatmate match.
-                </p>
-              </div>
+          {/* Contact Column */}
+          <div>
+            <h5 className="font-bold text-white mb-6 tracking-wide">Support</h5>
+            <div className="space-y-4">
+              <p className="text-slate-400 text-sm">Need help matching?</p>
+              <a 
+                href="mailto:hello@roomly.ie" 
+                className="inline-block text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 hover:opacity-80 transition-opacity"
+              >
+                hello@roomly.ie
+              </a>
+              <p className="text-slate-500 text-xs">
+                Response time: Within 24 hours.
+              </p>
             </div>
           </div>
+
         </div>
 
-        {/* Bottom Bar - Stack on mobile */}
-        <div className="border-t border-gray-700 mt-8 pt-6 flex flex-col sm:flex-row justify-between items-center space-y-3 sm:space-y-0">
-          <p className="text-gray-400 text-sm text-center sm:text-left order-2 sm:order-1">
-            © {new Date().getFullYear()} Roomly. All rights reserved.
-          </p>
-          <p className="text-gray-400 text-sm text-center sm:text-left order-1 sm:order-2">
-            Making flatmate finding better in Ireland.
-          </p>
+        {/* Bottom Bar */}
+        <div className="border-t border-white/10 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-slate-500 font-medium">
+          <p>&copy; {new Date().getFullYear()} Roomly Technologies Ltd.</p>
+          <div className="flex items-center gap-6">
+            <span>Made with <span className="text-red-500 animate-pulse">❤</span> in Ireland</span>
+          </div>
         </div>
       </div>
     </footer>
