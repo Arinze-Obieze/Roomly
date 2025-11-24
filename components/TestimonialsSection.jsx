@@ -12,7 +12,7 @@ const testimonials = [
     text: "The ID verification gave me peace of mind that I just couldn't get from Facebook groups.",
     author: "Michael R.",
     role: "Student, UCD",
-    bg: "bg-slate-900", // Dark card for contrast
+    bg: "bg-slate-900",
     textColor: "text-white"
   },
   {
@@ -21,7 +21,7 @@ const testimonials = [
     role: "Landlord, Galway",
     bg: "bg-cyan-50",
     textColor: "text-slate-900"
-  }
+  },
 ];
 
 export default function TestimonialsSection() {
@@ -46,9 +46,15 @@ export default function TestimonialsSection() {
           {/* Reviews Staggered Column 1 */}
           <div className="space-y-8 pt-0 lg:pt-20">
              <ReviewCard data={testimonials[0]} />
-             <div className="h-40 rounded-3xl bg-slate-100 border-dashed border-2 border-slate-300 flex items-center justify-center text-slate-400 font-medium">
-                Your Story Here
-             </div>
+             <ReviewCard
+               data={{
+                 text: "I matched with someone who shares my exact lifestyle preferences. No more gambling on random roommates. This is how renting should be in 2025.",
+                 author: "Emma L.",
+                 role: "Nurse, Cork City",
+                 bg: "bg-slate-50",
+                 textColor: "text-slate-900"
+               }}
+             />
           </div>
 
           {/* Reviews Staggered Column 2 */}
