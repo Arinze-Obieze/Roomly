@@ -7,7 +7,7 @@ export default function AuthHeader({ title, subtitle, showLogo = true }) {
       {showLogo && (
         <div className="mb-10 lg:mb-12 flex items-center gap-2">
           <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
-            <Image width={50} height={50} src="/logo.jpg" size={24} />
+            <Image width={50} height={50} alt="logo" src="/logo.jpg" size={24} />
           </div>
           <span className="text-2xl font-bold text-gray-900 tracking-tight">Roomly</span>
         </div>

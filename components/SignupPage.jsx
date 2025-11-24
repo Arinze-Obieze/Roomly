@@ -1,18 +1,22 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import PasswordField from './Forms/PasswordField';
 import InputField from './Forms/InputField';
 import CheckboxField from './Forms/CheckboxField';
 import AuthHeader from './Layout/AuthHeader';
 import SubmitButton from './Forms/SubmitButton';
 import toast from 'react-hot-toast';
-
+import { useAuth } from '@/hooks/useAuth';
 
 export default function SignupPage() {
+  const router = useRouter();
+  const { signup, loading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -37,10 +41,43 @@ export default function SignupPage() {
     setFormData({ ...formData, [e.target.name]: value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Signup data:', formData);
-    toast.info('Account creation logic triggered!');
+
+    // Validation
+    if (!formData.fullName || !formData.email || !formData.password || !formData.confirmPassword) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      toast.error('Password must be at least 8 characters');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    if (!formData.agreeToTerms) {
+      toast.error('Please agree to the terms and privacy policy');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const { error } = await signup(formData.email, formData.password, formData.fullName);
+
+    if (error) {
+      toast.error(error);
+      setIsSubmitting(false);
+    } else {
+      toast.success('Account created successfully! Please check your email to confirm.');
+      // Redirect to login after a short delay
+      setTimeout(() => {
+        router.push('/login');
+      }, 2000);
+    }
   };
 
   return (
@@ -121,8 +158,8 @@ export default function SignupPage() {
           }
         />
 
-        <SubmitButton disabled={!formData.agreeToTerms}>
-          Create Account
+        <SubmitButton disabled={!formData.agreeToTerms || isSubmitting || authLoading}>
+          {isSubmitting ? 'Creating Account...' : 'Create Account'}
         </SubmitButton>
       </form>
 

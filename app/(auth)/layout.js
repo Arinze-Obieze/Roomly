@@ -103,3 +103,4 @@ export default function AuthLayout({ children, side = 'left' }) {
     </div>
   );
 }
+

@@ -1,14 +1,20 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 import PasswordField from './Forms/PasswordField';
 import InputField from './Forms/InputField';
 import CheckboxField from './Forms/CheckboxField';
 import AuthHeader from './Layout/AuthHeader';
 import SubmitButton from './Forms/SubmitButton';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginPage() {
+  const router = useRouter();
+  const { login, loading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [focusedField, setFocusedField] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -23,10 +29,28 @@ export default function LoginPage() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Login data:', formData);
-    // Handle login logic here
+    
+    // Validation
+    if (!formData.email || !formData.password) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    const { error } = await login(formData.email, formData.password);
+
+    if (error) {
+      toast.error(error);
+      setIsSubmitting(false);
+    } else {
+      toast.success('Login successful!');
+      // Redirect to dashboard after a short delay
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 500);
+    }
   };
 
   return (
@@ -73,8 +97,8 @@ export default function LoginPage() {
           </a>
         </div>
 
-        <SubmitButton>
-          Sign In
+        <SubmitButton disabled={isSubmitting || authLoading}>
+          {isSubmitting ? 'Signing In...' : 'Sign In'}
         </SubmitButton>
       </form>
 
