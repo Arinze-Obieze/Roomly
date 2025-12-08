@@ -9,7 +9,7 @@ export default function SubmitButton({
     <button
       type="submit"
       disabled={disabled || loading}
-      className="w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-600/20 transform active:scale-[0.99]"
+      className={`w-full btn-primary ${disabled || loading ? 'opacity-50 cursor-not-allowed' : ''}`}
     >
       {loading ? (
         <div className="flex items-center justify-center">

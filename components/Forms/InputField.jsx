@@ -17,12 +17,7 @@ export default function InputField({
 
   return (
     <div className="relative group">
-      <label 
-        htmlFor={name} 
-        className={`block text-sm font-semibold mb-2 transition-colors duration-200 ${
-          isFocused ? "text-emerald-600" : "text-gray-700"
-        }`}
-      >
+      <label htmlFor={name} className={`field-label ${isFocused ? 'text-emerald-600' : ''}`}>
         {label}
       </label>
       <div className="relative">
@@ -36,14 +31,7 @@ export default function InputField({
           onBlur={() => setFocusedField(null)}
           placeholder={placeholder}
           required={required}
-          className={`
-            w-full px-4 py-3.5 rounded-xl border text-gray-900 placeholder-gray-400 bg-gray-50
-            transition-all duration-200 ease-in-out outline-none
-            ${isFocused 
-              ? "border-emerald-500 ring-4 ring-emerald-500/10 bg-white" 
-              : "border-gray-200 hover:border-gray-300 hover:bg-white"
-            }
-          `}
+          className={`w-full px-4 py-3.5 rounded-xl border text-gray-900 placeholder-gray-400 bg-gray-50 transition-all duration-200 ease-in-out outline-none ${isFocused ? 'border-emerald-500 bg-white' : 'border-gray-200 hover:border-gray-300 hover:bg-white'}`}
         />
         {/* Success Indicator */}
         {hasValue && !isFocused && type !== "password" && (

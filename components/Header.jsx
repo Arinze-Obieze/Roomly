@@ -22,8 +22,8 @@ const HEADER_CONFIG = {
       url: '/login'
     },
     getStarted: {
-      text: 'Join Waitlist',
-      url: '#hero' 
+      text: 'Get Started',
+      url: '/signup' 
     }
   }
 };

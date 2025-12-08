@@ -1,111 +1,119 @@
+// @/hooks/useAuth.js
 'use client';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
-import { useState, useEffect } from 'react';
-import { useSupabase } from '@/lib/supabase-context';
+export const useAuth = () => {
+  const [loading, setLoading] = useState(false);
+  const router = useRouter();
+  const supabase = createClientComponentClient();
 
-export function useAuth() {
-  const { supabase } = useSupabase();
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  // Check session on mount
-  useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const {
-          data: { session },
-          error: sessionError,
-        } = await supabase.auth.getSession();
-
-        if (sessionError) throw sessionError;
-        setUser(session?.user ?? null);
-      } catch (err) {
-        console.error('Session check error:', err);
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkSession();
-
-    // Set up auth state listener
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-    });
-
-    return () => subscription?.unsubscribe();
-  }, [supabase]);
-
-  const signup = async (email, password, fullName) => {
-    setError(null);
+  const signup = async (email, password, fullName, phone = null) => {
     setLoading(true);
+    
     try {
-      const { data, error: signupError } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: fullName,
+            phone: phone
           },
-        },
+          // If you want to redirect after email confirmation
+          // emailRedirectTo: `${window.location.origin}/auth/callback`
+        }
       });
 
-      if (signupError) throw signupError;
-      return { data, error: null };
-    } catch (err) {
-      setError(err.message);
-      return { data: null, error: err.message };
+      if (error) throw error;
+
+      return { 
+        user: data.user, 
+        error: null 
+      };
+      
+    } catch (error) {
+      console.error('Signup error:', error);
+      return { 
+        user: null, 
+        error: error.message || 'An error occurred during signup' 
+      };
     } finally {
       setLoading(false);
     }
   };
 
+  
   const login = async (email, password) => {
-    setError(null);
     setLoading(true);
+    
     try {
-      const { data, error: loginError } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (loginError) throw loginError;
-      return { data, error: null };
-    } catch (err) {
-      setError(err.message);
-      return { data: null, error: err.message };
+      if (error) throw error;
+
+      // Refresh the router to update authentication state
+      router.refresh();
+      
+      return { 
+        user: data.user, 
+        error: null 
+      };
+      
+    } catch (error) {
+      console.error('Login error:', error);
+      return { 
+        user: null, 
+        error: error.message || 'Invalid email or password' 
+      };
     } finally {
       setLoading(false);
     }
   };
-
   const logout = async () => {
-    setError(null);
-    setLoading(true);
     try {
-      const { error: logoutError } = await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      router.push('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
 
-      if (logoutError) throw logoutError;
-      setUser(null);
-      return { error: null };
-    } catch (err) {
-      setError(err.message);
-      return { error: err.message };
+  const resetPassword = async (email) => {
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/auth/reset-password`,
+      });
+
+      if (error) throw error;
+
+      return { 
+        error: null 
+      };
+      
+    } catch (error) {
+      console.error('Reset password error:', error);
+      return { 
+        error: error.message || 'Failed to send reset email' 
+      };
     } finally {
       setLoading(false);
     }
   };
 
   return {
-    user,
-    loading,
-    error,
     signup,
     login,
     logout,
+    resetPassword,
+    loading,
   };
-}
+};

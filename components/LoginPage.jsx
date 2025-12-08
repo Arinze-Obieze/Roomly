@@ -29,29 +29,30 @@ export default function LoginPage() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Validation
+  if (!formData.email || !formData.password) {
+    toast.error('Please fill in all fields');
+    return;
+  }
+
+  setIsSubmitting(true);
+  const { error } = await login(formData.email, formData.password);
+
+  if (error) {
+    toast.error(error);
+    setIsSubmitting(false);
+  } else {
+    toast.success('Login successful!');
     
-    // Validation
-    if (!formData.email || !formData.password) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-
-    setIsSubmitting(true);
-    const { error } = await login(formData.email, formData.password);
-
-    if (error) {
-      toast.error(error);
-      setIsSubmitting(false);
-    } else {
-      toast.success('Login successful!');
-      // Redirect to dashboard after a short delay
-      setTimeout(() => {
-        router.push('/dashboard');
-      }, 500);
-    }
-  };
+    // Wait a moment for the refresh to complete, then redirect
+    setTimeout(() => {
+      router.push('/dashboard');
+    }, 500);
+  }
+};
 
   return (
     <div className="w-full max-w-md mx-auto lg:mx-0">
@@ -92,7 +93,7 @@ export default function LoginPage() {
             onChange={handleChange}
             label="Remember me"
           />
-          <a href="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-500 transition-colors duration-200 font-medium">
+          <a href="/forgot-password" className="text-sm link-primary hover:text-emerald-500 transition-colors duration-200 font-medium">
             Forgot password?
           </a>
         </div>
@@ -104,10 +105,7 @@ export default function LoginPage() {
 
       <p className="mt-8 text-center text-gray-600">
         Don't have an account?{' '}
-        <a
-          href="/signup"
-          className="font-semibold text-emerald-600 hover:text-emerald-500 transition-colors"
-        >
+        <a href="/signup" className="font-semibold link-primary">
           Sign up
         </a>
       </p>
@@ -115,11 +113,11 @@ export default function LoginPage() {
       <div className="mt-8 text-center">
         <p className="text-gray-500 text-sm">
           By continuing, you agree to our{' '}
-          <a href="#" className="text-emerald-600 hover:text-emerald-500 hover:underline">
+          <a href="#" className="link-primary hover:underline">
             Terms of Service
           </a>{' '}
           and{' '}
-          <a href="#" className="text-emerald-600 hover:text-emerald-500 hover:underline">
+          <a href="#" className="link-primary hover:underline">
             Privacy Policy
           </a>
         </p>

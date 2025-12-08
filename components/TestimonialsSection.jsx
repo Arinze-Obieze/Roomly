@@ -71,7 +71,7 @@ export default function TestimonialsSection() {
 
 function ReviewCard({ data }) {
   return (
-    <div className={`p-8 rounded-[2rem] ${data.bg} shadow-2xl shadow-slate-200/50 transition-transform hover:-translate-y-1 duration-300`}>
+    <div className={`p-8 rounded-4xl ${data.bg} shadow-2xl shadow-slate-200/50 transition-transform hover:-translate-y-1 duration-300`}>
       {/* A large stylized quote mark */}
       <div className={`text-6xl font-serif leading-none opacity-20 mb-4 ${data.textColor === 'text-white' ? 'text-cyan-400' : 'text-slate-900'}`}>
         &ldquo;

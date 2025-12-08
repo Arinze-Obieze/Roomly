@@ -50,3 +50,129 @@ body {
 button {
   cursor: pointer;
 }
+
+/* Project design tokens and global component styles
+   These ensure the login page palette and controls are used across the app.
+*/
+
+:root {
+  /* Core colors (login page palette) */
+  --primary: #2E8B57; /* emerald / brand */
+  --primary-600: #2E8B57;
+  --primary-500: #38A169;
+  --primary-400: #48BB78;
+
+  --secondary: #FFC107;
+  --bg: var(--color-background, #F5F5F5);
+  --bg-light: var(--color-background-light, #FFFFFF);
+  --bg-dark: var(--color-background-dark, #101922);
+
+  --card: var(--color-card, #FFFFFF);
+  --card-border: var(--color-border, #E0E0E0);
+
+  --text: var(--color-text, #333333);
+  --text-muted: var(--color-text-muted, #555555);
+
+  --accent: var(--color-accent-green, #EAF3ED);
+
+  --radius: 0.5rem;
+  --transition-fast: 150ms ease-in-out;
+}
+
+/* Common components */
+.btn-primary {
+  background-color: var(--primary-600);
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: calc(var(--radius) - 0.1rem);
+  border: 1px solid rgba(0,0,0,0.06);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: transform var(--transition-fast), filter var(--transition-fast), box-shadow var(--transition-fast);
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+  box-shadow: 0 6px 18px rgba(46,139,87,0.08);
+}
+.btn-outline {
+  background: transparent;
+  color: var(--primary-600);
+  border: 1px solid var(--primary-600);
+  padding: 0.55rem 0.9rem;
+  border-radius: calc(var(--radius) - 0.15rem);
+}
+
+.link-primary {
+  color: var(--primary-600);
+  font-weight: 600;
+  text-decoration: none;
+}
+.link-primary:hover { text-decoration: underline; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  box-shadow: 0 6px 18px rgba(16,25,34,0.03);
+}
+
+/* Form controls */
+input[type="text"], input[type="email"], input[type="password"], textarea, select {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--card-border);
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.5rem;
+  color: var(--text);
+  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
+}
+input:focus, textarea:focus, select:focus {
+  outline: none;
+  border-color: var(--primary-500);
+  box-shadow: 0 6px 18px rgba(46,139,87,0.08);
+}
+
+.field-label {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.field-hint { color: var(--text-muted); font-size: 0.875rem; }
+
+.auth-header-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text);
+}
+.auth-header-subtitle {
+  color: var(--text-muted);
+  margin-top: 0.25rem;
+}
+
+.muted { color: var(--text-muted); }
+
+/* Small helpers */
+.rounded-md { border-radius: 0.5rem; }
+.form-row { display: flex; gap: 0.75rem; align-items: center; }
+
+/* Accessibility: disabled state */
+:where(button[disabled], .btn-primary:disabled) {
+  opacity: 0.6; cursor: not-allowed; transform: none; filter: none;
+}
+
+/* Dark theme helper: toggle with `.theme-dark` on body */
+.theme-dark {
+  --bg: var(--bg-dark);
+  --card: var(--color-card-dark, #1c2127);
+  --card-border: var(--color-border-dark, #3b4754);
+  --text: var(--color-text-dark, #F5F5F5);
+  --text-muted: var(--color-text-muted-dark, #9dabb9);
+}
+
+/* Tailwind-aware classes are declared above; no empty rules required. */

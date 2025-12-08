@@ -34,13 +34,13 @@ export default function HeroSection() {
             The first algorithm-driven flatmate finder in Ireland. We verify identity and compatibility before you ever say hello.
           </p>
 
-          <div className="w-full max-w-md p-1.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-xl flex items-center shadow-2xl ring-1 ring-white/5 focus-within:ring-cyan-500/50 transition-all duration-300">
+          <div className="w-full max-w-md p-1.5 rounded-2xl card flex items-center shadow-2xl transition-all duration-300">
             <input 
               type="email" 
               placeholder="email@address.com" 
               className="flex-1 bg-transparent border-none text-white placeholder-slate-500 px-4 focus:ring-0 focus:outline-none"
             />
-            <button className="bg-cyan-500 hover:bg-cyan-400 text-slate-950 px-6 py-3 rounded-xl font-bold transition-all hover:scale-105">
+            <button className="btn-primary px-6 py-3 ml-3 rounded-xl font-bold">
               Join
             </button>
           </div>
