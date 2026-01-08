@@ -66,17 +66,40 @@ export default function SignupPage() {
     }
 
     setIsSubmitting(true);
-    const { error } = await signup(formData.email, formData.password, formData.fullName);
+    const { error, requiresEmailConfirmation, isDuplicate } = await signup(
+      formData.email, 
+      formData.password, 
+      formData.fullName
+    );
 
     if (error) {
-      toast.error(error);
+      if (isDuplicate) {
+        toast.error(
+          <div>
+            <p className="font-semibold">{error}</p>
+            <button 
+              onClick={() => {
+                toast.dismiss();
+                router.push('/forgot-password');
+              }}
+              className="mt-2 text-sm text-emerald-600 hover:text-emerald-500 underline"
+            >
+              Reset your password →
+            </button>
+          </div>,
+          { duration: 6000 }
+        );
+      } else {
+        toast.error(error);
+      }
       setIsSubmitting(false);
     } else {
-      toast.success('Account created successfully! Please check your email to confirm.');
-      // Redirect to login after a short delay
-      setTimeout(() => {
-        router.push('/login');
-      }, 2000);
+      if (requiresEmailConfirmation) {
+        toast.success('Account created! Please check your email to confirm.');
+      } else {
+        toast.success('Account created successfully!');
+      }
+      router.push('/login');
     }
   };
 

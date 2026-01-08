@@ -1,6 +1,6 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import SupabaseProvider from "@/contexts/supabase-provider";
+import { AuthProvider } from "@/contexts/AuthContext";
 import GlobalToaster from "@/components/GlobalToaster";
 
 const geistSans = Geist({
@@ -43,12 +43,13 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-            <SupabaseProvider>
-<GlobalToaster/>
-        {children}
-              </SupabaseProvider>
-
+        <AuthProvider>
+          <GlobalToaster/>
+          {children}
+        </AuthProvider>
       </body>
     </html>
   );
 }
+
+

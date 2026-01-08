@@ -46,11 +46,7 @@ export default function LoginPage() {
     setIsSubmitting(false);
   } else {
     toast.success('Login successful!');
-    
-    // Wait a moment for the refresh to complete, then redirect
-    setTimeout(() => {
-      router.push('/dashboard');
-    }, 500);
+    router.push('/dashboard');
   }
 };
 

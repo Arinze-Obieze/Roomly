@@ -2,35 +2,42 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const supabase = createClientComponentClient();
 
   const signup = async (email, password, fullName, phone = null) => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName,
-            phone: phone
-          },
-          // If you want to redirect after email confirmation
-          // emailRedirectTo: `${window.location.origin}/auth/callback`
-        }
+      const response = await fetch('/api/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, fullName, phone }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        // Check if it's a duplicate email error
+        if (data.isDuplicate) {
+          return { 
+            user: null, 
+            error: data.error,
+            isDuplicate: true
+          };
+        }
+        throw new Error(data.error || 'Signup failed');
+      }
 
       return { 
-        user: data.user, 
-        error: null 
+        user: { id: data.userId }, 
+        error: null,
+        requiresEmailConfirmation: data.requiresEmailConfirmation,
+        isDuplicate: false
       };
       
     } catch (error) {
@@ -49,14 +56,21 @@ export const useAuth = () => {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
 
-      // Refresh the router to update authentication state
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed');
+      }
+
+      // Refresh router to update server-side session state
       router.refresh();
       
       return { 
@@ -74,14 +88,25 @@ export const useAuth = () => {
       setLoading(false);
     }
   };
+
   const logout = async () => {
+    setLoading(true);
+    
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        throw new Error('Logout failed');
+      }
+
       router.push('/login');
       router.refresh();
     } catch (error) {
       console.error('Logout error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -89,11 +114,19 @@ export const useAuth = () => {
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/reset-password`,
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email }),
       });
 
-      if (error) throw error;
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send reset email');
+      }
 
       return { 
         error: null 
@@ -109,11 +142,44 @@ export const useAuth = () => {
     }
   };
 
+  const updatePassword = async (newPassword) => {
+    setLoading(true);
+    
+    try {
+      const response = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: newPassword }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to update password');
+      }
+
+      return { 
+        error: null 
+      };
+      
+    } catch (error) {
+      console.error('Update password error:', error);
+      return { 
+        error: error.message || 'Failed to update password' 
+      };
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return {
     signup,
     login,
     logout,
     resetPassword,
+    updatePassword,
     loading,
   };
 };
