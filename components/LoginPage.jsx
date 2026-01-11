@@ -22,7 +22,6 @@ export default function LoginPage() {
   });
 
   const handleChange = (e) => {
-    console.log('Input changed:', e.target.name, e.target.value, e.target.type);
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData({
       ...formData,
@@ -41,7 +40,6 @@ export default function LoginPage() {
   }
 
   setIsSubmitting(true);
-  console.log('Calling login with:', formData.email, formData.password);
   const { error, user } = await login(formData.email, formData.password);
   console.log('Login result:', { error, user });
 

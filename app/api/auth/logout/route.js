@@ -1,54 +1,30 @@
-import { createServerClient } from '@supabase/ssr';
+// app/api/auth/logout/route.js
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 
-export async function POST(req) {
+export async function POST(request) {
   try {
-    const cookieStore = await cookies();
+    const supabase = await createClient();
 
-    // Create Supabase client with SSR
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet) {
-            cookiesToSet.forEach(({ name, value, options }) => {
-              cookieStore.set(name, value, options);
-            });
-          },
-        },
-      }
-    );
+    // Sign out from Supabase (automatically clears cookies)
+    const { error } = await supabase.auth.signOut();
 
-    // Sign out from Supabase
-    await supabase.auth.signOut();
+    if (error) {
+      console.error('Logout error:', error);
+      return NextResponse.json(
+        { error: 'Failed to logout' },
+        { status: 500 }
+      );
+    }
 
-    // Clear Supabase SSR cookies
-    const projectRef = 'aiovmhiokeisdizhcxvm'; // <-- Replace with your actual Supabase project ref if different
-    cookieStore.set(`sb-${projectRef}-auth-token`, '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0,
-      path: '/',
-    });
-    cookieStore.set(`sb-${projectRef}-refresh-token`, '', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 0,
-      path: '/',
+    return NextResponse.json({ 
+      message: 'Logged out successfully' 
     });
 
-    return NextResponse.json({ message: 'Logged out successfully' });
-  } catch (err) {
-    console.error('Logout error:', err);
+  } catch (error) {
+    console.error('Logout API error:', error);
     return NextResponse.json(
-      { error: 'An unexpected error occurred' },
+      { error: 'An error occurred during logout' },
       { status: 500 }
     );
   }

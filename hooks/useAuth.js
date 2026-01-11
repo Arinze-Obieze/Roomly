@@ -7,6 +7,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { refreshSession } = useAuthContext(); // ✅ Call at the top level
 
   const signup = async (email, password, fullName, phone = null) => {
     setLoading(true);
@@ -55,7 +56,6 @@ export const useAuth = () => {
   
   const login = async (email, password) => {
     setLoading(true);
-    const { refreshSession } = useAuthContext();
     
     try {
       const response = await fetch('/api/auth/login', {
@@ -76,7 +76,7 @@ export const useAuth = () => {
       router.refresh();
       
       // Refresh client-side auth state
-      refreshSession();
+      await refreshSession();
       
       return { 
         user: data.user, 
