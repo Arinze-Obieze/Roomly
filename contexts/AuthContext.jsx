@@ -1,13 +1,7 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-
-const AuthContext = createContext({
-  user: null,
-  loading: true,
-  refreshSession: async () => {},
-});
+import { useContext, useEffect, useState } from 'react';
+import AuthContext from './auth-context';
 
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
@@ -20,7 +14,6 @@ export const useAuthContext = () => {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const supabase = createClient();
 
   const refreshSession = async () => {
     try {
@@ -41,29 +34,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     // Initial session check
     refreshSession().finally(() => setLoading(false));
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        if (session?.user) {
-          setUser({
-            id: session.user.id,
-            email: session.user.email,
-            user_metadata: session.user.user_metadata,
-          });
-        }
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
-    });
-
-    // Cleanup subscription
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase]);
+  }, []);
 
   const value = {
     user,

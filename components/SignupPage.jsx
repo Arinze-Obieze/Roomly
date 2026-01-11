@@ -82,7 +82,7 @@ export default function SignupPage() {
                 toast.dismiss();
                 router.push('/forgot-password');
               }}
-              className="mt-2 text-sm text-emerald-600 hover:text-emerald-500 underline"
+              className="mt-2 text-sm link"
             >
               Reset your password →
             </button>
@@ -145,8 +145,8 @@ export default function SignupPage() {
           setFocusedField={setFocusedField}
         />
         {formData.password.length > 0 && (
-          <p className="text-xs text-gray-400 mt-1.5 font-medium">
-            Strength: {["Weak","Fair","Good","Excellent"][Math.min(passwordStrength-1,3)] || "Too short"}
+          <p className="form-hint">
+            Password strength: {["Weak","Fair","Good","Excellent"][Math.min(passwordStrength-1,3)] || "Too short"}
           </p>
         )}
 
@@ -170,11 +170,11 @@ export default function SignupPage() {
           label={
             <span>
               I agree to the{' '}
-              <a href="#" className="text-emerald-600 hover:text-emerald-500 hover:underline">
+              <a href="#" className="link">
                 Terms of Service
               </a>{' '}
               and{' '}
-              <a href="#" className="text-emerald-600 hover:text-emerald-500 hover:underline">
+              <a href="#" className="link">
                 Privacy Policy
               </a>
             </span>
@@ -186,11 +186,11 @@ export default function SignupPage() {
         </SubmitButton>
       </form>
 
-      <p className="mt-8 text-center text-gray-600">
+      <p className="mt-8 text-center text-muted">
         Already have an account?{' '}
         <a
           href="/login"
-          className="font-semibold text-emerald-600 hover:text-emerald-500 transition-colors"
+          className="text-emerald-500 text-sm font-semibold"
         >
           Log in
         </a>

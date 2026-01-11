@@ -88,8 +88,8 @@ export default function ResetPasswordPage() {
           setFocusedField={setFocusedField}
         />
         {formData.password.length > 0 && (
-          <p className="text-xs text-gray-400 mt-1.5 font-medium">
-            Strength: {["Weak","Fair","Good","Excellent"][Math.min(passwordStrength-1,3)] || "Too short"}
+          <p className="form-hint">
+            Password strength: {["Weak","Fair","Good","Excellent"][Math.min(passwordStrength-1,3)] || "Too short"}
           </p>
         )}
 
@@ -110,11 +110,11 @@ export default function ResetPasswordPage() {
         </SubmitButton>
       </form>
 
-      <p className="mt-8 text-center text-gray-600">
+      <p className="mt-8 text-center text-muted">
         Remember your password?{' '}
         <a
           href="/login"
-          className="font-semibold text-emerald-600 hover:text-emerald-500 transition-colors"
+          className="link font-semibold"
         >
           Log in
         </a>

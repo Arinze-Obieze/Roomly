@@ -2,6 +2,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuthContext } from '@/contexts/AuthContext';
 
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);
@@ -54,6 +55,7 @@ export const useAuth = () => {
   
   const login = async (email, password) => {
     setLoading(true);
+    const { refreshSession } = useAuthContext();
     
     try {
       const response = await fetch('/api/auth/login', {
@@ -72,6 +74,9 @@ export const useAuth = () => {
 
       // Refresh router to update server-side session state
       router.refresh();
+      
+      // Refresh client-side auth state
+      refreshSession();
       
       return { 
         user: data.user, 

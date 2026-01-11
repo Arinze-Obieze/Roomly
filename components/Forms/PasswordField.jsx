@@ -16,8 +16,11 @@ export default function PasswordField({
   const isFocused = focusedField === name;
 
   return (
-    <div className="relative group">
-      <label htmlFor={name} className={`field-label ${isFocused ? 'text-emerald-600' : ''}`}>
+    <div className="form-group">
+      <label 
+        htmlFor={name} 
+        className={`form-label ${required ? 'form-label-required' : ''} ${isFocused ? 'text-primary' : ''}`}
+      >
         {label}
       </label>
       <div className="relative">
@@ -31,15 +34,16 @@ export default function PasswordField({
           onBlur={() => setFocusedField(null)}
           placeholder={placeholder}
           required={required}
-          className={`w-full px-4 py-3.5 rounded-xl border text-gray-900 placeholder-gray-400 bg-gray-50 transition-all duration-200 ease-in-out pr-12 ${isFocused ? 'border-emerald-500 bg-white' : 'border-gray-200 hover:border-gray-300 hover:bg-white'}`}
+          aria-required={required}
+          className="pr-12"
         />
         <button
           type="button"
           onClick={togglePassword}
-          className={`
-            absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors duration-200 ${isFocused ? 'text-emerald-600 hover:bg-emerald-50' : 'text-gray-400 hover:text-gray-600'}`}
+          aria-label={showPassword ? "Hide password" : "Show password"}
+          className={`absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-md transition-colors ${isFocused ? 'text-primary hover:bg-primary-light' : 'text-muted hover:text-primary'}`}
         >
-          {showPassword ? <FaEyeSlash size={20} /> : <FaEye size={20} />}
+          {showPassword ? <FaEyeSlash size={20} aria-hidden="true" /> : <FaEye size={20} aria-hidden="true" />}
         </button>
       </div>
     </div>

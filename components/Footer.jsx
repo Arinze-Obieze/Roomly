@@ -46,10 +46,10 @@ export default function Footer() {
                 <a 
                   key={index} 
                   href={social.href} 
-                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:bg-cyan-500 hover:text-slate-900 hover:border-cyan-400 transition-all duration-300"
-                  aria-label="Social Link"
+                  className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:bg-primary hover:text-slate-900 hover:border-primary transition-all duration-300 focus-visible:outline-cyan-300"
+                  aria-label={`Social media link ${index + 1}`}
                 >
-                  <social.icon size={16} />
+                  <social.icon size={16} aria-hidden="true" />
                 </a>
               ))}
             </div>
@@ -61,7 +61,7 @@ export default function Footer() {
             <ul className="space-y-4">
               {quickLinks.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="text-slate-400 hover:text-cyan-400 transition-colors text-sm font-medium">
+                  <a href={link.href} className="text-slate-400 hover:text-cyan-300 transition-colors text-sm font-medium focus-visible:outline-cyan-300">
                     {link.label}
                   </a>
                 </li>
@@ -75,10 +75,10 @@ export default function Footer() {
             <ul className="space-y-4">
               {legalLinks.map((link) => (
                 <li key={link.label}>
-                  <a href={link.href} className="group flex items-center gap-2 text-slate-400 hover:text-cyan-400 transition-colors text-sm font-medium">
+                  <a href={link.href} className="group flex items-center gap-2 text-slate-400 hover:text-cyan-300 transition-colors text-sm font-medium focus-visible:outline-cyan-300">
                     {link.label}
                     {link.comingSoon && (
-                      <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] text-cyan-400 border border-cyan-900/50">
+                      <span className="badge badge-info text-[10px]">
                         Soon
                       </span>
                     )}
@@ -95,7 +95,7 @@ export default function Footer() {
               <p className="text-slate-400 text-sm">Need help matching?</p>
               <a 
                 href="mailto:hello@roomly.ie" 
-                className="inline-block text-lg font-bold text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-indigo-400 hover:opacity-80 transition-opacity"
+                className="inline-block text-lg font-bold bg-gradient-text focus-visible:outline-cyan-300"
               >
                 hello@roomly.ie
               </a>

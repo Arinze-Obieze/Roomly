@@ -22,6 +22,7 @@ export default function LoginPage() {
   });
 
   const handleChange = (e) => {
+    console.log('Input changed:', e.target.name, e.target.value, e.target.type);
     const value = e.target.type === 'checkbox' ? e.target.checked : e.target.value;
     setFormData({
       ...formData,
@@ -31,15 +32,18 @@ export default function LoginPage() {
 
  const handleSubmit = async (e) => {
   e.preventDefault();
-  
+  console.log('Form submitted');
   // Validation
   if (!formData.email || !formData.password) {
     toast.error('Please fill in all fields');
+    console.log('Validation failed: missing fields');
     return;
   }
 
   setIsSubmitting(true);
-  const { error } = await login(formData.email, formData.password);
+  console.log('Calling login with:', formData.email, formData.password);
+  const { error, user } = await login(formData.email, formData.password);
+  console.log('Login result:', { error, user });
 
   if (error) {
     toast.error(error);
@@ -89,7 +93,7 @@ export default function LoginPage() {
             onChange={handleChange}
             label="Remember me"
           />
-          <a href="/forgot-password" className="text-sm link-primary hover:text-emerald-500 transition-colors duration-200 font-medium">
+          <a href="/forgot-password" className="link link-muted text-sm">
             Forgot password?
           </a>
         </div>
@@ -99,21 +103,21 @@ export default function LoginPage() {
         </SubmitButton>
       </form>
 
-      <p className="mt-8 text-center text-gray-600">
+      <p className="mt-8 text-center text-muted">
         Don't have an account?{' '}
-        <a href="/signup" className="font-semibold link-primary">
+        <a href="/signup" className="link font-semibold">
           Sign up
         </a>
       </p>
 
       <div className="mt-8 text-center">
-        <p className="text-gray-500 text-sm">
+        <p className="text-muted text-sm">
           By continuing, you agree to our{' '}
-          <a href="#" className="link-primary hover:underline">
+          <a href="#" className="link">
             Terms of Service
           </a>{' '}
           and{' '}
-          <a href="#" className="link-primary hover:underline">
+          <a href="#" className="link">
             Privacy Policy
           </a>
         </p>

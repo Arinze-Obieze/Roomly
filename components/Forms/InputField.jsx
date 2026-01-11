@@ -16,8 +16,11 @@ export default function InputField({
   const hasValue = value.length > 0;
 
   return (
-    <div className="relative group">
-      <label htmlFor={name} className={`field-label ${isFocused ? 'text-emerald-600' : ''}`}>
+    <div className="form-group">
+      <label 
+        htmlFor={name} 
+        className={`form-label ${required ? 'form-label-required' : ''}`}
+      >
         {label}
       </label>
       <div className="relative">
@@ -31,12 +34,14 @@ export default function InputField({
           onBlur={() => setFocusedField(null)}
           placeholder={placeholder}
           required={required}
-          className={`w-full px-4 py-3.5 rounded-xl border text-gray-900 placeholder-gray-400 bg-gray-50 transition-all duration-200 ease-in-out outline-none ${isFocused ? 'border-emerald-500 bg-white' : 'border-gray-200 hover:border-gray-300 hover:bg-white'}`}
+          aria-required={required}
+          aria-invalid={false}
+          className="w-full px-4 py-3.5 rounded-xl border border-slate-300 bg-slate-50 text-slate-900 placeholder-slate-500 transition-all duration-200 outline-none"
         />
         {/* Success Indicator */}
         {hasValue && !isFocused && type !== "password" && (
-          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-500 animate-in fade-in zoom-in">
-            <FaCheck size={18} />
+          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-success animate-in fade-in zoom-in duration-200">
+            <FaCheck size={18} aria-hidden="true" />
           </div>
         )}
       </div>

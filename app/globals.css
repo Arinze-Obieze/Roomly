@@ -1,178 +1,208 @@
 @import "tailwindcss";
 
 @theme {
-  /* Primary Colors */
-  --color-primary: #2E8B57;
-  --color-secondary: #FFC107;
+  /* ============================================
+     ROOMLY DESIGN SYSTEM - WCAG AA COMPLIANT
+     ============================================ */
   
-  /* Background Colors */
-  --color-background: #F5F5F5;
-  --color-background-light: #F5F5F5;
-  --color-background-dark: #101922;
-  
-  /* Card Colors */
-  --color-card: #FFFFFF;
-  --color-card-light: #FFFFFF;
-  --color-card-dark: #1c2127;
-  
-  /* Text Colors */
-  --color-text: #333333;
-  --color-text-light: #333333;
-  --color-text-dark: #F5F5F5;
-  --color-text-muted: #555555;
-  --color-text-muted-light: #555555;
-  --color-text-muted-dark: #9dabb9;
-  
-  /* Border Colors */
-  --color-border: #E0E0E0;
-  --color-border-light: #E0E0E0;
-  --color-border-dark: #3b4754;
-  
-  /* Accent Colors */
-  --color-accent-green: #EAF3ED;
-
-  /* Font Family */
-  --font-display: "Plus Jakarta Sans", sans-serif;
+  /* === CYAN COLOR SYSTEM (Primary Brand Color) === */
+  /* WCAG AA compliant cyan scale - All text colors meet 4.5:1 contrast on white/dark backgrounds */
+  --color-cyan-50: #ecfeff;    /* Very light cyan - backgrounds, subtle hover states */
+  --color-cyan-100: #cffafe;   /* Light cyan - badges, tags, highlights */
 }
 
-body {
-  font-family: var(--font-display), sans-serif;
-  background-color: var(--color-background);
-  color: var(--color-text);
-}
 
-@layer components {
-    .backdrop-overlay {
-    @apply fixed inset-0 bg-black/20 backdrop-blur-sm;
-  }
-}
-
-button {
+button{
   cursor: pointer;
 }
 
-/* Project design tokens and global component styles
-   These ensure the login page palette and controls are used across the app.
-*/
 
-:root {
-  /* Core colors (login page palette) */
-  --primary: #2E8B57; /* emerald / brand */
-  --primary-600: #2E8B57;
-  --primary-500: #38A169;
-  --primary-400: #48BB78;
 
-  --secondary: #FFC107;
-  --bg: var(--color-background, #F5F5F5);
-  --bg-light: var(--color-background-light, #FFFFFF);
-  --bg-dark: var(--color-background-dark, #101922);
-
-  --card: var(--color-card, #FFFFFF);
-  --card-border: var(--color-border, #E0E0E0);
-
-  --text: var(--color-text, #333333);
-  --text-muted: var(--color-text-muted, #555555);
-
-  --accent: var(--color-accent-green, #EAF3ED);
-
-  --radius: 0.5rem;
-  --transition-fast: 150ms ease-in-out;
+.shadow-primary-lg {
+  box-shadow: var(--shadow-cyan-lg);
 }
 
-/* Common components */
-.btn-primary {
-  background-color: var(--primary-600);
-  color: white;
-  padding: 0.6rem 1rem;
-  border-radius: calc(var(--radius) - 0.1rem);
-  border: 1px solid rgba(0,0,0,0.06);
-  font-weight: 600;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: transform var(--transition-fast), filter var(--transition-fast), box-shadow var(--transition-fast);
+/* Focus ring utility */
+.focus-ring {
+  outline: 3px solid var(--color-focus);
+  outline-offset: 2px;
 }
-.btn-primary:hover:not(:disabled) {
-  transform: translateY(-1px);
-  filter: brightness(1.05);
-  box-shadow: 0 6px 18px rgba(46,139,87,0.08);
+
+/* Container utilities */
+.container {
+  width: 100%;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: var(--space-4);
+  padding-right: var(--space-4);
 }
-.btn-outline {
-  background: transparent;
-  color: var(--primary-600);
-  border: 1px solid var(--primary-600);
-  padding: 0.55rem 0.9rem;
-  border-radius: calc(var(--radius) - 0.15rem);
+
+@media (min-width: 640px) {
+  .container {
+    max-width: 640px;
+  }
+}
+
+@media (min-width: 768px) {
+  .container {
+    max-width: 768px;
+    padding-left: var(--space-6);
+    padding-right: var(--space-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .container {
+    max-width: 1024px;
+    padding-left: var(--space-8);
+    padding-right: var(--space-8);
+  }
+}
+
+@media (min-width: 1280px) {
+  .container {
+    max-width: 1280px;
+  }
+}
+
+@media (min-width: 1536px) {
+  .container {
+    max-width: 1536px;
+  }
+}
+
+
+
+
+
+/* ============================================
+   LEGACY COMPATIBILITY CLASSES
+   (Maintain backward compatibility)
+   ============================================ */
+
+.field-label {
+  composes: form-label;
+}
+
+.field-hint {
+  composes: form-hint;
+}
+
+.auth-header-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--color-text-primary);
+  line-height: var(--line-height-tight);
+}
+
+.auth-header-subtitle {
+  color: var(--color-text-muted);
+  margin-top: var(--space-1);
+  font-size: var(--font-size-sm);
 }
 
 .link-primary {
-  color: var(--primary-600);
-  font-weight: 600;
-  text-decoration: none;
-}
-.link-primary:hover { text-decoration: underline; }
-
-.card {
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  padding: 1rem;
-  box-shadow: 0 6px 18px rgba(16,25,34,0.03);
+  composes: link;
+  color: var(--color-primary-text);
 }
 
-/* Form controls */
-input[type="text"], input[type="email"], input[type="password"], textarea, select {
-  width: 100%;
-  background: var(--card);
-  border: 1px solid var(--card-border);
-  padding: 0.6rem 0.75rem;
-  border-radius: 0.5rem;
-  color: var(--text);
-  transition: box-shadow var(--transition-fast), border-color var(--transition-fast);
-}
-input:focus, textarea:focus, select:focus {
-  outline: none;
-  border-color: var(--primary-500);
-  box-shadow: 0 6px 18px rgba(46,139,87,0.08);
+.text-cyan {
+  color: var(--color-cyan-600);
 }
 
-.field-label {
-  display: block;
-  margin-bottom: 0.35rem;
-  font-weight: 600;
-  color: var(--text);
-}
-.field-hint { color: var(--text-muted); font-size: 0.875rem; }
-
-.auth-header-title {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text);
-}
-.auth-header-subtitle {
-  color: var(--text-muted);
-  margin-top: 0.25rem;
+.rounded-md {
+  border-radius: var(--radius-md);
 }
 
-.muted { color: var(--text-muted); }
-
-/* Small helpers */
-.rounded-md { border-radius: 0.5rem; }
-.form-row { display: flex; gap: 0.75rem; align-items: center; }
-
-/* Accessibility: disabled state */
-:where(button[disabled], .btn-primary:disabled) {
-  opacity: 0.6; cursor: not-allowed; transform: none; filter: none;
+.rounded-lg {
+  border-radius: var(--radius-lg);
 }
 
-/* Dark theme helper: toggle with `.theme-dark` on body */
-.theme-dark {
-  --bg: var(--bg-dark);
-  --card: var(--color-card-dark, #1c2127);
-  --card-border: var(--color-border-dark, #3b4754);
-  --text: var(--color-text-dark, #F5F5F5);
-  --text-muted: var(--color-text-muted-dark, #9dabb9);
+.rounded-xl {
+  border-radius: var(--radius-xl);
 }
 
-/* Tailwind-aware classes are declared above; no empty rules required. */
+.rounded-full {
+  border-radius: var(--radius-full);
+}
+
+.form-row {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.shadow-cyan {
+  box-shadow: var(--shadow-cyan-md);
+}
+
+.shadow-cyan-lg {
+  box-shadow: var(--shadow-cyan-lg);
+}
+
+.border-primary-light {
+  border-color: var(--color-cyan-200);
+}
+
+.bg-gradient-cyan {
+  background: var(--gradient-cyan-indigo);
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  *,
+  *::before,
+  *::after {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  a,
+  a:visited {
+    text-decoration: underline;
+  }
+
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+
+  abbr[title]::after {
+    content: " (" attr(title) ")";
+  }
+
+  pre {
+    white-space: pre-wrap !important;
+  }
+
+  pre,
+  blockquote {
+    border: 1px solid #999;
+    page-break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
+  }
+
+  tr,
+  img {
+    page-break-inside: avoid;
+  }
+
+  p,
+  h2,
+  h3 {
+    orphans: 3;
+    widows: 3;
+  }
+
+  h2,
+  h3 {
+    page-break-after: avoid;
+  }
+}

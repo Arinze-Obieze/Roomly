@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, createContext, useContext } from "react";
+import { useRouter } from "next/navigation";
 import { 
   MdHome, 
   MdChatBubbleOutline, 
@@ -28,6 +29,7 @@ import {
   MdCheckCircle,
   MdExpandMore,
   MdExpandLess,
+  MdAdd,
   MdOutlineAttachMoney,
   MdCalendarToday
 } from "react-icons/md";
@@ -428,6 +430,7 @@ const LeftSidebar = () => {
 // MAIN APP COMPONENT
 // ========================
 export default function HomeDashboard() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState("discover");
   const [showFilters, setShowFilters] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
@@ -455,7 +458,7 @@ export default function HomeDashboard() {
           <div className="flex items-center justify-between px-8 py-4 border-b border-slate-100">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-tr from-cyan-500 to-indigo-500 rounded-lg"></div>
+              <div className="w-8 h-8 bg-linear-to-tr from-cyan-500 to-indigo-500 rounded-lg"></div>
               <h1 className="text-xl font-bold">HomeShareIE</h1>
             </div>
 
@@ -526,7 +529,10 @@ export default function HomeDashboard() {
             </div>
 
             {/* Right-aligned List Property CTA */}
-            <button className="bg-gradient-to-r from-cyan-500 to-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:shadow-lg hover:shadow-cyan-200 transition-all active:scale-[0.98]">
+            <button 
+              onClick={() => router.push('/listings/new')}
+              className="bg-linear-to-r from-cyan-500 to-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:shadow-lg hover:shadow-cyan-200 transition-all active:scale-[0.98]"
+            >
               <MdAddCircleOutline size={20} />
               List Property
             </button>
@@ -540,7 +546,7 @@ export default function HomeDashboard() {
           <div className="px-4 py-3 flex items-center justify-between">
             {/* Logo */}
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-gradient-to-tr from-cyan-500 to-indigo-500 rounded-lg"></div>
+              <div className="w-8 h-8 bg-linear-to-tr from-cyan-500 to-indigo-500 rounded-lg"></div>
               <h1 className="text-xl font-bold">HomeShareIE</h1>
             </div>
             
@@ -559,14 +565,17 @@ export default function HomeDashboard() {
           {/* Mobile Search Bar */}
           <div className="px-4 pb-4">
             <div className="relative">
+              
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <MdSearch className="text-slate-400 text-xl" />
               </div>
+              
               <input 
                 type="text" 
                 placeholder="Search locations..." 
                 className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all outline-none text-sm"
               />
+
               <button 
                 onClick={() => setShowFilters(true)}
                 className="absolute inset-y-1 right-1 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
@@ -635,7 +644,7 @@ export default function HomeDashboard() {
                 {["All", "Recommended", "New", "Verified", "Pets"].map((filter, i) => (
                   <button 
                     key={i} 
-                    className={`flex-shrink-0 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${i === 0 ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300'}`}
+                    className={`shrink-0 px-4 py-2.5 rounded-full text-sm font-medium transition-all ${i === 0 ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-300'}`}
                   >
                     {filter}
                   </button>
@@ -660,7 +669,7 @@ export default function HomeDashboard() {
             RIGHT SIDEBAR (Desktop - Large Screens)
         ======================== */}
         <aside className="hidden 2xl:block fixed right-0 top-[120px] w-80 h-[calc(100vh-120px)] bg-white border-l border-slate-200 p-6 overflow-y-auto">
-          <div className="bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-3xl p-6 text-white mb-8 shadow-lg shadow-cyan-200">
+          <div className="bg-linear-to-br from-indigo-500 to-cyan-500 rounded-3xl p-6 text-white mb-8 shadow-lg shadow-cyan-200">
             <div className="flex items-center gap-2 mb-3 opacity-90">
               <MdBolt className="text-yellow-300" />
               <span className="text-xs font-bold uppercase tracking-wider">Update</span>
@@ -760,7 +769,7 @@ export default function HomeDashboard() {
               icon={MdAddCircleOutline} 
               label="List" 
               active={activeTab === "list"}
-              onClick={() => setActiveTab("list")}
+              onClick={() => router.push('/listings/new')}
             />
             <BottomNavItem 
               icon={MdChatBubbleOutline} 
@@ -903,7 +912,7 @@ function ListingCard({ data, onSelect }) {
         <div className="mb-2">
           <h3 className="font-bold text-base lg:text-lg text-slate-900 mb-1 line-clamp-1">{data.title}</h3>
           <div className="flex items-center gap-1 text-slate-500 text-sm">
-            <MdLocationOn className="text-cyan-500 flex-shrink-0" />
+            <MdLocationOn className="text-cyan-500 shrink-0" />
             <span className="truncate">{data.location}</span>
           </div>
         </div>
@@ -927,7 +936,7 @@ function ListingCard({ data, onSelect }) {
           <div className="flex items-center gap-2">
             <img src={data.host.avatar} className="w-7 h-7 lg:w-8 lg:h-8 rounded-full bg-slate-100" alt={data.host.name} />
             <span className="text-sm font-medium text-slate-700 truncate">{data.host.name}</span>
-            {data.verified && <MdVerified className="text-cyan-500 flex-shrink-0" size={18} title="Verified ID" />}
+            {data.verified && <MdVerified className="text-cyan-500 shrink-0" size={18} title="Verified ID" />}
           </div>
           <button className="text-sm font-semibold text-slate-900 hover:text-cyan-600 transition-colors hidden lg:block">
             Details &rarr;
@@ -962,7 +971,7 @@ function ListingDetail({ data }) {
           <span>{data.location}</span>
         </div>
 
-        <div className="bg-gradient-to-r from-cyan-50 to-indigo-50 p-4 rounded-xl mb-6">
+        <div className="bg-linear-to-r from-cyan-50 to-indigo-50 p-4 rounded-xl mb-6">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
             <span className="font-bold">Excellent Match: {data.matchScore}%</span>

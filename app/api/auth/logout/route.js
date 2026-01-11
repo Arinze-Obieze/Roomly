@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
@@ -6,23 +6,43 @@ export async function POST(req) {
   try {
     const cookieStore = await cookies();
 
-    // Create Supabase client
-    const supabase = createClient(
+    // Create Supabase client with SSR
+    const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              cookieStore.set(name, value, options);
+            });
+          },
+        },
+      }
     );
 
-    // Get access token from cookie
-    const accessToken = cookieStore.get('sb-access-token')?.value;
-    
-    if (accessToken) {
-      // Sign out from Supabase
-      await supabase.auth.signOut();
-    }
+    // Sign out from Supabase
+    await supabase.auth.signOut();
 
-    // Clear session cookies
-    cookieStore.delete('sb-access-token');
-    cookieStore.delete('sb-refresh-token');
+    // Clear Supabase SSR cookies
+    const projectRef = 'aiovmhiokeisdizhcxvm'; // <-- Replace with your actual Supabase project ref if different
+    cookieStore.set(`sb-${projectRef}-auth-token`, '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/',
+    });
+    cookieStore.set(`sb-${projectRef}-refresh-token`, '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 0,
+      path: '/',
+    });
 
     return NextResponse.json({ message: 'Logged out successfully' });
   } catch (err) {

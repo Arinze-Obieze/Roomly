@@ -43,7 +43,7 @@ export default function AuthLayout({ children, side = 'left' }) {
               alt="Roommates hanging out"
               className="w-full h-full object-cover opacity-40 mix-blend-overlay"
             />
-            <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/90 to-black/80" />
+            <div className="absolute inset-0 bg-linear-to-br from-emerald-900/90 to-black/80" />
           </div>
 
           {/* Content */}
@@ -58,7 +58,7 @@ export default function AuthLayout({ children, side = 'left' }) {
               {/* Heading */}
               <h2 className="text-5xl font-bold leading-tight">
                 {signupPanelData.heading.split(signupPanelData.gradientWords)[0]}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-200">
+                <span className="text-transparent bg-clip-text bg-linear-to-r from-emerald-400 to-teal-200">
                   {signupPanelData.gradientWords}
                 </span>
                 {signupPanelData.heading.split(signupPanelData.gradientWords)[1]}
@@ -68,7 +68,7 @@ export default function AuthLayout({ children, side = 'left' }) {
               <ul className="space-y-5 text-lg text-gray-200">
                 {signupPanelData.features.map((feat, i) => (
                   <li key={i} className="flex items-center gap-4">
-                    <div className="flex-shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
+                    <div className="shrink-0 w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center">
                       <FaCheck size={14} className="text-emerald-400" />
                     </div>
                     <span>{feat}</span>

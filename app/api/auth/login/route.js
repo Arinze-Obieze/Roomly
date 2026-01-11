@@ -14,7 +14,9 @@ export async function POST(req) {
       );
     }
 
-    // Create Supabase client with anon key for auth
+    const cookieStore = await cookies();
+
+    // Create Supabase client
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -33,20 +35,18 @@ export async function POST(req) {
       );
     }
 
-    // Set session cookies
-    const cookieStore = await cookies();
+    // Set Supabase SSR standard cookies for session
+    const projectRef = 'aiovmhiokeisdizhcxvm'; // <-- Replace with your actual Supabase project ref if different
     const maxAge = 60 * 60 * 24 * 7; // 7 days
-
-    cookieStore.set('sb-access-token', data.session.access_token, {
-      httpOnly: true,
+    cookieStore.set(`sb-${projectRef}-auth-token`, data.session.access_token, {
+      httpOnly: false, // Temporarily false to check in browser
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge,
       path: '/',
     });
-
-    cookieStore.set('sb-refresh-token', data.session.refresh_token, {
-      httpOnly: true,
+    cookieStore.set(`sb-${projectRef}-refresh-token`, data.session.refresh_token, {
+      httpOnly: false, // Temporarily false to check in browser
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
       maxAge,

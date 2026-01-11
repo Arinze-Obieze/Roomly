@@ -58,24 +58,24 @@ export default function ForgotPasswordPage() {
           subtitle="We've sent a password reset link to your email address."
         />
 
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mt-6">
+        <div className="bg-primary-light border border-primary-light rounded-lg p-6 mt-6">
           <div className="flex items-start">
-            <svg className="w-6 h-6 text-emerald-600 mr-3 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-6 h-6 text-primary mr-3 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
             </svg>
             <div>
-              <p className="text-sm text-gray-700 mb-2">
-                <strong className="font-semibold text-gray-900">Email sent to:</strong>{' '}
+              <p className="text-sm text-secondary mb-2">
+                <strong className="font-semibold text-primary">Email sent to:</strong>{' '}
                 {formData.email}
               </p>
-              <p className="text-sm text-gray-600 mb-3">
+              <p className="text-sm text-muted mb-3">
                 Click the link in the email to reset your password. The link will expire in 1 hour.
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="form-hint">
                 Didn't receive the email? Check your spam folder or{' '}
                 <button
                   onClick={() => setEmailSent(false)}
-                  className="text-emerald-600 hover:text-emerald-500 font-semibold underline"
+                  className="link font-semibold"
                 >
                   try again
                 </button>
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
         <div className="mt-8 text-center">
           <a
             href="/login"
-            className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            className="link-muted text-sm"
           >
             ← Back to login
           </a>
@@ -120,11 +120,11 @@ export default function ForgotPasswordPage() {
         </SubmitButton>
       </form>
 
-      <p className="mt-8 text-center text-gray-600">
+      <p className="mt-8 text-center text-muted">
         Remember your password?{' '}
         <a
           href="/login"
-          className="font-semibold text-emerald-600 hover:text-emerald-500 transition-colors"
+          className="link font-semibold"
         >
           Log in
         </a>
