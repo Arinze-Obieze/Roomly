@@ -2,11 +2,13 @@
 
 import { FilterModal, ListingCard } from "@/components/dashboard";
 import { usePropertiesWithFilters } from "@/hooks/usePropertiesWithFilters";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { MdRefresh } from "react-icons/md";
 import { useAuthContext } from "@/contexts/AuthContext";
 
 export default function HomeDashboard() {
+  const router = useRouter();
   const [showFilters, setShowFilters] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
   const loadMoreRef = useRef(null);
@@ -134,7 +136,7 @@ export default function HomeDashboard() {
                 <ListingCard 
                   key={listing.id} 
                   data={listing}
-                  onSelect={() => setSelectedListing(listing)}
+                  onSelect={() => router.push(`/listings/${listing.id}`)}
                 />
               ))}
             </div>
