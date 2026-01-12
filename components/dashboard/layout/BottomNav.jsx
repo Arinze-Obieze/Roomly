@@ -8,6 +8,8 @@ import {
   MdGroups,
   MdAddCircleOutline 
 } from "react-icons/md";
+import { FaRegEdit } from "react-icons/fa";
+
 import { BottomNavItem } from "../ui/BottomNavItem";
 
 export const BottomNav = ({ activeTab, setActiveTab }) => {
@@ -29,8 +31,8 @@ export const BottomNav = ({ activeTab, setActiveTab }) => {
           onClick={() => setActiveTab("saved")}
         />
         <BottomNavItem 
-          icon={MdHome} 
-          label="My Listings" 
+          icon={FaRegEdit} 
+          label="Manage Listings" 
           active={false}
           onClick={() => router.push('/my-properties')}
         />

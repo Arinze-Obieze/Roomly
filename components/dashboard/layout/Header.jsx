@@ -13,6 +13,7 @@ import {
   MdSearch,
   MdAddCircleOutline
 } from "react-icons/md";
+import { FaRegEdit } from "react-icons/fa";
 import { HeaderNavItem } from "@/components/dashboard/ui/HeaderNavItem";
 import { useAuthContext } from "@/contexts/AuthContext";
 
@@ -70,8 +71,8 @@ export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters })
               onClick={() => setActiveTab("discover")}
             />
             <HeaderNavItem 
-              icon={MdHome} 
-              label="My Listings" 
+              icon={FaRegEdit} 
+              label="manage Listings" 
               active={false} // Since this is a direct link, active state management might need refactor if we want it to highlight. Simple link for now.
               onClick={() => router.push('/my-properties')}
             />
@@ -84,7 +85,7 @@ export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters })
             <HeaderNavItem 
               icon={MdChatBubbleOutline} 
               label="Messages" 
-              badge="3"
+              badge="1"
               active={activeTab === "messages"}
               onClick={() => setActiveTab("messages")}
             />

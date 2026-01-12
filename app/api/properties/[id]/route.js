@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server';
 export async function GET(request, { params }) {
   try {
     const supabase = await createClient();
-    const { id } = params;
+    const { id } = await params;
 
     const { data: property, error } = await supabase
       .from('properties')
@@ -51,7 +51,7 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const supabase = await createClient();
-    const { id } = params;
+    const { id } = await params;
     
     // Check authentication
     const { data: { user } } = await supabase.auth.getUser();
@@ -102,7 +102,7 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const supabase = await createClient();
-    const { id } = params;
+    const { id } = await params;
 
     // Check authentication
     const { data: { user } } = await supabase.auth.getUser();
@@ -128,11 +128,10 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Delete property
-    const { error } = await supabase
-      .from('properties')
-      .delete()
-      .eq('id', id);
+    // Delete property safely using RPC to handle cascading RLS
+    const { error } = await supabase.rpc('delete_property', {
+      p_id: id
+    });
 
     if (error) throw error;
 
