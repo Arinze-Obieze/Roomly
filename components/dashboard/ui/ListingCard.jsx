@@ -23,7 +23,7 @@ export const ListingCard = ({ data, onSelect }) => {
       onClick={() => onSelect?.()}
       className="group bg-white rounded-2xl lg:rounded-3xl border border-slate-200 overflow-hidden active:scale-[0.98] transition-all duration-200 cursor-pointer lg:hover:shadow-xl lg:hover:-translate-y-1"
     >
-      <div className="relative h-48 lg:h-56 overflow-hidden">
+      <div className="relative h-48 md:h-52 lg:h-56 w-full overflow-hidden">
         <img 
           src={data.image} 
           alt={data.title} 
@@ -73,7 +73,13 @@ export const ListingCard = ({ data, onSelect }) => {
 
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <img src={data.host.avatar} className="w-7 h-7 lg:w-8 lg:h-8 rounded-full bg-slate-100" alt={data.host.name} />
+            {data.host.avatar ? (
+              <img src={data.host.avatar} className="w-8 h-8 rounded-full bg-slate-100 object-cover" alt={data.host.name} />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-xs font-bold">
+                {data.host.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??'}
+              </div>
+            )}
             <span className="text-sm font-medium text-slate-700 truncate">{data.host.name}</span>
             {data.verified && <MdVerified className="text-cyan-500 shrink-0" size={18} title="Verified ID" />}
           </div>

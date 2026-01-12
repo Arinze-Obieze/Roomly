@@ -155,7 +155,7 @@ export const PropertiesProvider = ({ children }) => {
           verified: userData?.is_verified || false,
           host: {
             name: userData?.full_name || 'Unknown',
-            avatar: userData?.profile_picture || `https://i.pravatar.cc/150?u=${property.listed_by_user_id}`,
+            avatar: userData?.profile_picture || null,
             id: property.listed_by_user_id
           },
           matchScore: calculateMatchScore(property, filters),
