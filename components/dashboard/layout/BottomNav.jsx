@@ -1,20 +1,23 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { 
   MdHome, 
   MdFavoriteBorder, 
   MdChatBubbleOutline, 
   MdGroups, 
   MdAddCircleOutline,
-  MdForum 
 } from "react-icons/md";
 import { FaRegEdit } from "react-icons/fa";
 
 import { BottomNavItem } from "../ui/BottomNavItem";
 
-export const BottomNav = ({ activeTab, setActiveTab }) => {
+export const BottomNav = () => {
   const router = useRouter();
+  const pathname = usePathname();
+
+  // Helper to determine active state
+  const isActive = (path) => pathname === path;
 
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 py-3 px-2">
@@ -22,38 +25,38 @@ export const BottomNav = ({ activeTab, setActiveTab }) => {
         <BottomNavItem
           icon={MdHome}
           label="Discover"
-          active={activeTab === "discover"}
-          onClick={() => setActiveTab("discover")}
+          active={isActive('/dashboard')}
+          onClick={() => router.push('/dashboard')}
         />
         <BottomNavItem
           icon={MdFavoriteBorder}
           label="Saved"
-          active={activeTab === "saved"}
-          onClick={() => setActiveTab("saved")}
+          active={isActive('/saved')}
+          onClick={() => router.push('/saved')}
         />
         <BottomNavItem
           icon={FaRegEdit}
           label="Manage Listings"
-          active={false}
+          active={isActive('/my-properties')}
           onClick={() => router.push('/my-properties')}
         />
-        <BottomNavItem
+        {/* <BottomNavItem
           icon={MdAddCircleOutline}
           label="List"
-          active={activeTab === "list"}
+          active={isActive('/listings/new')}
           onClick={() => router.push('/listings/new')}
-        />
+        /> */}
         <BottomNavItem
           icon={MdChatBubbleOutline}
           label="Chat"
           badge="3"
-          active={activeTab === "messages"}
-          onClick={() => setActiveTab("messages")}
+          active={isActive('/messages')}
+          onClick={() => router.push('/messages')}
         />
         <BottomNavItem 
-          icon={MdForum} 
+          icon={MdGroups} 
           label="Community" 
-          active={activeTab === "community"}
+          active={isActive('/community')}
           onClick={() => router.push('/community')}
         />
       </div>

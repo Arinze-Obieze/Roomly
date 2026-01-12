@@ -18,10 +18,16 @@ import { HeaderNavItem } from "@/components/dashboard/ui/HeaderNavItem";
 import { useAuthContext } from "@/contexts/AuthContext";
 import Link from "next/link";
 
-export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters }) => {
+import { usePathname } from "next/navigation";
+
+export const Header = ({ showFilters, setShowFilters }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useAuthContext();
   const [isScrolled, setIsScrolled] = useState(false);
+  
+  const showSearchAndFilters = pathname === '/dashboard';
+  const isActive = (path) => pathname === path;
 
   // Get first name safely
   const firstName = user?.full_name?.split(' ')[0] || 'User';
@@ -69,51 +75,55 @@ export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters })
             <HeaderNavItem 
               icon={MdHome} 
               label="Discover" 
-              active={activeTab === "discover"}
-              onClick={() => setActiveTab("discover")}
+              active={isActive('/dashboard')}
+              onClick={() => router.push('/dashboard')}
             />
             <HeaderNavItem 
               icon={FaRegEdit} 
-              label="manage Listings" 
-              active={false} // Since this is a direct link, active state management might need refactor if we want it to highlight. Simple link for now.
+              label="My Listings" 
+              active={isActive('/my-properties')}
               onClick={() => router.push('/my-properties')}
             />
             <HeaderNavItem 
               icon={MdFavoriteBorder} 
               label="Saved" 
-              active={activeTab === "saved"}
-              onClick={() => setActiveTab("saved")}
+              active={isActive('/saved')}
+              onClick={() => router.push('/saved')}
             />
             <HeaderNavItem 
               icon={MdChatBubbleOutline} 
               label="Messages" 
               badge="1"
-              active={activeTab === "messages"}
-              onClick={() => setActiveTab("messages")}
+              active={isActive('/messages')}
+              onClick={() => router.push('/messages')}
             />
             <HeaderNavItem 
               icon={MdGroups} 
               label="Community" 
-              active={activeTab === "community"}
-              onClick={() => setActiveTab("community")}
+              active={isActive('/community')}
+              onClick={() => router.push('/community')}
             />
           </nav>
 
           <div className="relative w-96">
-            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-              <MdSearch className="text-slate-400 text-xl" />
-            </div>
-            <input 
-              type="text" 
-              placeholder="Search locations..." 
-              className="w-full pl-11 pr-24 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all outline-none"
-            />
-            <button 
-              onClick={() => setShowFilters(true)}
-              className="absolute inset-y-2 right-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
-            >
-              <MdFilterList /> Filters
-            </button>
+            {showSearchAndFilters && (
+              <>
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <MdSearch className="text-slate-400 text-xl" />
+                </div>
+                <input 
+                  type="text" 
+                  placeholder="Search locations..." 
+                  className="w-full pl-11 pr-24 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all outline-none"
+                />
+                <button 
+                  onClick={() => setShowFilters(true)}
+                  className="absolute inset-y-2 right-2 px-4 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-2"
+                >
+                  <MdFilterList /> Filters
+                </button>
+              </>
+            )}
           </div>
 
           <button 
@@ -148,26 +158,28 @@ export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters })
           </div>
         </div>
 
-        <div className="px-4 pb-4">
-          <div className="relative">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <MdSearch className="text-slate-400 text-xl" />
-            </div>
-            
-            <input 
-              type="text" 
-              placeholder="Search locations..." 
-              className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all outline-none text-sm"
-            />
+        {showSearchAndFilters && (
+          <div className="px-4 pb-4">
+            <div className="relative">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <MdSearch className="text-slate-400 text-xl" />
+              </div>
+              
+              <input 
+                type="text" 
+                placeholder="Search locations..." 
+                className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all outline-none text-sm"
+              />
 
-            <button 
-              onClick={() => setShowFilters(true)}
-              className="absolute inset-y-1 right-1 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
-            >
-              <MdFilterList size={18} /> Filters
-            </button>
+              <button 
+                onClick={() => setShowFilters(true)}
+                className="absolute inset-y-1 right-1 px-3 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-sm font-medium transition-colors flex items-center gap-1"
+              >
+                <MdFilterList size={18} /> Filters
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </header>
     </>
   );
