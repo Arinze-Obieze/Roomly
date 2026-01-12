@@ -79,7 +79,7 @@ export const PropertiesProvider = ({ children }) => {
           users (
             id,
             full_name,
-            avatar_url,
+            profile_picture,
             is_verified
           )
         `, { count: 'exact' })
@@ -148,7 +148,7 @@ export const PropertiesProvider = ({ children }) => {
           verified: userData?.is_verified || false,
           host: {
             name: userData?.full_name || 'Unknown',
-            avatar: userData?.avatar_url || `https://i.pravatar.cc/150?u=${property.listed_by_user_id}`,
+            avatar: userData?.profile_picture || `https://i.pravatar.cc/150?u=${property.listed_by_user_id}`,
             id: property.listed_by_user_id
           },
           matchScore: calculateMatchScore(property, filters),
