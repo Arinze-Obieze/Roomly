@@ -87,8 +87,14 @@ export async function GET(request) {
       location: `${property.city}, ${property.state}`,
       price: `€${property.price_per_month}`,
       period: 'month',
-      image: property.property_media?.find(m => m.is_primary)?.url || property.property_media?.[0]?.url || null,
-      images: property.property_media?.sort((a, b) => a.display_order - b.display_order).map(m => m.url) || [],
+      image: property.property_media?.find(m => m.is_primary)?.url 
+        ? supabase.storage.from('property-media').getPublicUrl(property.property_media.find(m => m.is_primary).url).data.publicUrl
+        : property.property_media?.[0]?.url 
+          ? supabase.storage.from('property-media').getPublicUrl(property.property_media[0].url).data.publicUrl
+          : null,
+      images: property.property_media?.sort((a, b) => a.display_order - b.display_order).map(m => 
+        supabase.storage.from('property-media').getPublicUrl(m.url).data.publicUrl
+      ) || [],
       bedrooms: property.bedrooms,
       bathrooms: property.bathrooms,
       propertyType: property.property_type,
