@@ -14,10 +14,17 @@ import {
   MdAddCircleOutline
 } from "react-icons/md";
 import { HeaderNavItem } from "@/components/dashboard/ui/HeaderNavItem";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters }) => {
   const router = useRouter();
+  const { user } = useAuthContext();
   const [isScrolled, setIsScrolled] = useState(false);
+
+  // Get first name safely
+  const firstName = user?.full_name?.split(' ')[0] || 'User';
+  const avatarUrl = user?.avatar_url || user?.user_metadata?.avatar_url;
+  const initialsFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'User')}&background=random`;
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -40,13 +47,16 @@ export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters })
               <MdNotificationsNone size={22} className="text-slate-600" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <button className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <button 
+              onClick={() => router.push('/profile')}
+              className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
               <img 
-                src="https://i.pravatar.cc/150?u=me" 
-                className="w-8 h-8 rounded-full border border-slate-200" 
+                src={avatarUrl || initialsFallback} 
+                className="w-8 h-8 rounded-full border border-slate-200 object-cover" 
                 alt="User" 
               />
-              <span className="text-sm font-medium text-slate-700">Alex</span>
+              <span className="text-sm font-medium text-slate-700">{firstName}</span>
             </button>
           </div>
         </div>
@@ -58,6 +68,12 @@ export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters })
               label="Discover" 
               active={activeTab === "discover"}
               onClick={() => setActiveTab("discover")}
+            />
+            <HeaderNavItem 
+              icon={MdHome} 
+              label="My Listings" 
+              active={false} // Since this is a direct link, active state management might need refactor if we want it to highlight. Simple link for now.
+              onClick={() => router.push('/my-properties')}
             />
             <HeaderNavItem 
               icon={MdFavoriteBorder} 
@@ -120,7 +136,10 @@ export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters })
               <MdNotificationsNone size={22} />
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <button className="p-2 rounded-lg hover:bg-slate-100">
+            <button 
+              onClick={() => router.push('/profile')}
+              className="p-2 rounded-lg hover:bg-slate-100"
+            >
               <MdPersonOutline size={22} />
             </button>
           </div>

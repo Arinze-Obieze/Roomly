@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import PasswordField from './Forms/PasswordField';
-import AuthHeader from './Layout/AuthHeader';
-import SubmitButton from './Forms/SubmitButton';
+import PasswordField from '../Forms/PasswordField';
+
+import SubmitButton from '../Forms/SubmitButton';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
+import AuthHeader from '../Layout/AuthHeader';
 
 export default function ResetPasswordPage() {
   const router = useRouter();

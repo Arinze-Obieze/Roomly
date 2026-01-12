@@ -4,11 +4,14 @@ import { FilterModal, ListingCard } from "@/components/dashboard";
 import { usePropertiesWithFilters } from "@/hooks/usePropertiesWithFilters";
 import { useState, useEffect, useRef } from "react";
 import { MdRefresh } from "react-icons/md";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 export default function HomeDashboard() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedListing, setSelectedListing] = useState(null);
   const loadMoreRef = useRef(null);
+  const { user } = useAuthContext();
+  const firstName = user?.full_name?.split(' ')[0] || 'User';
 
   const { 
     properties, 
@@ -52,7 +55,7 @@ export default function HomeDashboard() {
         <div className="px-8 py-6 max-w-6xl mx-auto xl:mx-0 xl:px-12">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-semibold mb-1">Good morning, Alex 👋</h2>
+              <h2 className="text-xl font-semibold mb-1">Good morning, {firstName} 👋</h2>
               <p className="text-slate-500 text-sm">
                 {loading && properties.length === 0 
                   ? "Loading properties..." 

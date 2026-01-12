@@ -29,6 +29,12 @@ export const BottomNav = ({ activeTab, setActiveTab }) => {
           onClick={() => setActiveTab("saved")}
         />
         <BottomNavItem 
+          icon={MdHome} 
+          label="My Listings" 
+          active={false}
+          onClick={() => router.push('/my-properties')}
+        />
+        <BottomNavItem 
           icon={MdAddCircleOutline} 
           label="List" 
           active={activeTab === "list"}
