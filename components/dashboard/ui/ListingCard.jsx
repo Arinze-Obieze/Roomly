@@ -12,7 +12,12 @@ const getIconComponent = (iconName) => {
   return iconMap[iconName] || FaWifi;
 };
 
+import { useAuthContext } from "@/contexts/AuthContext";
+
 export const ListingCard = ({ data, onSelect }) => {
+  const { user } = useAuthContext();
+  const isOwner = user?.id === data.host?.id;
+
   return (
     <div 
       onClick={() => onSelect?.()}
@@ -26,10 +31,12 @@ export const ListingCard = ({ data, onSelect }) => {
           loading="lazy"
         />
         
-        <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-slate-900 px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs">
-          <div className={`w-1.5 h-1.5 rounded-full ${data.matchScore > 90 ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-          <span className="font-bold">{data.matchScore}% Match</span>
-        </div>
+        {!isOwner && (
+          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-slate-900 px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs">
+            <div className={`w-1.5 h-1.5 rounded-full ${data.matchScore > 90 ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
+            <span className="font-bold">{data.matchScore}% Match</span>
+          </div>
+        )}
 
         <div className="absolute bottom-3 left-3 bg-slate-900/80 backdrop-blur text-white px-3 py-1.5 rounded-xl">
           <span className="font-bold text-sm lg:text-base">{data.price}</span>
