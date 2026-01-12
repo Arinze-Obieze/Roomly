@@ -2,11 +2,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import PasswordField from './Forms/PasswordField';
-import InputField from './Forms/InputField';
-import CheckboxField from './Forms/CheckboxField';
-import AuthHeader from './Layout/AuthHeader';
-import SubmitButton from './Forms/SubmitButton';
+import PasswordField from '../Forms/PasswordField';
+import InputField from '../Forms/InputField';
+import CheckboxField from '../Forms/CheckboxField';
+import AuthHeader from '../Layout/AuthHeader';
+import SubmitButton from '../Forms/SubmitButton';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function LoginPage() {

@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import InputField from './Forms/InputField';
-import AuthHeader from './Layout/AuthHeader';
-import SubmitButton from './Forms/SubmitButton';
+import InputField from '../Forms/InputField';
+import AuthHeader from '../Layout/AuthHeader';
+import SubmitButton from '../Forms/SubmitButton';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/hooks/useAuth';
 

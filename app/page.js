@@ -1,12 +1,12 @@
-import Header from '@/components/Header';
-import HeroSection from '@/components/HeroSection';
-import ProblemsSection from '@/components/ProblemsSection';
-import SolutionsSection from '@/components/SolutionsSection';
-import BenefitsSection from '@/components/BenefitsSection';
-import TestimonialsSection from '@/components/TestimonialsSection';
-import CTASection from '@/components/CTASection';
-import StickyCTA from '@/components/StickyCTA';
-import Footer from '@/components/Footer';
+import Header from '@/components/marketing/Header';
+import HeroSection from '@/components/marketing/HeroSection';
+import ProblemsSection from '@/components/marketing/ProblemsSection';
+import SolutionsSection from '@/components/marketing/SolutionsSection';
+import BenefitsSection from '@/components/marketing/BenefitsSection';
+import TestimonialsSection from '@/components/marketing/TestimonialsSection';
+import CTASection from '@/components/marketing/CTASection';
+import StickyCTA from '@/components/marketing/StickyCTA';
+import Footer from '@/components/marketing/Footer';
 
 export default function HomePage() {
   return (

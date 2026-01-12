@@ -1,7 +1,8 @@
 'use client';
 
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useState, useCallback } from 'react';
 import AuthContext from './auth-context';
+import { createClient } from '@/lib/supabase/client';
 
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
@@ -15,7 +16,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshSession = async () => {
+  const refreshSession = useCallback(async () => {
     try {
       const response = await fetch('/api/auth/session');
       const data = await response.json();
@@ -29,6 +30,26 @@ export function AuthProvider({ children }) {
       console.error('Error refreshing session:', error);
       setUser(null);
     }
+  }, []);
+
+  const updateProfile = async (updates) => {
+    try {
+      const supabase = createClient();
+      const { error } = await supabase
+        .from('users')
+        .update(updates)
+        .eq('id', user.id);
+
+      if (error) throw error;
+
+      // Update local state immediately for better UX
+      setUser(prev => ({ ...prev, ...updates }));
+      
+      return { success: true };
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      return { success: false, error };
+    }
   };
 
   useEffect(() => {
@@ -40,6 +61,7 @@ export function AuthProvider({ children }) {
     user,
     loading,
     refreshSession,
+    updateProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
