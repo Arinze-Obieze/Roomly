@@ -30,7 +30,7 @@ export default function MediaUpload({ formData, handleFileChange, removeFile }) 
               accept="image/*"
               multiple
               onChange={e => handleFileChange(e, 'photos')}
-              disabled={formData.photos.length >= 10}
+              disabled={(formData.photos || []).length >= 10}
               className="hidden"
             />
             <span className="block text-xs text-slate-400 mt-3">
@@ -38,10 +38,10 @@ export default function MediaUpload({ formData, handleFileChange, removeFile }) 
             </span>
           </div>
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {formData.photos.map((file, idx) => (
+            {(formData.photos || []).map((file, idx) => (
               <div key={idx} className="relative group overflow-hidden rounded-lg border-2 border-cyan-200 hover:border-cyan-400 transition-all shadow-sm">
                 <img
-                  src={URL.createObjectURL(file)}
+                  src={typeof file === 'string' ? file : URL.createObjectURL(file)}
                   alt={`Photo ${idx+1}`}
                   className="w-full h-24 object-cover rounded-lg group-hover:scale-105 transition-transform"
                 />
@@ -75,15 +75,15 @@ export default function MediaUpload({ formData, handleFileChange, removeFile }) 
               accept="video/*"
               multiple
               onChange={e => handleFileChange(e, 'videos')}
-              disabled={formData.videos.length >= 5}
+              disabled={(formData.videos || []).length >= 5}
               className="hidden"
             />
           </div>
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {formData.videos.map((file, idx) => (
+            {(formData.videos || []).map((file, idx) => (
               <div key={idx} className="relative group overflow-hidden rounded-lg border-2 border-cyan-100 hover:border-cyan-400 transition-all shadow-sm">
                 <video
-                  src={URL.createObjectURL(file)}
+                  src={typeof file === 'string' ? file : URL.createObjectURL(file)}
                   controls
                   className="w-full h-24 object-cover rounded-lg group-hover:scale-105 transition-transform"
                 />

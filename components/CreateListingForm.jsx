@@ -79,21 +79,30 @@ export default function CreateListingForm({ onClose, initialData = null }) {
   
   const isEditing = !!initialData;
 
-  const [formData, setFormData] = useState(initialData || {
-    title: '',
-    description: '',
-    property_type: '',
-    price_per_month: '',
-    state: '',
-    city: '',
-    street: '',
-    bedrooms: 1,
-    bathrooms: 1,
-    square_meters: '',
-    available_from: '',
-    amenities: [],
-    photos: [], // Array of File or String (URL)
-    videos: [], // Array of File
+  const [formData, setFormData] = useState(() => {
+    if (initialData) {
+      return {
+        ...initialData,
+        photos: initialData.property_media?.map(m => m.url) || [],
+        videos: [], // Video support to be added if needed
+      };
+    }
+    return {
+      title: '',
+      description: '',
+      property_type: '',
+      price_per_month: '',
+      state: '',
+      city: '',
+      street: '',
+      bedrooms: 1,
+      bathrooms: 1,
+      square_meters: '',
+      available_from: '',
+      amenities: [],
+      photos: [], // Array of File or String (URL)
+      videos: [], // Array of File
+    };
   });
 
   const handleChange = (field, value) => {
@@ -192,39 +201,45 @@ export default function CreateListingForm({ onClose, initialData = null }) {
     try {
       if (isEditing) {
         // UPDATE Logic
-        // 1. Update text fields and existing amenities
+        const body = new FormData();
+        
+        // Append text fields
+        body.append('title', formData.title);
+        body.append('description', formData.description);
+        body.append('property_type', formData.property_type);
+        body.append('price_per_month', formData.price_per_month);
+        body.append('state', formData.state);
+        body.append('city', formData.city);
+        body.append('street', formData.street);
+        body.append('bedrooms', formData.bedrooms);
+        body.append('bathrooms', formData.bathrooms);
+        body.append('square_meters', formData.square_meters);
+        body.append('available_from', formData.available_from);
+        body.append('amenities', JSON.stringify(formData.amenities));
+
+        // Handle Photos
+        // existing_photos: URLs of photos to keep
+        // new_photos: File objects to upload
+        formData.photos.forEach(photo => {
+          if (typeof photo === 'string') {
+            body.append('existing_photos[]', photo);
+          } else if (photo instanceof File) {
+            body.append('new_photos[]', photo);
+          }
+        });
+
+        // Handle Videos (similar logic if video support added)
+        formData.videos.forEach(video => {
+           if (video instanceof File) body.append('new_videos[]', video);
+        });
+
          const response = await fetch(`/api/properties/${initialData.id}`, {
            method: 'PUT',
-           headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify({
-             title: formData.title,
-             description: formData.description,
-             property_type: formData.property_type,
-             price_per_month: formData.price_per_month,
-             state: formData.state,
-             city: formData.city,
-             street: formData.street,
-             bedrooms: formData.bedrooms,
-             bathrooms: formData.bathrooms,
-             square_meters: formData.square_meters,
-             available_from: formData.available_from,
-             amenities: formData.amenities,
-           }),
+           // body is FormData, fetch sets Content-Type to multipart/form-data automatically
+           body: body,
          });
 
          if (!response.ok) throw new Error('Failed to update property details');
-
-         // 2. Handle NEW file uploads if any
-         // We need the supabase client here to upload directly as we did in the API route, 
-         // OR we define a new API endpoint for media upload. 
-         // Since I cannot easily import supabase client in this client component without ensuring it's set up for storage uploads from client-side (RLS),
-         // adapting the existing `create` endpoint might be safer, but I created a new `[id]` route.
-         
-         // Ideally, we should upload files. For now, let's assume the user edits details primarily.
-         // If we want to support photo uploads on edit, we'd typically use a dedicated media endpoint or helper.
-         // Given constraints, I'll log a warning or try to reuse a pattern.
-         // Let's postpone complex file add/remove on edit for a dedicated "Manage Photos" section or similar if simple update fails.
-         // BUT wait, `formData.photos` might contain File objects (new) and Strings (existing).
          
       } else {
         // CREATE Logic (Original)

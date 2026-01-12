@@ -18,7 +18,7 @@ export default function ReviewCard({ formData }) {
           <div className="bg-slate-200 aspect-4/3 w-full flex items-center justify-center">
             {formData.photos && formData.photos.length > 0 ? (
               <img
-                src={URL.createObjectURL(formData.photos[0])}
+                src={typeof formData.photos[0] === 'string' ? formData.photos[0] : URL.createObjectURL(formData.photos[0])}
                 alt="Cover"
                 className="w-full h-full object-cover"
               />

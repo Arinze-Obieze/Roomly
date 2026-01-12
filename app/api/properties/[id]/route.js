@@ -56,13 +56,39 @@ export async function PUT(request, { params }) {
     // Check authentication
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const updates = await request.json();
+    // Handle both JSON (legacy/simple) and FormData (with files)
+    const contentType = request.headers.get('content-type') || '';
+    let updates = {};
+    let existingPhotos = [];
+    let newPhotos = [];
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      
+      // Extract text fields
+      updates = {
+        title: formData.get('title'),
+        description: formData.get('description'),
+        property_type: formData.get('property_type'),
+        price_per_month: formData.get('price_per_month'),
+        state: formData.get('state'),
+        city: formData.get('city'),
+        street: formData.get('street'),
+        bedrooms: formData.get('bedrooms'),
+        bathrooms: formData.get('bathrooms'),
+        square_meters: formData.get('square_meters'),
+        available_from: formData.get('available_from'),
+        amenities: JSON.parse(formData.get('amenities') || '[]'),
+      };
+
+      existingPhotos = formData.getAll('existing_photos[]');
+      newPhotos = formData.getAll('new_photos[]');
+    } else {
+      updates = await request.json();
+    }
 
     // Verify ownership
     const { data: existingProperty } = await supabase
@@ -79,7 +105,7 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Update property
+    // Update property details
     const { data, error } = await supabase
       .from('properties')
       .update(updates)
@@ -88,6 +114,65 @@ export async function PUT(request, { params }) {
       .single();
 
     if (error) throw error;
+
+    // Handle Media Sync only if using FormData (implies edit form usage)
+    if (contentType.includes('multipart/form-data')) {
+       // 1. Fetch current media to identify what to delete
+       const { data: currentMedia } = await supabase
+         .from('property_media')
+         .select('*')
+         .eq('property_id', id);
+
+       // 2. Identify media to delete
+       // We match existingPhotos (full URLs) against currentMedia (relative paths)
+       // by checking if the URL ends with the relative path.
+       const mediaToDelete = currentMedia.filter(m => {
+          // Check if any "kept" photo URL contains this media's storage path
+          // This is a heuristic but safe for Supabase URLs
+          const isKept = existingPhotos.some(url => url.includes(m.url));
+          return !isKept;
+       });
+
+       // 3. Delete removed media
+       if (mediaToDelete.length > 0) {
+          const pathsToRemove = mediaToDelete.map(m => m.url);
+          const idsToRemove = mediaToDelete.map(m => m.id);
+
+          // Remove from Storage
+          await supabase.storage.from('property-media').remove(pathsToRemove);
+          
+          // Remove from DB
+          await supabase.from('property_media').delete().in('id', idsToRemove);
+       }
+
+       // 4. Upload and Insert NEW media
+       if (newPhotos.length > 0) {
+         const newMediaRecords = [];
+         
+         for (const file of newPhotos) {
+            const fileName = `${id}/${Date.now()}-${Math.random().toString(36).substring(7)}`;
+            const { error: uploadError } = await supabase.storage
+              .from('property-media')
+              .upload(fileName, file);
+
+            if (uploadError) {
+              console.error('Upload error:', uploadError);
+              continue;
+            }
+
+            newMediaRecords.push({
+              property_id: id,
+              url: fileName,
+              media_type: 'image', // simplified
+              is_primary: false // simplified logic
+            });
+         }
+
+         if (newMediaRecords.length > 0) {
+            await supabase.from('property_media').insert(newMediaRecords);
+         }
+       }
+    }
 
     return NextResponse.json(data);
   } catch (error) {
