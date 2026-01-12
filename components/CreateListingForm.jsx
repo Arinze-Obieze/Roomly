@@ -74,6 +74,7 @@ const STEPS = [
 export default function CreateListingForm({ onClose, initialData = null }) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
+  const [furthestStep, setFurthestStep] = useState(1);
   const [focusedField, setFocusedField] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -175,7 +176,18 @@ export default function CreateListingForm({ onClose, initialData = null }) {
         return;
       }
     }
-    setCurrentStep(prev => Math.min(prev + 1, STEPS.length));
+    setCurrentStep(prev => {
+      const nextStep = Math.min(prev + 1, STEPS.length);
+      setFurthestStep(f => Math.max(f, nextStep));
+      return nextStep;
+    });
+  };
+
+  const handleStepClick = (stepId) => {
+    // Allow going to any step we've reached before
+    if (stepId <= furthestStep) {
+      setCurrentStep(stepId);
+    }
   };
 
   const handleBack = () => {
@@ -299,7 +311,12 @@ export default function CreateListingForm({ onClose, initialData = null }) {
           </div>
 
           {/* Progress Steps */}
-          <Stepper steps={STEPS} currentStep={currentStep} />
+          <Stepper 
+            steps={STEPS} 
+            currentStep={currentStep} 
+            furthestStep={furthestStep}
+            onStepClick={handleStepClick}
+          />
         </div>
       </div>
 

@@ -3,7 +3,7 @@ import SubmitButton from './SubmitButton';
 
 export default function FooterNav({ currentStep, STEPS, handleBack, handleNext, handleSubmit, isSubmitting }) {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 z-20">
+    <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 p-4 z-40">
       <div className="max-w-4xl mx-auto flex items-center justify-between gap-4">
         <button
           onClick={handleBack}
