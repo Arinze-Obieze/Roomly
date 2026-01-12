@@ -133,14 +133,21 @@ export const PropertiesProvider = ({ children }) => {
       // Transform data to match your listing format
       const transformedData = data.map(property => {
         const userData = property.users;
+
+        const getImageUrl = (url) => {
+          if (!url) return '/placeholder-property.jpg';
+          if (url.startsWith('http')) return url;
+          return supabase.storage.from('property-media').getPublicUrl(url).data.publicUrl;
+        };
+
         return {
           id: property.id,
           title: property.title,
           location: `${property.city}, ${property.state}`,
           price: `€${property.price_per_month}`,
           period: 'month',
-          image: property.property_media?.[0]?.url || '/placeholder-property.jpg',
-          images: property.property_media?.map(m => m.url) || [],
+          image: getImageUrl(property.property_media?.[0]?.url),
+          images: property.property_media?.map(m => getImageUrl(m.url)) || [],
           bedrooms: property.bedrooms,
           bathrooms: property.bathrooms,
           propertyType: property.property_type,

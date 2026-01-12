@@ -186,11 +186,15 @@ export async function POST(req) {
         console.error('[DEBUG] Photo upload error:', uploadErr);
         throw uploadErr;
       }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('property-media')
+        .getPublicUrl(path);
       
       // Insert media record
       const { error: mediaErr } = await supabase.from('property_media').insert({
         property_id: property.id,
-        url: upload.path,
+        url: publicUrl,
         media_type: 'image',
         is_primary: i === 0,
         display_order: i + 1,
@@ -200,7 +204,7 @@ export async function POST(req) {
         console.error('[DEBUG] Media record error:', mediaErr);
         throw mediaErr;
       }
-      mediaRecords.push(upload.path);
+      mediaRecords.push(publicUrl);
     }
     
     // Videos
