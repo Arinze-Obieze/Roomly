@@ -20,7 +20,7 @@ export const BottomNav = () => {
   const isActive = (path) => pathname === path;
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white border-t border-slate-200 py-3 px-2">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-lg border-t border-slate-200 py-3 px-2 shadow-lg-up">
       <div className="flex justify-around items-center">
         <BottomNavItem
           icon={MdHome}

@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import PremiumSlider from '@/components/ui/PremiumSlider';
-import { MdSchedule, MdCleaningServices, MdPets, MdMusicNote, MdLocalBar, MdSmokeFree, MdCheck, MdArrowForward, MdArrowBack } from 'react-icons/md';
-import { FaCannabis, FaBed } from 'react-icons/fa';
+import { MdSchedule, MdCleaningServices, MdPets, MdMusicNote, MdLocalBar, MdSmokeFree, MdCheck, MdArrowForward, MdArrowBack, MdEdit } from 'react-icons/md';
+import { FaCannabis } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
 const STEPS = [
@@ -19,7 +19,8 @@ const INTEREST_TAGS = [
   'Yoga', 'Art', 'Tech', 'Outdoors', 'Nightlife', 'Board Games', 'Gardening', 'Fashion'
 ];
 
-export default function LifestyleWizard({ user, onComplete }) {
+export default function LifestyleWizard({ user, onComplete, initialData }) {
+  const [mode, setMode] = useState(initialData ? 'view' : 'edit');
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -39,24 +40,21 @@ export default function LifestyleWizard({ user, onComplete }) {
   const supabase = createClient();
 
   useEffect(() => {
-    const fetchLifestyle = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('user_lifestyles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-        
-        if (data) {
-          setFormData(prev => ({ ...prev, ...data }));
-        }
-      } catch (error) {
-        console.log('No existing lifestyle profile found');
-      }
-    };
-    
-    if (user?.id) fetchLifestyle();
-  }, [user]);
+    if (initialData) {
+      setFormData(prev => ({ ...prev, ...initialData }));
+      setMode('view');
+    }
+  }, [initialData]);
+
+  // Keep existing fetch logic for when we mount without initialData but might have data in DB?
+  // Actually ProfilePage handles this now, but good to keep as backup or remove.
+  // We'll trust initialData mostly, or fetch if not provided.
+  useEffect(() => {
+    if (!initialData && user?.id) {
+       // fetch... logic could go here but let's rely on parent for now to avoid double fetching
+       // or we just keep it simple.
+    }
+  }, [initialData, user]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -81,6 +79,7 @@ export default function LifestyleWizard({ user, onComplete }) {
       if (error) throw error;
       
       toast.success('Lifestyle profile saved!');
+      setMode('view'); // Switch to view mode on save
       if (onComplete) onComplete();
     } catch (error) {
       console.error('Error saving lifestyle:', error);
@@ -100,6 +99,110 @@ export default function LifestyleWizard({ user, onComplete }) {
       }
     });
   };
+
+  const renderSummaryCard = () => (
+    <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm animate-fadeIn">
+      <div className="flex justify-between items-start mb-8">
+        <div>
+          <h2 className="text-2xl font-bold text-slate-900">Your Lifestyle Profile</h2>
+          <p className="text-slate-500">This is how you appear to potential rentmates.</p>
+        </div>
+        <button 
+          onClick={() => setMode('edit')}
+          className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-medium transition-colors"
+        >
+          <MdEdit /> Edit Profile
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Key Stats */}
+        <div className="space-y-6">
+          <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Daily Rhythm</h3>
+             <ul className="space-y-3">
+               <li className="flex items-center gap-3">
+                 <span className="text-xl">📅</span>
+                 <span className="font-medium text-slate-700 capitalize">{formData.schedule_type} Schedule</span>
+               </li>
+               <li className="flex items-center gap-3">
+                 <span className="text-xl">🚬</span>
+                 <span className="font-medium text-slate-700 capitalize">
+                   {formData.smoking_status === 'no' ? 'Non-smoker' : formData.smoking_status === 'outside' ? 'Outdoor Smoker' : 'Indoor Smoker'}
+                 </span>
+               </li>
+               <li className="flex items-center gap-3">
+                 <span className="text-xl">🥂</span>
+                 <span className="font-medium text-slate-700 capitalize">{formData.drinking_habits} Drinker</span>
+               </li>
+               {formData.cannabis_friendly && (
+                 <li className="flex items-center gap-3">
+                   <span className="text-xl text-green-600"><FaCannabis /></span>
+                   <span className="font-medium text-slate-700">Cannabis Friendly</span>
+                 </li>
+               )}
+             </ul>
+          </div>
+
+          <div className="bg-slate-50 rounded-xl p-5 border border-slate-100">
+             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Logistics</h3>
+             <ul className="space-y-3">
+               <li className="flex items-center gap-3">
+                 <span className="text-xl">🛌</span>
+                 <span className="font-medium text-slate-700">Guests: <span className="capitalize">{formData.overnight_guests}</span></span>
+               </li>
+               <li className="flex items-center gap-3">
+                 <span className="text-xl">🥗</span>
+                 <span className="font-medium text-slate-700 capitalize">{formData.dietary_preference}</span>
+               </li>
+               <li className="flex items-center gap-3">
+                 <span className="text-xl">🐶</span>
+                 <span className="font-medium text-slate-700">
+                   {formData.pets.has_pets ? `Has Pets: ${formData.pets.description}` : 'No Pets'}
+                 </span>
+               </li>
+             </ul>
+          </div>
+        </div>
+
+        {/* Levels */}
+        <div className="space-y-6">
+           <div className="space-y-6">
+              {[
+                { label: 'Cleanliness', val: formData.cleanliness_level, icon: <MdCleaningServices /> },
+                { label: 'Social Battery', val: formData.social_level, icon: <MdLocalBar /> },
+                { label: 'Noise Tolerance', val: formData.noise_tolerance, icon: <MdMusicNote /> },
+              ].map((stat) => (
+                <div key={stat.label}>
+                  <div className="flex justify-between mb-2">
+                    <span className="font-medium flex items-center gap-2 text-slate-700">{stat.icon} {stat.label}</span>
+                    <span className="text-slate-400 text-sm">{stat.val}/3</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div className="h-full bg-slate-900" style={{ width: `${(stat.val / 3) * 100}%` }} />
+                  </div>
+                </div>
+              ))}
+           </div>
+
+           <div>
+             <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Interests</h3>
+             <div className="flex flex-wrap gap-2">
+               {formData.interests && formData.interests.length > 0 ? (
+                 formData.interests.map(tag => (
+                   <span key={tag} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium">
+                     {tag}
+                   </span>
+                 ))
+               ) : (
+                 <span className="text-slate-400 italic">No interests added yet</span>
+               )}
+             </div>
+           </div>
+        </div>
+      </div>
+    </div>
+  );
 
   const renderStepContent = () => {
     switch(currentStep) {
@@ -365,6 +468,10 @@ export default function LifestyleWizard({ user, onComplete }) {
       default: return null;
     }
   };
+
+  if (mode === 'view') {
+    return renderSummaryCard();
+  }
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
