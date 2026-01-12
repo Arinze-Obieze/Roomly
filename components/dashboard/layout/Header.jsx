@@ -32,7 +32,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
   // Get first name safely
   const firstName = user?.full_name?.split(' ')[0] || 'User';
   const avatarUrl = user?.avatar_url || user?.user_metadata?.avatar_url;
-  const initialsFallback = `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.full_name || 'User')}&background=random`;
+
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 10);
@@ -56,17 +56,23 @@ export const Header = ({ showFilters, setShowFilters }) => {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
           
-            <button 
-              onClick={() => router.push('/profile')}
-              className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-lg transition-colors"
-            >
-              <img 
-                src={avatarUrl || initialsFallback} 
-                className="w-8 h-8 rounded-full border border-slate-200 object-cover" 
-                alt="User" 
-              />
-              <span className="text-sm font-medium text-slate-700">{firstName}</span>
-            </button>
+              <button 
+                onClick={() => router.push('/profile')}
+                className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                {avatarUrl ? (
+                  <img 
+                    src={avatarUrl} 
+                    className="w-8 h-8 rounded-full border border-slate-200 object-cover" 
+                    alt="User" 
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded-full bg-cyan-100 text-cyan-700 border border-slate-200 flex items-center justify-center text-xs font-bold">
+                    {user?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+                  </div>
+                )}
+                <span className="text-sm font-medium text-slate-700">{firstName}</span>
+              </button>
           </div>
         </div>
 
