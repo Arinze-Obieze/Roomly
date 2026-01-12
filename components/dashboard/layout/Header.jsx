@@ -16,6 +16,7 @@ import {
 import { FaRegEdit } from "react-icons/fa";
 import { HeaderNavItem } from "@/components/dashboard/ui/HeaderNavItem";
 import { useAuthContext } from "@/contexts/AuthContext";
+import Link from "next/link";
 
 export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters }) => {
   const router = useRouter();
@@ -48,6 +49,7 @@ export const Header = ({ activeTab, setActiveTab, showFilters, setShowFilters })
               <MdNotificationsNone size={22} className="text-slate-600" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
+          
             <button 
               onClick={() => router.push('/profile')}
               className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-lg transition-colors"
