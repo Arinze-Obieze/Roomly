@@ -1,142 +1,26 @@
-import { NextResponse } from 'next/server';
+// app/api/properties/route.js (with debug logging)
 import { createClient } from '@/lib/supabase/server';
+import { NextResponse } from 'next/server';
 
 export const runtime = 'nodejs';
 export const bodySizeLimit = '20mb';
-
-export async function GET(request) {
-  try {
-    const { searchParams } = new URL(request.url);
-    
-    const page = parseInt(searchParams.get('page') || '1');
-    const pageSize = parseInt(searchParams.get('pageSize') || '12');
-    const priceRange = searchParams.get('priceRange');
-    const bedrooms = searchParams.get('bedrooms')?.split(',').map(Number).filter(Boolean);
-    const propertyType = searchParams.get('propertyType');
-    const verifiedOnly = searchParams.get('verifiedOnly') === 'true';
-    const amenities = searchParams.get('amenities')?.split(',').filter(Boolean);
-    const location = searchParams.get('location');
-
-    const supabase = await createClient();
-
-    let query = supabase
-      .from('properties')
-      .select(`
-        *,
-        property_media (
-          id,
-          url,
-          media_type,
-          display_order,
-          is_primary
-        ),
-        users!listed_by_user_id (
-          id,
-          full_name,
-          profile_picture
-        )
-      `, { count: 'exact' })
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
-
-    if (priceRange && priceRange !== 'all') {
-      const priceRanges = {
-        budget: { min: 0, max: 800 },
-        mid: { min: 800, max: 1500 },
-        premium: { min: 1500, max: 999999 }
-      };
-      const range = priceRanges[priceRange];
-      if (range) {
-        query = query.gte('price_per_month', range.min).lte('price_per_month', range.max);
-      }
-    }
-
-    if (bedrooms && bedrooms.length > 0) {
-      query = query.in('bedrooms', bedrooms);
-    }
-
-    if (propertyType && propertyType !== 'any' && propertyType !== 'studio') {
-      query = query.eq('property_type', propertyType);
-    }
-
-    if (location) {
-      query = query.or(`city.ilike.%${location}%,state.ilike.%${location}%,street.ilike.%${location}%`);
-    }
-
-    if (amenities && amenities.length > 0) {
-      query = query.contains('amenities', amenities);
-    }
-
-    const from = (page - 1) * pageSize;
-    const to = from + pageSize - 1;
-    query = query.range(from, to);
-
-    const { data, error, count } = await query;
-
-    if (error) {
-      console.error('Database error:', error);
-      return NextResponse.json(
-        { error: 'Failed to fetch properties' },
-        { status: 500 }
-      );
-    }
-
-    const transformedData = data.map(property => ({
-      id: property.id,
-      title: property.title,
-      location: `${property.city}, ${property.state}`,
-      price: `€${property.price_per_month}`,
-      period: 'month',
-      image: property.property_media?.find(m => m.is_primary)?.url || property.property_media?.[0]?.url || null,
-      images: property.property_media?.sort((a, b) => a.display_order - b.display_order).map(m => m.url) || [],
-      bedrooms: property.bedrooms,
-      bathrooms: property.bathrooms,
-      propertyType: property.property_type,
-      amenities: (property.amenities || []).map(a => ({ icon: 'FaWifi', label: a })),
-      amenities: (property.amenities || []).map(a => ({ icon: 'FaWifi', label: a })),
-      verified: false,
-      host: {
-        name: property.users?.full_name || 'Unknown',
-        avatar: property.users?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(property.users?.full_name || 'Unknown')}&background=random`,
-        id: property.listed_by_user_id
-      },
-      description: property.description,
-      availableFrom: property.available_from,
-      createdAt: property.created_at
-    }));
-
-    return NextResponse.json({
-      data: transformedData,
-      pagination: {
-        page,
-        pageSize,
-        total: count || 0,
-        hasMore: (page * pageSize) < (count || 0)
-      }
-    });
-
-  } catch (error) {
-    console.error('API error:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
-  }
-}
 
 export async function POST(req) {
   try {
     console.log('[DEBUG] Starting property creation request');
     
+    // Get authenticated user using SSR client
     const supabase = await createClient();
     console.log('[DEBUG] Supabase client created');
     
+    // Check session first
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     console.log('[DEBUG] Session check:', { 
       hasSession: !!session, 
       sessionError: sessionError?.message 
     });
     
+    // Get user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     console.log('[DEBUG] User check:', { 
       hasUser: !!user, 
@@ -160,6 +44,7 @@ export async function POST(req) {
 
     const form = await req.formData();
     
+    // Extract fields
     const requiredFields = [
       'title', 'description', 'property_type', 'price_per_month',
       'state', 'city', 'street', 'bedrooms', 'bathrooms', 'square_meters', 'available_from',
@@ -173,6 +58,7 @@ export async function POST(req) {
       }
     }
 
+    // Parse amenities (optional)
     let amenities = [];
     try {
       amenities = JSON.parse(form.get('amenities') || '[]');
@@ -180,6 +66,7 @@ export async function POST(req) {
       amenities = [];
     }
 
+    // Handle files
     const photos = form.getAll('photos[]');
     const videos = form.getAll('videos[]');
     
@@ -204,6 +91,7 @@ export async function POST(req) {
       }, { status: 400 });
     }
 
+    // Validate file types
     for (const file of photos) {
       if (!file.type.startsWith('image/')) {
         return NextResponse.json({ 
@@ -221,6 +109,7 @@ export async function POST(req) {
 
     console.log('[DEBUG] Inserting property for user:', user.id);
     
+    // 1. Insert property row
     const propertyData = {
       title: form.get('title'),
       description: form.get('description'),
@@ -255,6 +144,7 @@ export async function POST(req) {
         hint: propErr.hint
       });
       
+      // Detect RLS error
       if (propErr.message && propErr.message.toLowerCase().includes('row-level security')) {
         return NextResponse.json({ 
           error: 'Permission denied: Row-level security policy violation.',
@@ -277,8 +167,10 @@ export async function POST(req) {
 
     console.log('[DEBUG] Property created successfully:', property.id);
 
+    // 2. Upload media to storage and insert property_media
     const mediaRecords = [];
     
+    // Photos
     for (let i = 0; i < photos.length; i++) {
       const file = photos[i];
       const ext = file.name.split('.').pop();
@@ -295,6 +187,7 @@ export async function POST(req) {
         throw uploadErr;
       }
       
+      // Insert media record
       const { error: mediaErr } = await supabase.from('property_media').insert({
         property_id: property.id,
         url: upload.path,
@@ -310,6 +203,7 @@ export async function POST(req) {
       mediaRecords.push(upload.path);
     }
     
+    // Videos
     for (let i = 0; i < videos.length; i++) {
       const file = videos[i];
       const ext = file.name.split('.').pop();
@@ -357,4 +251,10 @@ export async function POST(req) {
       }
     }, { status: 500 });
   }
+}
+
+export function GET() {
+  return NextResponse.json({ 
+    error: 'Method not allowed' 
+  }, { status: 405 });
 }

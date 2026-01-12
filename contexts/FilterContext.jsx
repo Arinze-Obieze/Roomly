@@ -4,11 +4,11 @@ import { useState, createContext } from "react";
 
 export const DEFAULT_FILTERS = {
   priceRange: 'all',
-  bedrooms: [1],
+  bedrooms: [],
   propertyType: 'any',
-  amenities: ['wifi'],
+  amenities: [],
   moveInDate: 'any',
-  verifiedOnly: true,
+  verifiedOnly: false,
 };
 
 export const FilterContext = createContext();

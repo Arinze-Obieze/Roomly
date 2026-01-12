@@ -202,8 +202,8 @@ export default function CreateListingForm({ onClose }) {
           body.append(key, value);
         }
       });
-      console.log('[CreateListingForm] Submitting FormData to /api/properties');
-      const res = await fetch('/api/properties', {
+      console.log('[CreateListingForm] Submitting FormData to /api/properties/create');
+      const res = await fetch('/api/properties/create', {
         method: 'POST',
         body,
       });
