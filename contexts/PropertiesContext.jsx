@@ -79,7 +79,8 @@ export const PropertiesProvider = ({ children }) => {
           users (
             id,
             full_name,
-            profile_picture
+            avatar_url,
+            is_verified
           )
         `, { count: 'exact' })
         .eq('is_active', true)
@@ -108,7 +109,7 @@ export const PropertiesProvider = ({ children }) => {
 
       if (filters.verifiedOnly) {
         // Only show properties from verified users
-        // query = query.eq('users.is_verified', true);
+        query = query.eq('users.is_verified', true);
       }
 
       if (filters.amenities && filters.amenities.length > 0) {
@@ -138,20 +139,16 @@ export const PropertiesProvider = ({ children }) => {
           location: `${property.city}, ${property.state}`,
           price: `€${property.price_per_month}`,
           period: 'month',
-          image: property.property_media?.[0]?.url 
-            ? supabase.storage.from('property-media').getPublicUrl(property.property_media[0].url).data.publicUrl
-            : '/placeholder-property.jpg',
-          images: property.property_media?.map(m => 
-            supabase.storage.from('property-media').getPublicUrl(m.url).data.publicUrl
-          ) || [],
+          image: property.property_media?.[0]?.url || '/placeholder-property.jpg',
+          images: property.property_media?.map(m => m.url) || [],
           bedrooms: property.bedrooms,
           bathrooms: property.bathrooms,
           propertyType: property.property_type,
           amenities: transformAmenities(property.amenities || []),
-          verified: false,
+          verified: userData?.is_verified || false,
           host: {
             name: userData?.full_name || 'Unknown',
-            avatar: userData?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData?.full_name || 'Unknown')}&background=random`,
+            avatar: userData?.avatar_url || `https://i.pravatar.cc/150?u=${property.listed_by_user_id}`,
             id: property.listed_by_user_id
           },
           matchScore: calculateMatchScore(property, filters),

@@ -3,15 +3,12 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { MdEdit, MdCalendarToday } from 'react-icons/md';
 
-export default function ProfileHeader({ isEditing, onToggleEdit }) {
+export default function ProfileHeader({ isEditing, onToggleEdit, hideEditButton }) {
   const { user } = useAuthContext();
 
   if (!user) return null;
 
   // Format join date
-  // user.created_at or user.user_metadata.created_at might be available but let's check
-  // auth.users usually has created_at properly.
-  // user object from session might differ slightly, but let's assume standard fields.
   const joinDate = new Date(user.created_at || Date.now()).toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric'
@@ -39,17 +36,19 @@ export default function ProfileHeader({ isEditing, onToggleEdit }) {
         </div>
 
         <div>
-          <button
-            onClick={onToggleEdit}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
-              isEditing
-                ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                : 'bg-slate-900 text-white hover:bg-slate-800'
-            }`}
-          >
-            <MdEdit />
-            {isEditing ? 'Cancel Editing' : 'Edit Profile'}
-          </button>
+          {!hideEditButton && (
+            <button
+              onClick={onToggleEdit}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
+                isEditing
+                  ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
+                  : 'bg-slate-900 text-white hover:bg-slate-800'
+              }`}
+            >
+              <MdEdit />
+              {isEditing ? 'Cancel Editing' : 'Edit Profile'}
+            </button>
+          )}
         </div>
       </div>
     </div>
