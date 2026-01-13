@@ -13,10 +13,20 @@ const getIconComponent = (iconName) => {
 };
 
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useSavedProperties } from "@/contexts/SavedPropertiesContext";
+import { MdFavorite, MdFavoriteBorder } from "react-icons/md";
 
 export const ListingCard = ({ data, onSelect }) => {
   const { user } = useAuthContext();
+  const { isPropertySaved, toggleSave } = useSavedProperties();
   const isOwner = user?.id === data.host?.id;
+  
+  const isSaved = isPropertySaved(data.id);
+
+  const handleSave = (e) => {
+    e.stopPropagation();
+    toggleSave(data.id);
+  };
 
   return (
     <div 
@@ -31,8 +41,23 @@ export const ListingCard = ({ data, onSelect }) => {
           loading="lazy"
         />
         
+        {/* Save Button - Top Right */}
         {!isOwner && (
-          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur text-slate-900 px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs">
+          <button 
+            onClick={handleSave}
+            className="absolute top-3 right-3 p-2 bg-white/90 backdrop-blur rounded-full shadow-md z-10 hover:bg-white transition-colors active:scale-95"
+          >
+            {isSaved ? (
+              <MdFavorite className="text-red-500 text-xl" />
+            ) : (
+              <MdFavoriteBorder className="text-slate-600 text-xl" />
+            )}
+          </button>
+        )}
+
+        {/* Match Score - Top Left (Moved from Right) */}
+        {!isOwner && (
+          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur text-slate-900 px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs">
             <div className={`w-1.5 h-1.5 rounded-full ${data.matchScore > 90 ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
             <span className="font-bold">{data.matchScore}% Match</span>
           </div>
