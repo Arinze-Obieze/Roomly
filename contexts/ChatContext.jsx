@@ -100,15 +100,22 @@ export const ChatProvider = ({ children }) => {
     // Send a message
     const sendMessage = async (conversationId, content) => {
         try {
-            const { error } = await supabase
+            const { data, error } = await supabase
                 .from('messages')
                 .insert({
                     conversation_id: conversationId,
                     sender_id: user.id,
                     content
-                });
+                })
+                .select()
+                .single();
 
             if (error) throw error;
+
+            // Manually add to messages list immediately
+            if (activeConversation === conversationId) {
+                setMessages(prev => [...prev, data]);
+            }
 
             // Optimistically update conversations last_message
             setConversations(prev => prev.map(c => 
@@ -224,7 +231,12 @@ export const ChatProvider = ({ children }) => {
                 table: 'messages',
                 filter: `conversation_id=eq.${activeConversation}`
             }, (payload) => {
-                setMessages(prev => [...prev, payload.new]);
+                // Prevent duplicate if we already added it manually
+                setMessages(prev => {
+                    if (prev.some(m => m.id === payload.new.id)) return prev;
+                    return [...prev, payload.new];
+                });
+
                 // If I am not the sender, mark as read
                 if (payload.new.sender_id !== user.id) {
                     markAsRead(activeConversation);
