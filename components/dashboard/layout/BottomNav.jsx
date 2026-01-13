@@ -9,12 +9,14 @@ import {
   MdAddCircleOutline,
 } from "react-icons/md";
 import { FaRegEdit } from "react-icons/fa";
+import { useChat } from "@/contexts/ChatContext";
 
 import { BottomNavItem } from "../ui/BottomNavItem";
 
 export const BottomNav = () => {
   const router = useRouter();
   const pathname = usePathname();
+  const { unreadCount } = useChat();
 
   // Helper to determine active state
   const isActive = (path) => pathname === path;
@@ -49,7 +51,7 @@ export const BottomNav = () => {
         <BottomNavItem
           icon={MdChatBubbleOutline}
           label="Chat"
-          badge="3"
+          badge={unreadCount > 0 ? unreadCount : null}
           active={isActive('/messages')}
           onClick={() => router.push('/messages')}
         />

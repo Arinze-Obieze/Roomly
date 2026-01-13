@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { MdLocationOn, MdArrowBack, MdOutlineBed, MdBathtub, MdSquareFoot, MdVerified, MdPerson, MdCalendarToday } from 'react-icons/md';
+import { useChat } from '@/contexts/ChatContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { FaWifi, FaPaw, FaShower, FaTree } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
@@ -13,6 +15,32 @@ export default function PropertyDetailsPage() {
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
   const [activeImage, setActiveImage] = useState(0);
+  const { startConversation } = useChat();
+  const { user } = useAuthContext();
+  const [contacting, setContacting] = useState(false);
+
+  // Check if current user is the host
+  const isOwner = user?.id === property?.host?.id;
+
+  const handleContactHost = async () => {
+    if (!user) {
+        router.push('/login');
+        return;
+    }
+    
+    setContacting(true);
+    // Start conversation with default message using property context
+    const conversationId = await startConversation(
+        property.id, 
+        property.host.id, 
+        `Hi ${property.host.name}, I'm interested in your property on ${property.street || property.city}. Is it still available?`
+    );
+
+    if (conversationId) {
+        router.push('/messages');
+    }
+    setContacting(false);
+  };
 
   const supabase = createClient();
 
@@ -233,9 +261,22 @@ export default function PropertyDetailsPage() {
                       </div>
                    </div>
 
-                   <button className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg active:scale-[0.98]">
-                     Contact Host
-                   </button>
+                   {isOwner ? (
+                       <button 
+                         onClick={() => router.push('/my-properties')}
+                         className="w-full bg-slate-100 text-slate-700 border border-slate-200 py-3 rounded-xl font-bold hover:bg-slate-200 transition-colors shadow-sm active:scale-[0.98]"
+                       >
+                         Edit Listing
+                       </button>
+                   ) : (
+                       <button 
+                         onClick={handleContactHost}
+                         disabled={contacting}
+                         className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                       >
+                         {contacting ? 'Starting Chat...' : 'Contact Host'}
+                       </button>
+                   )}
                    <p className="text-xs text-center text-slate-400 mt-4">
                      Response time: usually within an hour
                    </p>

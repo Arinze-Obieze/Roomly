@@ -16,6 +16,7 @@ import {
 import { FaRegEdit } from "react-icons/fa";
 import { HeaderNavItem } from "@/components/dashboard/ui/HeaderNavItem";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { useChat } from "@/contexts/ChatContext";
 import Link from "next/link";
 
 import { usePathname } from "next/navigation";
@@ -24,6 +25,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { user } = useAuthContext();
+  const { unreadCount } = useChat();
   const [isScrolled, setIsScrolled] = useState(false);
   
   const showSearchAndFilters = pathname === '/dashboard';
@@ -99,7 +101,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
             <HeaderNavItem 
               icon={MdChatBubbleOutline} 
               label="Messages" 
-              badge="1"
+              badge={unreadCount > 0 ? unreadCount : null}
               active={isActive('/messages')}
               onClick={() => router.push('/messages')}
             />
