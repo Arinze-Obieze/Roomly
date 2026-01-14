@@ -5,11 +5,11 @@ export default function AuthHeader({ title, subtitle, showLogo = true }) {
   return (
     <>
       {showLogo && (
-        <div className="mb-10 lg:mb-12 flex items-center gap-2">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: 'var(--accent)' }}>
-            <Image width={50} height={50} alt="logo" src="/logo.jpg" size={24} />
+        <div className="mb-10 lg:mb-12 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-linear-to-tr from-cyan-500 to-indigo-500 text-white font-bold">
+            HS
           </div>
-          <span className="text-2xl font-bold tracking-tight" style={{ color: 'var(--text)' }}>Roomly</span>
+          <span className="text-2xl font-bold tracking-tight text-slate-900">HomeShareIE</span>
         </div>
       )} 
       

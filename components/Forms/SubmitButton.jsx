@@ -12,7 +12,7 @@ export default function SubmitButton({
       type="submit"
       disabled={disabled || loading}
       onClick={onClick}
-      className={`w-full bg-emerald-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-emerald-700 focus:outline-none focus:ring-4 focus:ring-emerald-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-emerald-600/20 transform active:scale-[0.99] ${disabled || loading ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+      className={`w-full bg-linear-to-r from-cyan-600 to-indigo-600 text-white py-4 rounded-xl font-bold text-lg hover:from-cyan-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-cyan-500/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-cyan-600/20 transform active:scale-[0.99] ${disabled || loading ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
     >
       {loading ? (
         <div className="flex items-center justify-center">
