@@ -74,7 +74,7 @@ const STEPS = [
 export default function CreateListingForm({ onClose, initialData = null }) {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const [furthestStep, setFurthestStep] = useState(1);
+  const [furthestStep, setFurthestStep] = useState(initialData ? STEPS.length : 1);
   const [focusedField, setFocusedField] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
