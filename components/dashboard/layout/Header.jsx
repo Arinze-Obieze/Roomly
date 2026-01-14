@@ -11,7 +11,8 @@ import {
   MdPersonOutline,
   MdFilterList,
   MdSearch,
-  MdAddCircleOutline
+  MdAddCircleOutline,
+  MdLogout
 } from "react-icons/md";
 import { FaRegEdit } from "react-icons/fa";
 import { HeaderNavItem } from "@/components/dashboard/ui/HeaderNavItem";
@@ -24,9 +25,15 @@ import { usePathname } from "next/navigation";
 export const Header = ({ showFilters, setShowFilters }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { user } = useAuthContext();
+  const { user, signOut } = useAuthContext();
   const { unreadCount } = useChat();
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const handleLogout = async () => {
+    await signOut();
+    router.push('/login');
+  };
   
   const showSearchAndFilters = pathname === '/dashboard';
   const isActive = (path) => pathname === path;
@@ -58,23 +65,47 @@ export const Header = ({ showFilters, setShowFilters }) => {
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
           
-              <button 
-                onClick={() => router.push('/profile')}
-                className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-lg transition-colors"
-              >
-                {avatarUrl ? (
-                  <img 
-                    src={avatarUrl} 
-                    className="w-8 h-8 rounded-full border border-slate-200 object-cover" 
-                    alt="User" 
-                  />
-                ) : (
-                  <div className="w-8 h-8 rounded-full bg-cyan-100 text-cyan-700 border border-slate-200 flex items-center justify-center text-xs font-bold">
-                    {user?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+              <div className="relative">
+                <button 
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                  className="flex items-center gap-2 p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  {avatarUrl ? (
+                    <img 
+                      src={avatarUrl} 
+                      className="w-8 h-8 rounded-full border border-slate-200 object-cover" 
+                      alt="User" 
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded-full bg-cyan-100 text-cyan-700 border border-slate-200 flex items-center justify-center text-xs font-bold">
+                      {user?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+                    </div>
+                  )}
+                  <span className="text-sm font-medium text-slate-700">{firstName}</span>
+                </button>
+
+                {/* Dropdown Menu */}
+                {isDropdownOpen && (
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                    <button
+                      onClick={() => router.push('/profile')}
+                      className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                    >
+                      <MdPersonOutline size={18} />
+                      Profile
+                    </button>
+                    <div className="h-px bg-slate-100 my-1" />
+                    <button
+                      onClick={handleLogout}
+                      className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                    >
+                      <MdLogout size={18} />
+                      Log Out
+                    </button>
                   </div>
                 )}
-                <span className="text-sm font-medium text-slate-700">{firstName}</span>
-              </button>
+              </div>
           </div>
         </div>
 
@@ -157,12 +188,36 @@ export const Header = ({ showFilters, setShowFilters }) => {
               <MdNotificationsNone size={22} />
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
-            <button 
-              onClick={() => router.push('/profile')}
-              className="p-2 rounded-lg hover:bg-slate-100"
-            >
-              <MdPersonOutline size={22} />
-            </button>
+            <div className="relative">
+              <button 
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
+                className="p-2 rounded-lg hover:bg-slate-100"
+              >
+                <MdPersonOutline size={22} />
+              </button>
+
+              {/* Mobile Dropdown Menu */}
+              {isDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                  <button
+                    onClick={() => router.push('/profile')}
+                    className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
+                  >
+                    <MdPersonOutline size={18} />
+                    Profile
+                  </button>
+                  <div className="h-px bg-slate-100 my-1" />
+                  <button
+                    onClick={handleLogout}
+                    className="w-full text-left px-4 py-3 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                  >
+                    <MdLogout size={18} />
+                    Log Out
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 

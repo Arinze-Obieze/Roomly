@@ -52,6 +52,18 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const signOut = async () => {
+    try {
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      setUser(null);
+      return { success: true };
+    } catch (error) {
+      console.error('Error signing out:', error);
+      return { success: false, error };
+    }
+  };
+
   useEffect(() => {
     // Initial session check
     refreshSession().finally(() => setLoading(false));
@@ -62,6 +74,7 @@ export function AuthProvider({ children }) {
     loading,
     refreshSession,
     updateProfile,
+    signOut,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
