@@ -87,6 +87,8 @@ export const ChatProvider = ({ children }) => {
     }, [supabase]);
 
     const markAsRead = async (conversationId) => {
+        if (!user) return;
+        
         await supabase
             .from('messages')
             .update({ is_read: true })

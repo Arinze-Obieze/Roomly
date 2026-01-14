@@ -3,12 +3,13 @@
 import { useState, useRef, useEffect } from 'react';
 import { useChat } from '@/contexts/ChatContext';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { MdSend, MdMoreVert, MdImage } from 'react-icons/md';
+import { MdSend, MdMoreVert, MdImage, MdArrowBack } from 'react-icons/md';
 import { format } from 'date-fns';
 
 export const ChatWindow = () => {
     const { 
         activeConversation, 
+        setActiveConversation,
         messages, 
         sendMessage, 
         conversations,
@@ -61,8 +62,15 @@ export const ChatWindow = () => {
     return (
         <div className="flex-1 flex flex-col h-full bg-slate-50">
             {/* Header */}
-            <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-6 shrink-0">
+            <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0">
                 <div className="flex items-center gap-3">
+                    <button 
+                        onClick={() => setActiveConversation(null)}
+                        className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
+                    >
+                        <MdArrowBack size={24} />
+                    </button>
+                    
                     {otherParty?.profile_picture ? (
                         <img 
                             src={otherParty.profile_picture} 

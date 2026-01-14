@@ -3,20 +3,22 @@
 import { useState } from 'react';
 import { ChatList } from '@/components/chat/ChatList';
 import { ChatWindow } from '@/components/chat/ChatWindow';
+import { useChat } from '@/contexts/ChatContext';
 
 export default function MessagesPage() {
     // Basic state for the page - actual chat state is in Context
     const [activeTab, setActiveTab] = useState('received'); // 'received' | 'sent'
+    const { activeConversation } = useChat();
 
     return (
         <main className="h-[calc(100vh-64px)] lg:h-[calc(100vh-80px)] flex bg-white overflow-hidden">
-            {/* Sidebar - Visible on mobile if no active conversation, always on desktop */}
-            <div className={`w-full md:w-96 shrink-0 h-full border-r border-slate-200 md:block`}>
+            {/* Sidebar - Hidden on mobile if active conversation exists */}
+            <div className={`w-full md:w-96 shrink-0 h-full border-r border-slate-200 ${activeConversation ? 'hidden md:block' : 'block'}`}>
                 <ChatList activeTab={activeTab} onTabChange={setActiveTab} />
             </div>
 
-            {/* Chat Window - Visible on mobile if active conversation, always on desktop */}
-            <div className="hidden md:block flex-1 h-full relative">
+            {/* Chat Window - Visible on mobile ONLY if active conversation exists */}
+            <div className={`flex-1 h-full relative ${activeConversation ? 'block' : 'hidden md:block'}`}>
                 <ChatWindow />
                 {/* Background Pattern */}
                 <div className="absolute inset-0 pointer-events-none opacity-[0.02]"
