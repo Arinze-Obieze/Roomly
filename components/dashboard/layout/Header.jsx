@@ -12,7 +12,8 @@ import {
   MdFilterList,
   MdSearch,
   MdAddCircleOutline,
-  MdLogout
+  MdLogout,
+  MdKeyboardArrowDown
 } from "react-icons/md";
 import { FaRegEdit } from "react-icons/fa";
 import { HeaderNavItem } from "@/components/dashboard/ui/HeaderNavItem";
@@ -53,7 +54,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
     <>
       {/* Desktop Header */}
       <header className="hidden lg:block sticky top-0 z-40 bg-white border-b border-slate-200">
-        <div className="flex items-center justify-between px-8 py-4 border-b border-slate-100">
+        <div className="flex items-center justify-between px-8 py-4 border-b border-slate-100 relative z-50">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-linear-to-tr from-cyan-500 to-indigo-500 rounded-lg"></div>
             <h1 className="text-xl font-bold">HomeShareIE</h1>
@@ -82,12 +83,17 @@ export const Header = ({ showFilters, setShowFilters }) => {
                       {user?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
                     </div>
                   )}
+
                   <span className="text-sm font-medium text-slate-700">{firstName}</span>
+                  <MdKeyboardArrowDown 
+                    size={20} 
+                    className={`text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                  />
                 </button>
 
                 {/* Dropdown Menu */}
                 {isDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                  <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 animate-in fade-in zoom-in-95 duration-200 overflow-hidden z-[60]">
                     <button
                       onClick={() => router.push('/profile')}
                       className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
@@ -192,14 +198,18 @@ export const Header = ({ showFilters, setShowFilters }) => {
               <button 
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
-                className="p-2 rounded-lg hover:bg-slate-100"
+                className="p-2 rounded-lg hover:bg-slate-100 flex items-center gap-1"
               >
                 <MdPersonOutline size={22} />
+                <MdKeyboardArrowDown 
+                  size={16} 
+                  className={`text-slate-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`}
+                />
               </button>
 
               {/* Mobile Dropdown Menu */}
               {isDropdownOpen && (
-                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
+                <div className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl shadow-lg border border-slate-100 py-1 animate-in fade-in zoom-in-95 duration-200 overflow-hidden z-[60]">
                   <button
                     onClick={() => router.push('/profile')}
                     className="w-full text-left px-4 py-3 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2 transition-colors"
