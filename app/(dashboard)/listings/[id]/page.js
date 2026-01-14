@@ -69,17 +69,24 @@ export default function PropertyDetailsPage() {
 
         if (error) throw error;
         
-        // Transform images
-        const images = data.property_media
+        // Transform media
+        const media = data.property_media
             ?.sort((a, b) => a.display_order - b.display_order)
             .map(m => {
-                if (m.url.startsWith('http')) return m.url;
-                return supabase.storage.from('property-media').getPublicUrl(m.url).data.publicUrl;
+                let url = m.url;
+                if (!url.startsWith('http')) {
+                    url = supabase.storage.from('property-media').getPublicUrl(m.url).data.publicUrl;
+                }
+                return {
+                    url,
+                    type: m.media_type || 'image', // Default to image
+                    id: m.id
+                };
             }) || [];
             
         setProperty({
            ...data,
-           images: images.length > 0 ? images : ['/placeholder-property.jpg'],
+           media: media.length > 0 ? media : [{ url: '/placeholder-property.jpg', type: 'image' }],
            host: {
              name: data.users?.full_name || 'Unknown Host',
              avatar: data.users?.profile_picture,
@@ -136,16 +143,24 @@ export default function PropertyDetailsPage() {
           
           {/* Image Gallery */}
           <div className="rounded-2xl overflow-hidden bg-slate-200 mb-8 shadow-sm">
-             <div className="aspect-video relative">
-               <img 
-                 src={property.images[activeImage]} 
-                 alt={property.title}
-                 className="w-full h-full object-cover transition-opacity duration-300"
-               />
+             <div className="aspect-video relative bg-black">
+               {property.media[activeImage].type === 'video' ? (
+                 <video
+                   src={property.media[activeImage].url}
+                   controls
+                   className="w-full h-full object-contain"
+                 />
+               ) : (
+                 <img 
+                   src={property.media[activeImage].url} 
+                   alt={property.title}
+                   className="w-full h-full object-cover transition-opacity duration-300"
+                 />
+               )}
                
-               {property.images.length > 1 && (
+               {property.media.length > 1 && (
                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 p-2 bg-black/50 backdrop-blur-sm rounded-full">
-                   {property.images.map((_, idx) => (
+                   {property.media.map((_, idx) => (
                      <button
                        key={idx}
                        onClick={() => setActiveImage(idx)}
@@ -157,22 +172,28 @@ export default function PropertyDetailsPage() {
                  </div>
                )}
              </div>
-             {/* Thumbs for desktop */}
-             {property.images.length > 1 && (
-               <div className="hidden md:flex gap-2 p-2 overflow-x-auto bg-white">
-                 {property.images.map((img, idx) => (
-                   <button
-                     key={idx}
-                     onClick={() => setActiveImage(idx)}
-                     className={`relative w-24 h-16 rounded-lg overflow-hidden shrink-0 transition-all ${
-                       activeImage === idx ? 'ring-2 ring-cyan-500 opacity-100' : 'opacity-60 hover:opacity-100'
-                     }`}
-                   >
-                     <img src={img} className="w-full h-full object-cover" />
-                   </button>
-                 ))}
-               </div>
-             )}
+              {/* Thumbs for desktop */}
+              {property.media.length > 1 && (
+                <div className="hidden md:flex gap-2 p-2 overflow-x-auto bg-white">
+                  {property.media.map((item, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setActiveImage(idx)}
+                      className={`relative w-24 h-16 rounded-lg overflow-hidden shrink-0 transition-all border-2 ${
+                        activeImage === idx ? 'border-cyan-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'
+                      }`}
+                    >
+                      {item.type === 'video' ? (
+                        <div className="w-full h-full bg-slate-900 flex items-center justify-center">
+                            <span className="text-white text-xs">Video</span>
+                        </div>
+                      ) : (
+                        <img src={item.url} className="w-full h-full object-cover" />
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
