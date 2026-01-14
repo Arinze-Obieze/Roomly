@@ -41,13 +41,21 @@ export default function MyPropertiesPage() {
       if (error) throw error;
       
       // Transform media URLs
-      const transformedData = data.map(property => ({
-        ...property,
-        property_media: property.property_media?.map(media => ({
-          ...media,
-          url: supabase.storage.from('property-media').getPublicUrl(media.url).data.publicUrl
-        }))
-      }));
+      const transformedData = data.map(property => {
+        const getImageUrl = (url) => {
+            if (!url) return null;
+            if (url.startsWith('http')) return url;
+            return supabase.storage.from('property-media').getPublicUrl(url).data.publicUrl;
+        };
+
+        return {
+           ...property,
+           property_media: property.property_media?.map(media => ({
+             ...media,
+             url: getImageUrl(media.url)
+           }))
+        };
+      });
 
       setProperties(transformedData);
     } catch (error) {
