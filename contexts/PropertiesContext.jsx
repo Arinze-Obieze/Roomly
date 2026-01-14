@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { AMENITIES } from "@/data/amenities";
 
 const PropertiesContext = createContext();
 
@@ -117,8 +118,15 @@ export const PropertiesProvider = ({ children }) => {
         query = query.contains('amenities', filters.amenities);
       }
 
-      if (filters.location) {
-        query = query.ilike('location', `%${filters.location}%`);
+      // Updated Filter Logic for Ireland
+      if (filters.location && filters.location !== 'All Ireland') {
+        const locationQuery = filters.location.trim();
+        // Check if it matches a known county
+        query = query.or(`state.ilike.%${locationQuery}%,city.ilike.%${locationQuery}%`);
+      }
+
+      if (filters.area) {
+         query = query.or(`city.ilike.%${filters.area}%`);
       }
 
       // Apply pagination
@@ -263,17 +271,22 @@ export const PropertiesProvider = ({ children }) => {
  * Helper function to transform amenities from database format
  */
 function transformAmenities(amenities) {
-  const iconMap = {
-    wifi: { icon: 'FaWifi', label: 'WiFi' },
-    pets: { icon: 'FaPaw', label: 'Pets Allowed' },
-    parking: { icon: 'FaCar', label: 'Parking' },
-    ensuite: { icon: 'FaShower', label: 'Ensuite' },
-    garden: { icon: 'FaTree', label: 'Garden' }
-  };
-
-  return amenities.map(amenity => {
-    const key = amenity.toLowerCase();
-    return iconMap[key] || { icon: 'FaWifi', label: amenity };
+  return amenities.map(amenityStr => {
+    // Find the amenity object in our constant
+    // Match by value (preferred) or label if needed, or fallback
+    const key = amenityStr.toLowerCase();
+    const found = AMENITIES.find(a => a.value === key || a.label.toLowerCase() === key);
+    
+    if (found) {
+      return found; // Returns { value, label, icon: Component }
+    }
+    
+    // Fallback if not found in our list
+    return { 
+      value: key, 
+      label: amenityStr, 
+      icon: AMENITIES[0].icon // Fallback to first icon (WiFi) or a specific unknown icon
+    };
   });
 }
 

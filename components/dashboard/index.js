@@ -14,5 +14,6 @@ export { FilterContent } from './ui/FilterContent';
 
 // Filters
 export { FilterModal } from './filters/FilterModal';
+export { FilterSidebar } from './filters/FilterSidebar';
 export { FilterSidebarContent } from './filters/FilterSidebarContent';
 export { useFilters } from './filters/useFilters';

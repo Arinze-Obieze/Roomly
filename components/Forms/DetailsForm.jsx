@@ -1,6 +1,6 @@
 import InputField from './InputField';
 import { MdEuro, MdCalendarToday, MdOutlineBed, MdBathtub, MdSquareFoot, MdCheckCircle } from 'react-icons/md';
-import { AMENITIES } from '../CreateListingForm';
+import { AMENITIES } from '@/data/amenities';
 
 export default function DetailsForm({ formData, focusedField, setFocusedField, handleChange, toggleAmenity }) {
   return (

@@ -1,20 +1,9 @@
 "use client";
 
-import { MdLocationOn, MdVerified, MdOutlineBed } from "react-icons/md";
-import { FaWifi, FaPaw, FaShower, FaTree } from "react-icons/fa";
-
-// Helper to get icon component by name
-const getIconComponent = (iconName) => {
-  const iconMap = {
-    FaWifi, FaPaw, FaShower, FaTree,
-    MdOutlineBed
-  };
-  return iconMap[iconName] || FaWifi;
-};
-
+import Image from "next/image";
+import { MdLocationOn, MdVerified, MdFavorite, MdFavoriteBorder } from "react-icons/md";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useSavedProperties } from "@/contexts/SavedPropertiesContext";
-import { MdFavorite, MdFavoriteBorder } from "react-icons/md";
 
 export const ListingCard = ({ data, onSelect }) => {
   const { user } = useAuthContext();
@@ -34,11 +23,13 @@ export const ListingCard = ({ data, onSelect }) => {
       className="group bg-white rounded-2xl lg:rounded-3xl border border-slate-200 overflow-hidden active:scale-[0.98] transition-all duration-200 cursor-pointer lg:hover:shadow-xl lg:hover:-translate-y-1"
     >
       <div className="relative h-48 md:h-52 lg:h-56 w-full overflow-hidden">
-        <img 
+        <Image 
           src={data.image} 
-          alt={data.title} 
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
+          alt={data.title}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className="object-cover group-hover:scale-105 transition-transform duration-500"
+          priority={false}
         />
         
         {/* Save Button - Top Right */}
@@ -80,10 +71,11 @@ export const ListingCard = ({ data, onSelect }) => {
 
         <div className="flex flex-wrap gap-1.5 my-3">
           {data.amenities.slice(0, 2).map((am, i) => {
-            const IconComponent = getIconComponent(am.icon);
+            // am.icon is now the component itself from data/amenities.js
+            const IconComponent = am.icon; 
             return (
               <div key={i} className="flex items-center gap-1 bg-slate-50 text-slate-600 px-2 py-1 rounded-lg text-xs font-medium border border-slate-100">
-                <IconComponent size={12} /> {am.label}
+                {IconComponent && <IconComponent size={12} />} {am.label}
               </div>
             );
           })}

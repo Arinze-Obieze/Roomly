@@ -65,13 +65,13 @@ export default function PremiumSlider({
   }, [isDragging]);
 
   return (
-    <div className={`w-full py-4 ${className}`}>
+    <div className={`w-full py-2 ${className}`}>
       {/* Label Display */}
-      <div className="flex justify-between items-end mb-4 h-8">
-        <span className="text-2xl transition-all duration-300 transform">
+      <div className="flex justify-between items-end mb-3 h-8">
+        <span className="text-xl transition-all duration-300 transform">
           {icons[value]}
         </span>
-        <span className="font-medium text-slate-900 transition-all duration-300">
+        <span className="font-medium text-slate-900 text-sm transition-all duration-300">
           {labels[value]}
         </span>
       </div>
@@ -79,28 +79,28 @@ export default function PremiumSlider({
       {/* Slider Track */}
       <div 
         ref={containerRef}
-        className="relative h-4 bg-slate-100 rounded-full cursor-pointer touch-none group"
+        className="relative h-2 bg-slate-100 rounded-full cursor-pointer touch-none group"
         onMouseDown={onMouseDown}
         onTouchStart={onTouchStart}
       >
         {/* Fill */}
         <div 
-          className="absolute top-0 left-0 h-full bg-slate-900 rounded-full transition-[width] duration-150 ease-out"
+          className="absolute top-0 left-0 h-full bg-cyan-600 rounded-full transition-[width] duration-150 ease-out"
           style={{ width: `${percentage}%` }}
         />
 
         {/* Thumb */}
         <div 
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-8 h-8 bg-white border-2 border-slate-900 rounded-full shadow-lg transform transition-transform duration-150 ease-out flex items-center justify-center hover:scale-110 active:scale-95 z-10 ${isDragging ? 'scale-110' : ''}`}
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 bg-white border-2 border-cyan-600 rounded-full shadow-md transform transition-transform duration-150 ease-out flex items-center justify-center hover:scale-110 active:scale-95 z-10 ${isDragging ? 'scale-110' : ''}`}
           style={{ left: `${percentage}%` }}
         >
-          <div className="w-2 h-2 bg-slate-900 rounded-full" />
+          <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full" />
         </div>
 
         {/* Step Markers */}
         <div className="absolute top-1/2 -translate-y-1/2 left-0 w-full flex justify-between px-1 pointer-events-none">
           {Array.from({ length: (max - min) / step + 1 }).map((_, i) => (
-            <div key={i} className="w-1 h-1 bg-slate-300 rounded-full" />
+            <div key={i} className="w-0.5 h-0.5 bg-slate-300 rounded-full" />
           ))}
         </div>
       </div>

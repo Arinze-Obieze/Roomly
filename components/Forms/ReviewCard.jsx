@@ -1,5 +1,5 @@
 import { MdPhoto, MdLocationOn, MdOutlineBed, MdBathtub, MdSquareFoot } from 'react-icons/md';
-import { AMENITIES } from '../CreateListingForm';
+import { AMENITIES } from '@/data/amenities';
 
 export default function ReviewCard({ formData }) {
   return (

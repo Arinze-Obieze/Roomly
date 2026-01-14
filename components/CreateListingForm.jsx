@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
+import { COUNTIES } from '@/data/locations';
+import { AMENITIES } from '@/data/amenities';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { 
@@ -16,22 +18,10 @@ import {
   MdBathtub,
   MdSquareFoot,
   MdCalendarToday,
-  MdEuro
+  MdEuro,
+  MdUpload,
+  MdKeyboardArrowDown
 } from 'react-icons/md';
-import { 
-  FaWifi, 
-  FaPaw, 
-  FaCar, 
-  FaDumbbell, 
-  FaTv, 
-  FaSnowflake,
-  FaFire,
-  FaTree,
-  FaWheelchair,
-  FaSmokingBan,
-  FaDoorOpen,
-  FaCouch
-} from 'react-icons/fa';
 import InputField from './Forms/InputField';
 import SubmitButton from './Forms/SubmitButton';
 import Stepper from './Forms/Stepper';
@@ -40,27 +30,13 @@ import LocationForm from './Forms/LocationForm';
 import MediaUpload from './Forms/MediaUpload';
 import ReviewCard from './Forms/ReviewCard';
 import FooterNav from './Forms/FooterNav';
+import { useState } from 'react';
 
 const PROPERTY_TYPES = [
   { value: 'room', label: 'Private Room', icon: MdOutlineBed },
   { value: 'studio', label: 'Studio', icon: MdPhoto }, // Studio: photo icon for distinction
   { value: 'apartment', label: 'Apartment', icon: MdLocationOn }, // Apartment: location icon
   { value: 'house', label: 'House', icon: MdHome },
-];
-
-export const AMENITIES = [
-  { value: 'wifi', label: 'WiFi', icon: FaWifi },
-  { value: 'parking', label: 'Parking', icon: FaCar },
-  { value: 'pets', label: 'Pets Allowed', icon: FaPaw },
-  { value: 'gym', label: 'Gym', icon: FaDumbbell },
-  { value: 'tv', label: 'TV', icon: FaTv },
-  { value: 'ac', label: 'Air Con', icon: FaSnowflake },
-  { value: 'heating', label: 'Heating', icon: FaFire },
-  { value: 'garden', label: 'Garden', icon: FaTree },
-  { value: 'wheelchair', label: 'Accessible', icon: FaWheelchair },
-  { value: 'smoking', label: 'No Smoking', icon: FaSmokingBan },
-  { value: 'private_entrance', label: 'Private Entry', icon: FaDoorOpen },
-  { value: 'furnished', label: 'Furnished', icon: FaCouch },
 ];
 
 const STEPS = [
@@ -151,7 +127,7 @@ export default function CreateListingForm({ onClose, initialData = null }) {
       return;
     }
     if (currentStep === 2) {
-      if (!formData.title || !formData.price_per_month || !formData.description || !formData.bedrooms || !formData.bathrooms || !formData.square_meters || !formData.available_from) {
+      if (!formData.title || !formData.price_per_month || !formData.description || !formData.bedrooms || !formData.bathrooms || !formData.available_from) {
         toast.error('Please fill in all required details');
         return;
       }
@@ -326,6 +302,14 @@ export default function CreateListingForm({ onClose, initialData = null }) {
           {/* Step 1: Property Type */}
           {currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+              <div className="text-center mb-8">
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                  What type of property are you listing?
+                </h2>
+                <p className="text-slate-600">
+                  Choose the option that best describes your space
+                </p>
+              </div>
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">
                   What type of property are you listing?
