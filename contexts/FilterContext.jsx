@@ -9,6 +9,7 @@ export const DEFAULT_FILTERS = {
   amenities: [],
   moveInDate: 'any',
   verifiedOnly: false,
+  sortBy: 'recommended',
 };
 
 export const FilterContext = createContext();

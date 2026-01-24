@@ -1,10 +1,10 @@
-'use client';
-
 import { createClient } from '@/lib/supabase/client';
 import { COUNTIES } from '@/data/locations';
 import { AMENITIES } from '@/data/amenities';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import { useAuthContext } from '@/contexts/AuthContext';
+import { useEffect, useState } from 'react';
 import { 
   MdHome, 
   MdLocationOn, 
@@ -20,7 +20,8 @@ import {
   MdCalendarToday,
   MdEuro,
   MdUpload,
-  MdKeyboardArrowDown
+  MdKeyboardArrowDown,
+  MdWarning
 } from 'react-icons/md';
 import InputField from './Forms/InputField';
 import SubmitButton from './Forms/SubmitButton';
@@ -30,12 +31,11 @@ import LocationForm from './Forms/LocationForm';
 import MediaUpload from './Forms/MediaUpload';
 import ReviewCard from './Forms/ReviewCard';
 import FooterNav from './Forms/FooterNav';
-import { useState } from 'react';
 
 const PROPERTY_TYPES = [
   { value: 'room', label: 'Private Room', icon: MdOutlineBed },
-  { value: 'studio', label: 'Studio', icon: MdPhoto }, // Studio: photo icon for distinction
-  { value: 'apartment', label: 'Apartment', icon: MdLocationOn }, // Apartment: location icon
+  { value: 'studio', label: 'Studio', icon: MdPhoto }, 
+  { value: 'apartment', label: 'Apartment', icon: MdLocationOn }, 
   { value: 'house', label: 'House', icon: MdHome },
 ];
 
@@ -49,10 +49,12 @@ const STEPS = [
 
 export default function CreateListingForm({ onClose, initialData = null }) {
   const router = useRouter();
+  const { user } = useAuthContext();
   const [currentStep, setCurrentStep] = useState(1);
   const [furthestStep, setFurthestStep] = useState(initialData ? STEPS.length : 1);
   const [focusedField, setFocusedField] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [profileIncomplete, setProfileIncomplete] = useState(false);
   
   const isEditing = !!initialData;
 
@@ -61,7 +63,7 @@ export default function CreateListingForm({ onClose, initialData = null }) {
       return {
         ...initialData,
         photos: initialData.property_media?.map(m => m.url) || [],
-        videos: [], // Video support to be added if needed
+        videos: [], 
       };
     }
     return {
@@ -77,16 +79,31 @@ export default function CreateListingForm({ onClose, initialData = null }) {
       square_meters: '',
       available_from: '',
       amenities: [],
-      photos: [], // Array of File or String (URL)
-      videos: [], // Array of File
+      photos: [], 
+      videos: [], 
     };
   });
+
+  useEffect(() => {
+    // Check if user has complete profile (Lifestyle & Preferences)
+    const checkProfile = async () => {
+       if (!user) return;
+       const supabase = createClient();
+       const { data: lifestyle } = await supabase.from('user_lifestyles').select('user_id').eq('user_id', user.id).single();
+       const { data: prefs } = await supabase.from('match_preferences').select('user_id').eq('user_id', user.id).single();
+       
+       if (!lifestyle || !prefs) {
+          setProfileIncomplete(true);
+       }
+    };
+    checkProfile();
+  }, [user]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  // Handle file input for photos/videos
+  // ... (Rest of existing handlers: handleFileChange, removeFile, toggleAmenity, handleNext, etc)
   const handleFileChange = (e, type) => {
     const files = Array.from(e.target.files);
     setFormData(prev => {
@@ -97,7 +114,6 @@ export default function CreateListingForm({ onClose, initialData = null }) {
         if (type === 'videos') return f.type.startsWith('video/');
         return false;
       });
-      // Limit total
       let newFiles = [...current, ...filtered].slice(0, max);
       return { ...prev, [type]: newFiles };
     });
@@ -115,19 +131,21 @@ export default function CreateListingForm({ onClose, initialData = null }) {
     setFormData(prev => ({
       ...prev,
       amenities: prev.amenities.includes(amenity)
-        ? prev.amenities.filter(a => a !== amenity)
-        : [...prev.amenities, amenity]
+      ? prev.amenities.filter(a => a !== amenity)
+      : [...prev.amenities, amenity]
     }));
   };
 
   const handleNext = () => {
-    // Validation for each step
     if (currentStep === 1 && !formData.property_type) {
       toast.error('Please select a property type');
       return;
     }
     if (currentStep === 2) {
-      if (!formData.title || !formData.price_per_month || !formData.description || !formData.bedrooms || !formData.bathrooms || !formData.available_from) {
+      if (!formData.title || !formData.price_per_month || !formData.description || 
+          formData.bedrooms === '' || formData.bedrooms === null || 
+          formData.bathrooms === '' || formData.bathrooms === null || 
+          !formData.available_from) {
         toast.error('Please fill in all required details');
         return;
       }
@@ -160,7 +178,6 @@ export default function CreateListingForm({ onClose, initialData = null }) {
   };
 
   const handleStepClick = (stepId) => {
-    // Allow going to any step we've reached before
     if (stepId <= furthestStep) {
       setCurrentStep(stepId);
     }
@@ -171,10 +188,6 @@ export default function CreateListingForm({ onClose, initialData = null }) {
   };
 
   const handleSubmit = async () => {
-    // Final validation
-    console.log('[CreateListingForm] handleSubmit called', { formData });
-    
-    // Allow existing photos (strings) to count towards validation
     const photoCount = formData.photos.length;
     if (photoCount < 1) {
       toast.error('At least one photo is required');
@@ -188,10 +201,7 @@ export default function CreateListingForm({ onClose, initialData = null }) {
     setIsSubmitting(true);
     try {
       if (isEditing) {
-        // UPDATE Logic
         const body = new FormData();
-        
-        // Append text fields
         body.append('title', formData.title);
         body.append('description', formData.description);
         body.append('property_type', formData.property_type);
@@ -205,9 +215,6 @@ export default function CreateListingForm({ onClose, initialData = null }) {
         body.append('available_from', formData.available_from);
         body.append('amenities', JSON.stringify(formData.amenities));
 
-        // Handle Photos
-        // existing_photos: URLs of photos to keep
-        // new_photos: File objects to upload
         formData.photos.forEach(photo => {
           if (typeof photo === 'string') {
             body.append('existing_photos[]', photo);
@@ -216,21 +223,18 @@ export default function CreateListingForm({ onClose, initialData = null }) {
           }
         });
 
-        // Handle Videos (similar logic if video support added)
         formData.videos.forEach(video => {
            if (video instanceof File) body.append('new_videos[]', video);
         });
 
          const response = await fetch(`/api/properties/${initialData.id}`, {
            method: 'PUT',
-           // body is FormData, fetch sets Content-Type to multipart/form-data automatically
            body: body,
          });
 
          if (!response.ok) throw new Error('Failed to update property details');
          
       } else {
-        // CREATE Logic (Original)
         const body = new FormData();
         Object.entries(formData).forEach(([key, value]) => {
           if (key === 'photos' || key === 'videos') {
@@ -268,6 +272,8 @@ export default function CreateListingForm({ onClose, initialData = null }) {
     }
   };
 
+
+
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* Header */}
@@ -299,17 +305,28 @@ export default function CreateListingForm({ onClose, initialData = null }) {
       {/* Content */}
       <div className="flex-1 overflow-y-auto pb-32">
         <div className="max-w-4xl mx-auto px-4 lg:px-8 py-8">
+          {/* Profile Warning */}
+          {profileIncomplete && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8 flex items-start gap-3 animate-fadeIn">
+               <MdWarning className="text-amber-500 text-xl shrink-0 mt-0.5" />
+               <div>
+                 <h3 className="font-bold text-amber-900 text-sm">Improve your matches</h3>
+                 <p className="text-amber-700 text-sm mt-1">
+                   It looks like your profile is incomplete. We use your lifestyle and roommate preferences to match you with the best tenants.
+                 </p>
+                 <button 
+                   onClick={() => window.open('/profile', '_blank')}
+                   className="mt-3 text-sm font-semibold text-amber-700 hover:text-amber-900 underline"
+                 >
+                   Complete Profile Now &rarr;
+                 </button>
+               </div>
+            </div>
+          )}
+
           {/* Step 1: Property Type */}
           {currentStep === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                  What type of property are you listing?
-                </h2>
-                <p className="text-slate-600">
-                  Choose the option that best describes your space
-                </p>
-              </div>
               <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold text-slate-900 mb-2">
                   What type of property are you listing?

@@ -5,9 +5,11 @@ import { createClient } from '@/lib/supabase/client';
 import PremiumSlider from '@/components/ui/PremiumSlider';
 import { MdSchedule, MdCleaningServices, MdPets, MdMusicNote, MdLocalBar, MdSmokeFree, MdCheck, MdArrowForward, MdArrowBack, MdEdit } from 'react-icons/md';
 import { FaCannabis } from 'react-icons/fa';
+import { CITIES_TOWNS } from '@/data/locations';
 import toast from 'react-hot-toast';
 
 const STEPS = [
+  { id: 'role', title: 'Why you\'re here' },
   { id: 'basics', title: 'The Basics' },
   { id: 'habits', title: 'Living Habits' },
   { id: 'logistics', title: 'Logistics' },
@@ -24,6 +26,9 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    primary_role: 'seeker',
+    current_city: '',
+    move_in_urgency: 'flexible',
     schedule_type: '9-5',
     smoking_status: 'no',
     drinking_habits: 'social',
@@ -204,9 +209,63 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
     </div>
   );
 
+  /* 
+    Step 0: Role Selection (New)
+    Step 1: The Basics (Schedule, Smoking, etc.)
+    Step 2: Living Habits (Cleanliness, Social)
+    Step 3: Logistics (Guests, Pets, + Location/Move-In for Seekers)
+    Step 4: Vibe (Interests)
+  */
+
   const renderStepContent = () => {
     switch(currentStep) {
-      case 0: // Basics
+      case 0: // Role Selection
+        return (
+          <div className="space-y-6 animate-fadeIn text-center py-4">
+             <div className="mb-8">
+               <h3 className="text-xl font-bold text-slate-900">What brings you to Roomly?</h3>
+               <p className="text-slate-500">Select your primary goal to help us personalize your experience.</p>
+             </div>
+             
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => handleChange('primary_role', 'host')}
+                  className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${
+                    formData.primary_role === 'host'
+                      ? 'border-cyan-500 bg-cyan-50 shadow-lg shadow-cyan-100'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm">
+                    🏠
+                  </div>
+                  <div>
+                    <div className="font-bold text-lg text-slate-800">I have a place</div>
+                    <div className="text-sm text-slate-500">I'm looking for a roommate</div>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => handleChange('primary_role', 'seeker')}
+                  className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${
+                    formData.primary_role === 'seeker'
+                      ? 'border-cyan-500 bg-cyan-50 shadow-lg shadow-cyan-100'
+                      : 'border-slate-200 hover:border-slate-300'
+                  }`}
+                >
+                  <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm">
+                    🔍
+                  </div>
+                  <div>
+                    <div className="font-bold text-lg text-slate-800">I need a place</div>
+                    <div className="text-sm text-slate-500">I'm looking for a room</div>
+                  </div>
+                </button>
+             </div>
+          </div>
+        );
+
+      case 1: // Basics
         return (
           <div className="space-y-6 animate-fadeIn">
             <div>
@@ -297,11 +356,11 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
           </div>
         );
 
-      case 1: // Habits
+      case 2: // Habits
         return (
-          <div className="space-y-8 animate-fadeIn py-2">
+          <div className="space-y-6 animate-fadeIn py-2">
             <div>
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
                 <MdCleaningServices /> Cleanliness Level
               </h3>
               <PremiumSlider
@@ -323,7 +382,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
             </div>
 
             <div>
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
                 <MdLocalBar /> Social Battery
               </h3>
               <PremiumSlider
@@ -345,7 +404,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
             </div>
 
             <div>
-              <h3 className="text-base font-semibold mb-4 flex items-center gap-2">
+              <h3 className="text-base font-semibold mb-2 flex items-center gap-2">
                 <MdMusicNote /> Noise Tolerance
               </h3>
               <PremiumSlider
@@ -368,9 +427,46 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
           </div>
         );
 
-      case 2: // Logistics
+      case 3: // Logistics
         return (
           <div className="space-y-6 animate-fadeIn">
+            {/* Seeker Specific Fields */}
+            {formData.primary_role === 'seeker' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                 <div>
+                   <label className="block text-sm font-semibold mb-2 text-slate-700">Current City/Town</label>
+                   <div className="relative">
+                      <select
+                        value={formData.current_city || ''}
+                        onChange={(e) => handleChange('current_city', e.target.value)}
+                        className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-cyan-500 focus:outline-none bg-white appearance-none"
+                      >
+                        <option value="">Select your city...</option>
+                        {CITIES_TOWNS.map(city => (
+                          <option key={city} value={city}>{city}</option>
+                        ))}
+                      </select>
+                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-500">
+                        <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
+                      </div>
+                   </div>
+                 </div>
+                 <div>
+                   <label className="block text-sm font-semibold mb-2 text-slate-700">Move-in Urgency</label>
+                   <select
+                     value={formData.move_in_urgency || 'flexible'}
+                     onChange={(e) => handleChange('move_in_urgency', e.target.value)}
+                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-cyan-500 focus:outline-none bg-white"
+                   >
+                     <option value="immediately">Immediately</option>
+                     <option value="1-month">Within 1 month</option>
+                     <option value="2-months">Within 2 months</option>
+                     <option value="flexible">Flexible</option>
+                   </select>
+                 </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-base font-semibold mb-3">Overnight Guests</label>
               <div className="grid grid-cols-2 gap-2">
@@ -432,7 +528,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
           </div>
         );
 
-      case 3: // Vibe
+      case 4: // Vibe
         return (
           <div className="space-y-6 animate-fadeIn">
             <div>

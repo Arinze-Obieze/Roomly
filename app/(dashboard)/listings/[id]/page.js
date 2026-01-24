@@ -3,21 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { MdLocationOn, MdArrowBack, MdOutlineBed, MdBathtub, MdSquareFoot, MdVerified, MdPerson, MdCalendarToday } from 'react-icons/md';
+import { MdLocationOn, MdVerified } from 'react-icons/md';
 import { useChat } from '@/contexts/ChatContext';
 import { useAuthContext } from '@/contexts/AuthContext';
-import { FaWifi, FaPaw, FaShower, FaTree } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+
+// Components
+import PropertyGallery from '@/components/listings/PropertyGallery';
+import PropertyHeader from '@/components/listings/PropertyHeader';
+import PropertyStats from '@/components/listings/PropertyStats';
+import HostSidebar from '@/components/listings/HostSidebar';
 
 export default function PropertyDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const [property, setProperty] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeImage, setActiveImage] = useState(0);
   const { startConversation } = useChat();
   const { user } = useAuthContext();
   const [contacting, setContacting] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
 
   // Check if current user is the host
   const isOwner = user?.id === property?.host?.id;
@@ -69,6 +74,16 @@ export default function PropertyDetailsPage() {
 
         if (error) throw error;
         
+        // Check saved status
+        if (user) {
+            const { count } = await supabase
+                .from('saved_properties')
+                .select('*', { count: 'exact', head: true })
+                .eq('user_id', user.id)
+                .eq('property_id', params.id);
+            setIsSaved(count > 0);
+        }
+
         // Transform media
         const media = data.property_media
             ?.sort((a, b) => a.display_order - b.display_order)
@@ -105,7 +120,40 @@ export default function PropertyDetailsPage() {
     if (params.id) {
       fetchProperty();
     }
-  }, [params.id]);
+  }, [params.id, user]);
+
+  const handleToggleSave = async () => {
+    if (!user) return router.push('/login');
+    const newStatus = !isSaved;
+    setIsSaved(newStatus); // Optimistic
+    
+    try {
+      if (newStatus) {
+        await supabase.from('saved_properties').insert({ user_id: user.id, property_id: property.id });
+        toast.success('Saved to favorites');
+      } else {
+        await supabase.from('saved_properties').delete().eq('user_id', user.id).eq('property_id', property.id);
+        toast.success('Removed from favorites');
+      }
+    } catch (err) {
+      setIsSaved(!newStatus); // Revert
+      toast.error('Failed to update favorites');
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: property.title,
+      text: `Check out this place in ${property.city} on Roomly!`,
+      url: window.location.href,
+    };
+    if (navigator.share) {
+      try { await navigator.share(shareData); } catch (err) {}
+    } else {
+      navigator.clipboard.writeText(window.location.href);
+      toast.success('Link copied to clipboard');
+    }
+  };
 
   if (loading) {
     return (
@@ -128,73 +176,16 @@ export default function PropertyDetailsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
-       {/* Sticky Header */}
-       <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center gap-4">
-         <button 
-           onClick={() => router.back()}
-           className="p-2 hover:bg-slate-100 rounded-full transition-colors"
-         >
-           <MdArrowBack className="text-xl text-slate-700" />
-         </button>
-         <h1 className="font-semibold text-slate-900 truncate flex-1">{property.title}</h1>
-       </div>
+       <PropertyHeader 
+         title={property.title}
+         onBack={() => router.back()}
+         onShare={handleShare}
+         onToggleSave={handleToggleSave}
+         isSaved={isSaved}
+       />
 
        <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8">
-          
-          {/* Image Gallery */}
-          <div className="rounded-2xl overflow-hidden bg-slate-200 mb-8 shadow-sm">
-             <div className="aspect-video relative bg-black">
-               {property.media[activeImage].type === 'video' ? (
-                 <video
-                   src={property.media[activeImage].url}
-                   controls
-                   className="w-full h-full object-contain"
-                 />
-               ) : (
-                 <img 
-                   src={property.media[activeImage].url} 
-                   alt={property.title}
-                   className="w-full h-full object-cover transition-opacity duration-300"
-                 />
-               )}
-               
-               {property.media.length > 1 && (
-                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 p-2 bg-black/50 backdrop-blur-sm rounded-full">
-                   {property.media.map((_, idx) => (
-                     <button
-                       key={idx}
-                       onClick={() => setActiveImage(idx)}
-                       className={`w-2 h-2 rounded-full transition-all ${
-                         activeImage === idx ? 'bg-white scale-125' : 'bg-white/40 hover:bg-white/60'
-                       }`}
-                     />
-                   ))}
-                 </div>
-               )}
-             </div>
-              {/* Thumbs for desktop */}
-              {property.media.length > 1 && (
-                <div className="hidden md:flex gap-2 p-2 overflow-x-auto bg-white">
-                  {property.media.map((item, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => setActiveImage(idx)}
-                      className={`relative w-24 h-16 rounded-lg overflow-hidden shrink-0 transition-all border-2 ${
-                        activeImage === idx ? 'border-cyan-500 opacity-100' : 'border-transparent opacity-60 hover:opacity-100'
-                      }`}
-                    >
-                      {item.type === 'video' ? (
-                        <div className="w-full h-full bg-slate-900 flex items-center justify-center">
-                            <span className="text-white text-xs">Video</span>
-                        </div>
-                      ) : (
-                        <img src={item.url} className="w-full h-full object-cover" />
-                      )}
-                    </button>
-                  ))}
-                </div>
-              )}
-          </div>
+          <PropertyGallery media={property.media} title={property.title} />
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
              {/* Main Info */}
@@ -214,24 +205,12 @@ export default function PropertyDetailsPage() {
                      </div>
                    </div>
 
-                   <div className="flex flex-wrap gap-4 py-6 border-y border-slate-200">
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <MdOutlineBed className="text-xl text-slate-400" />
-                        <span className="font-medium">{property.bedrooms} Bed</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <MdBathtub className="text-xl text-slate-400" />
-                        <span className="font-medium">{property.bathrooms} Bath</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <MdSquareFoot className="text-xl text-slate-400" />
-                        <span className="font-medium">{property.square_meters} m²</span>
-                      </div>
-                      <div className="flex items-center gap-2 text-slate-700">
-                        <MdCalendarToday className="text-xl text-slate-400" />
-                        <span className="font-medium">Available {new Date(property.available_from).toLocaleDateString()}</span>
-                      </div>
-                   </div>
+                   <PropertyStats 
+                     bedrooms={property.bedrooms}
+                     bathrooms={property.bathrooms}
+                     square_meters={property.square_meters}
+                     available_from={property.available_from}
+                   />
                 </div>
 
                 <div>
@@ -244,7 +223,6 @@ export default function PropertyDetailsPage() {
                 <div>
                    <h3 className="text-lg font-bold text-slate-900 mb-4">Amenities</h3>
                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                     {/* TODO: Use icon map helper ideally, for now plain list */}
                      {property.amenities && property.amenities.map((am, i) => (
                        <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl text-sm font-medium text-slate-700">
                          <MdVerified className="text-cyan-500" /> {/* Placeholder icon */}
@@ -256,52 +234,15 @@ export default function PropertyDetailsPage() {
              </div>
 
              {/* Sidebar / Host Info */}
-             <div className="space-y-6">
-                <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm sticky top-24">
-                   <h3 className="text-lg font-bold text-slate-900 mb-6">Meet the Host</h3>
-                   
-                   <div className="flex items-center gap-4 mb-6">
-                      {property.host.avatar ? (
-                        <img 
-                          src={property.host.avatar} 
-                          className="w-16 h-16 rounded-full object-cover bg-slate-100" 
-                          alt={property.host.name}
-                        />
-                      ) : (
-                        <div className="w-16 h-16 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-xl font-bold">
-                          {property.host.name?.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
-                        </div>
-                      )}
-                      
-                      <div>
-                        <div className="font-bold text-slate-900 flex items-center gap-2">
-                          {property.host.name}
-                          {property.host.verified && <MdVerified className="text-cyan-500" title="Verified Host" />}
-                        </div>
-                        <div className="text-sm text-slate-500">Joined 2024</div>
-                      </div>
-                   </div>
-
-                   {isOwner ? (
-                       <button 
-                         onClick={() => router.push('/my-properties')}
-                         className="w-full bg-slate-100 text-slate-700 border border-slate-200 py-3 rounded-xl font-bold hover:bg-slate-200 transition-colors shadow-sm active:scale-[0.98]"
-                       >
-                         Edit Listing
-                       </button>
-                   ) : (
-                       <button 
-                         onClick={handleContactHost}
-                         disabled={contacting}
-                         className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-                       >
-                         {contacting ? 'Starting Chat...' : 'Contact Host'}
-                       </button>
-                   )}
-                   <p className="text-xs text-center text-slate-400 mt-4">
-                     Response time: usually within an hour
-                   </p>
-                </div>
+             <div className="lg:col-span-1">
+                <HostSidebar 
+                  host={property.host}
+                  isOwner={isOwner}
+                  contacting={contacting}
+                  onContactHost={handleContactHost}
+                  onEditListing={() => router.push('/my-properties')}
+                  onViewProfile={() => router.push(`/users/${property.host.id}`)}
+                />
              </div>
           </div>
        </div>

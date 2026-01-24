@@ -260,7 +260,8 @@ export const ChatProvider = ({ children }) => {
         setActiveConversation,
         fetchMessages,
         sendMessage,
-        startConversation
+        startConversation,
+        unreadCount
     };
 
     return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

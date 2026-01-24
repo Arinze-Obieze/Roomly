@@ -24,7 +24,8 @@ export async function GET(request) {
         community_votes (
           vote_type,
           user_id
-        )
+        ),
+        community_comments (count)
       `)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -58,13 +59,14 @@ export async function GET(request) {
       // OR calculate it here:
       const score = post.community_votes.reduce((acc, curr) => acc + curr.vote_type, 0);
 
-      const { community_votes, ...postData } = post; // remove raw votes array from response for lean payload
+      const { community_votes, community_comments, ...postData } = post; // remove raw votes/comments array from response for lean payload
       
       return {
         ...postData,
         score, // Use calculated score from actual votes for accuracy
         user_vote: userVote,
         author: post.users,
+        comments_count: community_comments?.[0]?.count || 0
       };
     });
 

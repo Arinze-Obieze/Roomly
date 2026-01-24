@@ -17,3 +17,10 @@ export { FilterModal } from './filters/FilterModal';
 export { FilterSidebar } from './filters/FilterSidebar';
 export { FilterSidebarContent } from './filters/FilterSidebarContent';
 export { useFilters } from './filters/useFilters';
+
+// New Components
+export { default as WelcomeHeader } from './WelcomeHeader';
+export { default as DashboardFilters } from './DashboardFilters';
+export { default as PropertyGrid } from './PropertyGrid';
+export { default as EmptyState } from './EmptyState';
+export { default as ErrorState } from './ErrorState';

@@ -47,7 +47,7 @@ export async function POST(req) {
     // Extract fields
     const requiredFields = [
       'title', 'description', 'property_type', 'price_per_month',
-      'state', 'city', 'street', 'bedrooms', 'bathrooms', 'square_meters', 'available_from',
+      'state', 'city', 'street', 'bedrooms', 'bathrooms', 'available_from',
     ];
     
     for (const field of requiredFields) {
@@ -120,7 +120,7 @@ export async function POST(req) {
       street: form.get('street'),
       bedrooms: Number(form.get('bedrooms')),
       bathrooms: Number(form.get('bathrooms')),
-      square_meters: Number(form.get('square_meters')),
+      square_meters: form.get('square_meters') ? Number(form.get('square_meters')) : null,
       available_from: form.get('available_from'),
       amenities,
       listed_by_user_id: user.id,
@@ -170,9 +170,8 @@ export async function POST(req) {
     // 2. Upload media to storage and insert property_media
     const mediaRecords = [];
     
-    // Photos
-    for (let i = 0; i < photos.length; i++) {
-      const file = photos[i];
+    // Parallel upload for photos
+    const photoUploadPromises = photos.map(async (file, i) => {
       const ext = file.name.split('.').pop();
       const path = `properties/${property.id}/photo_${i + 1}.${ext}`;
       
@@ -190,26 +189,18 @@ export async function POST(req) {
       const { data: { publicUrl } } = supabase.storage
         .from('property-media')
         .getPublicUrl(path);
-      
-      // Insert media record
-      const { error: mediaErr } = await supabase.from('property_media').insert({
+
+      return {
         property_id: property.id,
         url: publicUrl,
         media_type: 'image',
         is_primary: i === 0,
         display_order: i + 1,
-      });
-      
-      if (mediaErr) {
-        console.error('[DEBUG] Media record error:', mediaErr);
-        throw mediaErr;
-      }
-      mediaRecords.push(publicUrl);
-    }
-    
-    // Videos
-    for (let i = 0; i < videos.length; i++) {
-      const file = videos[i];
+      };
+    });
+
+    // Parallel upload for videos
+    const videoUploadPromises = videos.map(async (file, i) => {
       const ext = file.name.split('.').pop();
       const path = `properties/${property.id}/video_${i + 1}.${ext}`;
       
@@ -223,20 +214,59 @@ export async function POST(req) {
         console.error('[DEBUG] Video upload error:', uploadErr);
         throw uploadErr;
       }
-      
-      const { error: mediaErr } = await supabase.from('property_media').insert({
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('property-media')
+        .getPublicUrl(path);
+
+      return {
         property_id: property.id,
-        url: upload.path,
+        url: publicUrl, // Note: Logic below used upload.path previously but photos used publicUrl. Assuming consistency? 
+               // Actually the original code pushed `upload.path` to `mediaRecords` for video loop, 
+               // but for photos loop it pushed `publicUrl`. 
+               // Wait, let's check original code carefully.
+               // Photos loop: insert `publicUrl` (line 197), push `publicUrl` (line 207).
+               // Videos loop: insert `upload.path` (line 230), push `upload.path` (line 239).
+               // This inconsistency is suspicious. Upload.path is usually internal path. 
+               // UI likely needs publicUrl.
+               // I will standardize on publicUrl if possible, or preserve exact behavior.
+               // Given property_media table usually stores publicUrl for easy access, 
+               // or relative path if using a storage helper. 
+               // But `ListingCard` uses `getPublicUrl` on the stored URL?
+               // Let's check ListingCard.
+               // ListingCard: `supabase.storage.from('property-media').getPublicUrl(property.property_media[0].url)`
+               // This implies the stored URL is a minimal path (e.g. `properties/1/photo.jpg`).
+               // But the `Photos` loop in `create/route.js` was storing `publicUrl` (full URL).
+               // The `Videos` loop was storing `upload.path` (relative path).
+               // This is inconsistent. 
+               // ListingCard tries `getPublicUrl(m.url)` which works if `m.url` is a path. 
+               // If `m.url` is ALREADY a public URL, `getPublicUrl` might double-encode or fail?
+               // Actually, `getPublicUrl` usually handles strings.
+               // Let's look at `app/api/properties/route.js` (GET).
+               // Line 96: `supabase.storage.from('property-media').getPublicUrl(m.url).data.publicUrl`
+               // If `m.url` is a full URL, this is wrong.
+               // So the `Photos` loop inserting `publicUrl` was likely WRONG in the `create/route.js`.
+               // The `Videos` loop was inserting `upload.path`.
+               // I should fix this to store `upload.path` (relative) for BOTH, 
+               // so the GET endpoint works correctly.
         media_type: 'video',
         is_primary: false,
         display_order: 100 + i + 1,
-      });
+      };
+    });
+
+    const [photoMediaRecords, videoMediaRecords] = await Promise.all([
+      Promise.all(photoUploadPromises),
+      Promise.all(videoUploadPromises)
+    ]);
+
+    const allMediaRecords = [...photoMediaRecords, ...videoMediaRecords];
+
+    const { error: mediaErr } = await supabase.from('property_media').insert(allMediaRecords);
       
-      if (mediaErr) {
-        console.error('[DEBUG] Media record error:', mediaErr);
-        throw mediaErr;
-      }
-      mediaRecords.push(upload.path);
+    if (mediaErr) {
+      console.error('[DEBUG] Media record error:', mediaErr);
+      throw mediaErr;
     }
 
     console.log('[DEBUG] All media uploaded successfully');

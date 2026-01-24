@@ -57,6 +57,7 @@ export default function DetailsForm({ formData, focusedField, setFocusedField, h
               onFocus={() => setFocusedField('price')}
               onBlur={() => setFocusedField(null)}
               placeholder="1200"
+              required
               className={`w-full px-4 py-3.5 rounded-xl border text-gray-900 placeholder-gray-400 bg-white transition-all duration-200 ease-in-out outline-none ${
                 focusedField === 'price'
                   ? 'border-emerald-500 bg-white'
@@ -76,6 +77,7 @@ export default function DetailsForm({ formData, focusedField, setFocusedField, h
               onChange={(e) => handleChange('available_from', e.target.value)}
               onFocus={() => setFocusedField('date')}
               onBlur={() => setFocusedField(null)}
+              required
               className={`w-full px-4 py-3.5 rounded-xl border text-gray-900 bg-white transition-all duration-200 ease-in-out outline-none ${
                 focusedField === 'date'
                   ? 'border-emerald-500 bg-white'
@@ -93,9 +95,10 @@ export default function DetailsForm({ formData, focusedField, setFocusedField, h
             </label>
             <input
               type="number"
-              min="1"
+              min="0"
               value={formData.bedrooms}
               onChange={(e) => handleChange('bedrooms', parseInt(e.target.value))}
+              required
               className="w-full px-4 py-3.5 rounded-xl border border-gray-200 hover:border-gray-300 bg-white hover:bg-white text-gray-900 transition-all duration-200 outline-none"
             />
           </div>
@@ -111,6 +114,7 @@ export default function DetailsForm({ formData, focusedField, setFocusedField, h
               step="0.5"
               value={formData.bathrooms}
               onChange={(e) => handleChange('bathrooms', parseFloat(e.target.value))}
+              required
               className="w-full px-4 py-3.5 rounded-xl border border-gray-200 hover:border-gray-300 bg-white hover:bg-white text-gray-900 transition-all duration-200 outline-none"
             />
           </div>
@@ -118,7 +122,7 @@ export default function DetailsForm({ formData, focusedField, setFocusedField, h
           <div>
             <label className="field-label flex items-center gap-2">
               <MdSquareFoot className="text-emerald-600" />
-              Sqm
+              Sqm <span className="text-slate-400 text-sm font-normal">(Optional)</span>
             </label>
             <input
               type="number"

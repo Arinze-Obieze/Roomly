@@ -1,11 +1,13 @@
 "use client";
 
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { MdLocationOn, MdVerified, MdFavorite, MdFavoriteBorder } from "react-icons/md";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useSavedProperties } from "@/contexts/SavedPropertiesContext";
 
 export const ListingCard = ({ data, onSelect }) => {
+  const router = useRouter();
   const { user } = useAuthContext();
   const { isPropertySaved, toggleSave } = useSavedProperties();
   const isOwner = user?.id === data.host?.id;
@@ -46,11 +48,25 @@ export const ListingCard = ({ data, onSelect }) => {
           </button>
         )}
 
-        {/* Match Score - Top Left (Moved from Right) */}
+        {/* Match Score or Profile Prompt - Top Left */}
         {!isOwner && (
-          <div className="absolute top-3 left-3 bg-white/90 backdrop-blur text-slate-900 px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs">
-            <div className={`w-1.5 h-1.5 rounded-full ${data.matchScore > 90 ? 'bg-green-500' : 'bg-yellow-500'}`}></div>
-            <span className="font-bold">{data.matchScore}% Match</span>
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+            {data.matchScore !== null ? (
+               <div className="bg-white/90 backdrop-blur text-slate-900 px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs">
+                 <div className={`w-1.5 h-1.5 rounded-full ${data.matchScore > 85 ? 'bg-green-500' : data.matchScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                 <span className="font-bold">{data.matchScore}% Match</span>
+               </div>
+            ) : (
+               <div 
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   router.push('/profile?tab=preferences');
+                 }}
+                 className="bg-cyan-600/90 backdrop-blur text-white px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs hover:bg-cyan-700 transition-colors cursor-pointer"
+               >
+                 <span className="font-bold whitespace-nowrap">Complete Profile to View Match</span>
+               </div>
+            )}
           </div>
         )}
 
@@ -89,15 +105,33 @@ export const ListingCard = ({ data, onSelect }) => {
         <div className="h-px bg-slate-100 my-3" />
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
+            <div 
+              className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded-full transition-colors -ml-1 pr-2"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (data.host?.id) {
+                    router.push(`/users/${data.host.id}`);
+                }
+              }} 
+            >
             {data.host.avatar ? (
-              <img src={data.host.avatar} className="w-8 h-8 rounded-full bg-slate-100 object-cover" alt={data.host.name} />
+              <div className="relative w-8 h-8 rounded-full overflow-hidden bg-slate-100">
+                <Image 
+                  src={data.host.avatar} 
+                  alt={data.host.name}
+                  fill
+                  sizes="32px"
+                  className="object-cover"
+                />
+              </div>
             ) : (
               <div className="w-8 h-8 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-xs font-bold">
                 {data.host.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || '??'}
               </div>
             )}
-            <span className="text-sm font-medium text-slate-700 truncate">{data.host.name}</span>
+            <span className="text-sm font-medium text-slate-700 truncate">
+              {isOwner ? 'You' : data.host.name}
+            </span>
             {data.verified && <MdVerified className="text-cyan-500 shrink-0" size={18} title="Verified ID" />}
           </div>
           <button className="text-sm font-semibold text-slate-900 hover:text-cyan-600 transition-colors hidden lg:block">

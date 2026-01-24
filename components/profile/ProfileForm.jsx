@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 export default function ProfileForm({ onCancel }) {
   const { user, updateProfile } = useAuthContext();
   const [loading, setLoading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
   
   // Form state
   // We use fallback to empty string to keep inputs controlled
@@ -32,6 +33,10 @@ export default function ProfileForm({ onCancel }) {
       toast.error('Please upload an image file');
       return;
     }
+
+    // Set immediate preview
+    const objectUrl = URL.createObjectURL(file);
+    setPreviewUrl(objectUrl);
 
     try {
       setLoading(true);
@@ -62,6 +67,7 @@ export default function ProfileForm({ onCancel }) {
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast.error('Failed to upload avatar');
+      setPreviewUrl(null); // Revert preview on error
     } finally {
       setLoading(false);
     }
@@ -71,8 +77,15 @@ export default function ProfileForm({ onCancel }) {
     e.preventDefault();
     setLoading(true);
 
+    // Sanitize payload
+    const payload = {
+      ...formData,
+      // Convert empty string date to null to avoid backend invalid input syntax
+      date_of_birth: formData.date_of_birth === '' ? null : formData.date_of_birth
+    };
+
     try {
-      const { success, error } = await updateProfile(formData);
+      const { success, error } = await updateProfile(payload);
       
       if (success) {
         toast.success('Profile updated successfully');
@@ -97,7 +110,7 @@ export default function ProfileForm({ onCancel }) {
            <label className="block text-sm font-medium text-slate-700 mb-2">Profile Picture</label>
            <div className="flex items-center gap-4">
              <img 
-               src={user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`}
+               src={previewUrl || user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=random`}
                alt="Avatar"
                className="w-16 h-16 rounded-full object-cover border border-slate-200"
              />
@@ -122,7 +135,7 @@ export default function ProfileForm({ onCancel }) {
             name="full_name"
             value={formData.full_name}
             onChange={handleChange}
-            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-all"
             required
           />
         </div>
@@ -134,7 +147,7 @@ export default function ProfileForm({ onCancel }) {
             name="phone_number"
             value={formData.phone_number}
             onChange={handleChange}
-            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-all"
           />
         </div>
 
@@ -145,7 +158,7 @@ export default function ProfileForm({ onCancel }) {
             name="date_of_birth"
             value={formData.date_of_birth}
             onChange={handleChange}
-            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-all"
           />
         </div>
         
@@ -156,7 +169,7 @@ export default function ProfileForm({ onCancel }) {
             value={formData.bio}
             onChange={handleChange}
             rows={4}
-            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all resize-none"
+            className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-all resize-none"
             placeholder="Tell us a bit about yourself..."
           />
         </div>
@@ -174,7 +187,7 @@ export default function ProfileForm({ onCancel }) {
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center gap-2 px-6 py-2 bg-slate-900 text-white rounded-xl text-sm font-medium hover:bg-slate-800 disabled:opacity-50 transition-colors"
+          className="flex items-center gap-2 px-6 py-2 bg-cyan-600 text-white rounded-xl text-sm font-medium hover:bg-cyan-700 disabled:opacity-50 transition-colors"
         >
           {loading ? (
             <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

@@ -155,6 +155,7 @@ export default function ProfilePage() {
             <MatchPreferencesForm 
               user={user} 
               initialData={data.preferences} 
+              role={data.lifestyle?.primary_role}
               onComplete={refreshData}
             />
           </div>

@@ -3,6 +3,8 @@
 import { useAuthContext } from '@/contexts/AuthContext';
 import { MdEdit, MdCalendarToday } from 'react-icons/md';
 
+import Image from 'next/image';
+
 export default function ProfileHeader({ isEditing, onToggleEdit, hideEditButton }) {
   const { user } = useAuthContext();
 
@@ -19,11 +21,16 @@ export default function ProfileHeader({ isEditing, onToggleEdit, hideEditButton 
       <div className="flex flex-col md:flex-row items-center gap-6">
         <div className="relative group">
           {user.avatar_url ? (
-            <img
-              src={user.avatar_url}
-              alt={user.full_name}
-              className="w-24 h-24 rounded-full object-cover border-4 border-slate-50"
-            />
+            <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-slate-50">
+              <Image
+                src={user.avatar_url}
+                alt={user.full_name}
+                fill
+                sizes="96px"
+                className="object-cover"
+                priority
+              />
+            </div>
           ) : (
             <div className="w-24 h-24 rounded-full bg-cyan-100 text-cyan-700 border-4 border-slate-50 flex items-center justify-center text-3xl font-bold">
                {user.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
@@ -48,7 +55,7 @@ export default function ProfileHeader({ isEditing, onToggleEdit, hideEditButton 
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                 isEditing
                   ? 'bg-slate-100 text-slate-700 hover:bg-slate-200'
-                  : 'bg-slate-900 text-white hover:bg-slate-800'
+                  : 'bg-cyan-600 text-white hover:bg-cyan-700'
               }`}
             >
               <MdEdit />

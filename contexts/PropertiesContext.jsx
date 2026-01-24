@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { AMENITIES } from "@/data/amenities";
+import { useAuthContext } from "@/contexts/AuthContext";
 
 const PropertiesContext = createContext();
 
@@ -15,6 +16,7 @@ export const useProperties = () => {
 };
 
 export const PropertiesProvider = ({ children }) => {
+  const { user } = useAuthContext();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -47,7 +49,7 @@ export const PropertiesProvider = ({ children }) => {
     abortControllerRef.current = new AbortController();
 
     // Generate cache key
-    const cacheKey = JSON.stringify({ filters, page, pageSize });
+    const cacheKey = JSON.stringify({ filters, page, pageSize, userId: user?.id });
     
     // Check cache
     if (useCache && cacheRef.current.has(cacheKey)) {
@@ -66,6 +68,15 @@ export const PropertiesProvider = ({ children }) => {
 
       const supabase = createClient();
       
+      // Fetch Match Scores if User is Logged In
+      let scoresMap = new Map();
+      if (user) {
+        const { data: scores } = await supabase.rpc('get_property_matches', { seeker_id: user.id });
+        if (scores) {
+          scores.forEach(s => scoresMap.set(s.property_id, s.match_score));
+        }
+      }
+
       // Build query
       let query = supabase
         .from('properties')
@@ -84,8 +95,20 @@ export const PropertiesProvider = ({ children }) => {
             is_verified
           )
         `, { count: 'exact' })
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+        .eq('is_active', true);
+
+      // Sorting
+      const sortBy = filters.sortBy || 'recommended';
+      if (sortBy === 'new') {
+        query = query.order('created_at', { ascending: false });
+      } else if (sortBy === 'price_asc') {
+         query = query.order('price_per_month', { ascending: true });
+      } else if (sortBy === 'price_desc') {
+         query = query.order('price_per_month', { ascending: false });
+      } else {
+         // Default / Recommended: fetch more recent first, but we will custom sort
+         query = query.order('created_at', { ascending: false });
+      }
 
       // Apply filters
       if (filters.priceRange && filters.priceRange !== 'all') {
@@ -96,7 +119,7 @@ export const PropertiesProvider = ({ children }) => {
         };
         const range = priceRanges[filters.priceRange];
         if (range) {
-          query = query.gte('price', range.min).lte('price', range.max);
+          query = query.gte('price_per_month', range.min).lte('price_per_month', range.max);
         }
       }
 
@@ -129,9 +152,22 @@ export const PropertiesProvider = ({ children }) => {
          query = query.or(`city.ilike.%${filters.area}%`);
       }
 
-      // Apply pagination
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
+      // Pagination Strategy
+      // If 'new' or basic sort, use DB pagination.
+      // If 'recommended', we need to fetch more to sort by match score effectively.
+      // For now, sticking to standard pagination for 'new'.
+      // For 'recommended', we'll fetch a larger set first page (e.g. 50) and sort client side.
+      
+      let from, to;
+      if (sortBy === 'recommended' && page === 1) {
+         // Fetch top 50 candidates to sort by relevance
+         from = 0;
+         to = 49;
+      } else {
+         from = (page - 1) * pageSize;
+         to = from + pageSize - 1;
+      }
+      
       query = query.range(from, to);
 
       const { data, error: fetchError, count } = await query;
@@ -139,7 +175,7 @@ export const PropertiesProvider = ({ children }) => {
       if (fetchError) throw fetchError;
 
       // Transform data to match your listing format
-      const transformedData = data.map(property => {
+      let transformedData = data.map(property => {
         const userData = property.users;
 
         const getImageUrl = (url) => {
@@ -166,13 +202,26 @@ export const PropertiesProvider = ({ children }) => {
             avatar: userData?.profile_picture || null,
             id: property.listed_by_user_id
           },
-          matchScore: calculateMatchScore(property, filters),
+          matchScore: scoresMap.size > 0 ? Math.round(scoresMap.get(property.id) || 0) : null,
           description: property.description,
           availableFrom: property.available_from,
           createdAt: property.created_at
         };
       });
 
+      // Client-side Sort for Recommended
+      if (sortBy === 'recommended') {
+        transformedData.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
+        // Recalculate pagination slice if we fetched extra
+        if (page === 1) {
+           transformedData = transformedData.slice(0, pageSize);
+        }
+      } 
+      
+      // If Pass tab (assuming it was 'pets' or something else, but user said 'pass')
+      // For now, 'Pass' will just be treated as 'New' or no special sort unless we define it.
+      // If 'pass' meant 'past', we don't have that.
+      
       const newPagination = {
         page,
         pageSize,
@@ -223,7 +272,7 @@ export const PropertiesProvider = ({ children }) => {
       pageSize: pagination.pageSize,
       append: true
     });
-  }, [pagination, loading, fetchProperties]);
+  }, [pagination, loading, fetchProperties, user]);
 
   /**
    * Refresh properties (force refetch)

@@ -5,7 +5,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 
-export default function CommentSection({ postId }) {
+export default function CommentSection({ postId, onCommentAdded }) {
   const { user } = useAuthContext();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -50,6 +50,7 @@ export default function CommentSection({ postId }) {
       const savedComment = await res.json();
       setComments(prev => [...prev, savedComment]);
       setNewComment('');
+      if(onCommentAdded) onCommentAdded();
       toast.success('Comment added');
     } catch (error) {
       toast.error('Failed to post comment');

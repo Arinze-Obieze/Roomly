@@ -168,7 +168,7 @@ export async function POST(req) {
     
     const requiredFields = [
       'title', 'description', 'property_type', 'price_per_month',
-      'state', 'city', 'street', 'bedrooms', 'bathrooms', 'square_meters', 'available_from',
+      'state', 'city', 'street', 'bedrooms', 'bathrooms', 'available_from',
     ];
     
     for (const field of requiredFields) {
@@ -237,7 +237,9 @@ export async function POST(req) {
       street: form.get('street'),
       bedrooms: Number(form.get('bedrooms')),
       bathrooms: Number(form.get('bathrooms')),
-      square_meters: Number(form.get('square_meters')),
+      bedrooms: Number(form.get('bedrooms')),
+      bathrooms: Number(form.get('bathrooms')),
+      square_meters: form.get('square_meters') ? Number(form.get('square_meters')) : null,
       available_from: form.get('available_from'),
       amenities,
       listed_by_user_id: user.id,
@@ -285,8 +287,8 @@ export async function POST(req) {
 
     const mediaRecords = [];
     
-    for (let i = 0; i < photos.length; i++) {
-      const file = photos[i];
+    // Parallel upload for photos
+    const photoUploadPromises = photos.map(async (file, i) => {
       const ext = file.name.split('.').pop();
       const path = `properties/${property.id}/photo_${i + 1}.${ext}`;
       
@@ -300,24 +302,18 @@ export async function POST(req) {
         console.error('[DEBUG] Photo upload error:', uploadErr);
         throw uploadErr;
       }
-      
-      const { error: mediaErr } = await supabase.from('property_media').insert({
+
+      return {
         property_id: property.id,
         url: upload.path,
         media_type: 'image',
         is_primary: i === 0,
         display_order: i + 1,
-      });
-      
-      if (mediaErr) {
-        console.error('[DEBUG] Media record error:', mediaErr);
-        throw mediaErr;
-      }
-      mediaRecords.push(upload.path);
-    }
-    
-    for (let i = 0; i < videos.length; i++) {
-      const file = videos[i];
+      };
+    });
+
+    // Parallel upload for videos
+    const videoUploadPromises = videos.map(async (file, i) => {
       const ext = file.name.split('.').pop();
       const path = `properties/${property.id}/video_${i + 1}.${ext}`;
       
@@ -331,20 +327,28 @@ export async function POST(req) {
         console.error('[DEBUG] Video upload error:', uploadErr);
         throw uploadErr;
       }
-      
-      const { error: mediaErr } = await supabase.from('property_media').insert({
+
+      return {
         property_id: property.id,
         url: upload.path,
         media_type: 'video',
         is_primary: false,
         display_order: 100 + i + 1,
-      });
+      };
+    });
+
+    const [photoMediaRecords, videoMediaRecords] = await Promise.all([
+      Promise.all(photoUploadPromises),
+      Promise.all(videoUploadPromises)
+    ]);
+
+    const allMediaRecords = [...photoMediaRecords, ...videoMediaRecords];
+
+    const { error: mediaErr } = await supabase.from('property_media').insert(allMediaRecords);
       
-      if (mediaErr) {
-        console.error('[DEBUG] Media record error:', mediaErr);
-        throw mediaErr;
-      }
-      mediaRecords.push(upload.path);
+    if (mediaErr) {
+      console.error('[DEBUG] Media record error:', mediaErr);
+      throw mediaErr;
     }
 
     console.log('[DEBUG] All media uploaded successfully');
