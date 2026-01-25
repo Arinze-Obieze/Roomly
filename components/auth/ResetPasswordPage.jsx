@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import PasswordField from '../Forms/PasswordField';
 
 import SubmitButton from '../Forms/SubmitButton';
@@ -25,18 +26,36 @@ export default function ResetPasswordPage() {
 
   // Check for recovery token in URL hash on mount
   useEffect(() => {
-    const hashParams = new URLSearchParams(window.location.hash.substring(1));
-    const accessToken = hashParams.get('access_token');
-    const type = hashParams.get('type');
-    
-    if (type === 'recovery' && accessToken) {
-      setIsRecoveryMode(true);
-      // Clear the hash from URL for security
-      window.history.replaceState(null, '', window.location.pathname);
-    } else {
-      // If no recovery token, redirect to forgot password
-      router.push('/forgot-password');
-    }
+    const handleRecovery = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      
+      if (type === 'recovery' && accessToken) {
+        // Set the session using the recovery token
+        const supabase = createClient();
+        const { error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken || '',
+        });
+
+        if (error) {
+          toast.error('Invalid or expired recovery link');
+          router.push('/forgot-password');
+          return;
+        }
+
+        setIsRecoveryMode(true);
+        // Clear the hash from URL for security
+        window.history.replaceState(null, '', window.location.pathname);
+      } else {
+        // If no recovery token, redirect to forgot password
+        router.push('/forgot-password');
+      }
+    };
+
+    handleRecovery();
   }, [router]);
 
   useEffect(() => {
