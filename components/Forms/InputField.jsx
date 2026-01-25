@@ -23,6 +23,7 @@ export default function InputField({
         <input
           type={type}
           id={name}
+          name={name}
           {...(register ? register(name) : {})}
           placeholder={placeholder}
           aria-invalid={!!error}

@@ -24,6 +24,7 @@ export default function PasswordField({
         <input
           type={showPassword ? "text" : "password"}
           id={name}
+          name={name}
           {...(register ? register(name) : {})}
           placeholder={placeholder}
           aria-invalid={!!error}

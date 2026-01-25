@@ -21,6 +21,23 @@ export default function ResetPasswordPage() {
     confirmPassword: '',
   });
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [isRecoveryMode, setIsRecoveryMode] = useState(false);
+
+  // Check for recovery token in URL hash on mount
+  useEffect(() => {
+    const hashParams = new URLSearchParams(window.location.hash.substring(1));
+    const accessToken = hashParams.get('access_token');
+    const type = hashParams.get('type');
+    
+    if (type === 'recovery' && accessToken) {
+      setIsRecoveryMode(true);
+      // Clear the hash from URL for security
+      window.history.replaceState(null, '', window.location.pathname);
+    } else {
+      // If no recovery token, redirect to forgot password
+      router.push('/forgot-password');
+    }
+  }, [router]);
 
   useEffect(() => {
     let score = 0;
@@ -68,6 +85,15 @@ export default function ResetPasswordPage() {
       }, 1500);
     }
   };
+
+  // Show loading while checking for recovery token
+  if (!isRecoveryMode) {
+    return (
+      <div className="w-full max-w-md mx-auto lg:mx-0 flex items-center justify-center min-h-[400px]">
+        <div className="w-8 h-8 border-4 border-slate-200 border-t-cyan-500 rounded-full animate-spin"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-md mx-auto lg:mx-0">

@@ -2,8 +2,6 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { AMENITIES } from "@/data/amenities";
-import { useAuthContext } from "@/contexts/AuthContext";
 
 const PropertiesContext = createContext();
 
@@ -16,7 +14,6 @@ export const useProperties = () => {
 };
 
 export const PropertiesProvider = ({ children }) => {
-  const { user } = useAuthContext();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -49,7 +46,7 @@ export const PropertiesProvider = ({ children }) => {
     abortControllerRef.current = new AbortController();
 
     // Generate cache key
-    const cacheKey = JSON.stringify({ filters, page, pageSize, userId: user?.id });
+    const cacheKey = JSON.stringify({ filters, page, pageSize });
     
     // Check cache
     if (useCache && cacheRef.current.has(cacheKey)) {
@@ -68,15 +65,6 @@ export const PropertiesProvider = ({ children }) => {
 
       const supabase = createClient();
       
-      // Fetch Match Scores if User is Logged In
-      let scoresMap = new Map();
-      if (user) {
-        const { data: scores } = await supabase.rpc('get_property_matches', { seeker_id: user.id });
-        if (scores) {
-          scores.forEach(s => scoresMap.set(s.property_id, s.match_score));
-        }
-      }
-
       // Build query
       let query = supabase
         .from('properties')
@@ -87,28 +75,10 @@ export const PropertiesProvider = ({ children }) => {
             url,
             media_type,
             display_order
-          ),
-          users (
-            id,
-            full_name,
-            profile_picture,
-            is_verified
           )
         `, { count: 'exact' })
-        .eq('is_active', true);
-
-      // Sorting
-      const sortBy = filters.sortBy || 'recommended';
-      if (sortBy === 'new') {
-        query = query.order('created_at', { ascending: false });
-      } else if (sortBy === 'price_asc') {
-         query = query.order('price_per_month', { ascending: true });
-      } else if (sortBy === 'price_desc') {
-         query = query.order('price_per_month', { ascending: false });
-      } else {
-         // Default / Recommended: fetch more recent first, but we will custom sort
-         query = query.order('created_at', { ascending: false });
-      }
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
 
       // Apply filters
       if (filters.priceRange && filters.priceRange !== 'all') {
@@ -119,7 +89,7 @@ export const PropertiesProvider = ({ children }) => {
         };
         const range = priceRanges[filters.priceRange];
         if (range) {
-          query = query.gte('price_per_month', range.min).lte('price_per_month', range.max);
+          query = query.gte('price', range.min).lte('price', range.max);
         }
       }
 
@@ -141,33 +111,13 @@ export const PropertiesProvider = ({ children }) => {
         query = query.contains('amenities', filters.amenities);
       }
 
-      // Updated Filter Logic for Ireland
-      if (filters.location && filters.location !== 'All Ireland') {
-        const locationQuery = filters.location.trim();
-        // Check if it matches a known county
-        query = query.or(`state.ilike.%${locationQuery}%,city.ilike.%${locationQuery}%`);
+      if (filters.location) {
+        query = query.ilike('location', `%${filters.location}%`);
       }
 
-      if (filters.area) {
-         query = query.or(`city.ilike.%${filters.area}%`);
-      }
-
-      // Pagination Strategy
-      // If 'new' or basic sort, use DB pagination.
-      // If 'recommended', we need to fetch more to sort by match score effectively.
-      // For now, sticking to standard pagination for 'new'.
-      // For 'recommended', we'll fetch a larger set first page (e.g. 50) and sort client side.
-      
-      let from, to;
-      if (sortBy === 'recommended' && page === 1) {
-         // Fetch top 50 candidates to sort by relevance
-         from = 0;
-         to = 49;
-      } else {
-         from = (page - 1) * pageSize;
-         to = from + pageSize - 1;
-      }
-      
+      // Apply pagination
+      const from = (page - 1) * pageSize;
+      const to = from + pageSize - 1;
       query = query.range(from, to);
 
       const { data, error: fetchError, count } = await query;
@@ -175,14 +125,13 @@ export const PropertiesProvider = ({ children }) => {
       if (fetchError) throw fetchError;
 
       // Transform data to match your listing format
-      let transformedData = data.map(property => {
-        const userData = property.users;
-
-        const getImageUrl = (url) => {
-          if (!url) return '/placeholder-property.jpg';
-          if (url.startsWith('http')) return url;
-          return supabase.storage.from('property-media').getPublicUrl(url).data.publicUrl;
-        };
+      const transformedData = await Promise.all(data.map(async property => {
+        // Fetch user data separately
+        const { data: userData } = await supabase
+          .from('users')
+          .select('id, full_name, avatar_url, is_verified')
+          .eq('id', property.listed_by_user_id)
+          .single();
 
         return {
           id: property.id,
@@ -190,8 +139,8 @@ export const PropertiesProvider = ({ children }) => {
           location: `${property.city}, ${property.state}`,
           price: `€${property.price_per_month}`,
           period: 'month',
-          image: getImageUrl(property.property_media?.[0]?.url),
-          images: property.property_media?.map(m => getImageUrl(m.url)) || [],
+          image: property.property_media?.[0]?.url || '/placeholder-property.jpg',
+          images: property.property_media?.map(m => m.url) || [],
           bedrooms: property.bedrooms,
           bathrooms: property.bathrooms,
           propertyType: property.property_type,
@@ -202,26 +151,13 @@ export const PropertiesProvider = ({ children }) => {
             avatar: userData?.profile_picture || null,
             id: property.listed_by_user_id
           },
-          matchScore: scoresMap.size > 0 ? Math.round(scoresMap.get(property.id) || 0) : null,
+          matchScore: calculateMatchScore(property, filters),
           description: property.description,
           availableFrom: property.available_from,
           createdAt: property.created_at
         };
-      });
+      }));
 
-      // Client-side Sort for Recommended
-      if (sortBy === 'recommended') {
-        transformedData.sort((a, b) => (b.matchScore || 0) - (a.matchScore || 0));
-        // Recalculate pagination slice if we fetched extra
-        if (page === 1) {
-           transformedData = transformedData.slice(0, pageSize);
-        }
-      } 
-      
-      // If Pass tab (assuming it was 'pets' or something else, but user said 'pass')
-      // For now, 'Pass' will just be treated as 'New' or no special sort unless we define it.
-      // If 'pass' meant 'past', we don't have that.
-      
       const newPagination = {
         page,
         pageSize,
@@ -272,7 +208,7 @@ export const PropertiesProvider = ({ children }) => {
       pageSize: pagination.pageSize,
       append: true
     });
-  }, [pagination, loading, fetchProperties, user]);
+  }, [pagination, loading, fetchProperties]);
 
   /**
    * Refresh properties (force refetch)
@@ -320,22 +256,17 @@ export const PropertiesProvider = ({ children }) => {
  * Helper function to transform amenities from database format
  */
 function transformAmenities(amenities) {
-  return amenities.map(amenityStr => {
-    // Find the amenity object in our constant
-    // Match by value (preferred) or label if needed, or fallback
-    const key = amenityStr.toLowerCase();
-    const found = AMENITIES.find(a => a.value === key || a.label.toLowerCase() === key);
-    
-    if (found) {
-      return found; // Returns { value, label, icon: Component }
-    }
-    
-    // Fallback if not found in our list
-    return { 
-      value: key, 
-      label: amenityStr, 
-      icon: AMENITIES[0].icon // Fallback to first icon (WiFi) or a specific unknown icon
-    };
+  const iconMap = {
+    wifi: { icon: 'FaWifi', label: 'WiFi' },
+    pets: { icon: 'FaPaw', label: 'Pets Allowed' },
+    parking: { icon: 'FaCar', label: 'Parking' },
+    ensuite: { icon: 'FaShower', label: 'Ensuite' },
+    garden: { icon: 'FaTree', label: 'Garden' }
+  };
+
+  return amenities.map(amenity => {
+    const key = amenity.toLowerCase();
+    return iconMap[key] || { icon: 'FaWifi', label: amenity };
   });
 }
 

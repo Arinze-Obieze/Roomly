@@ -11,7 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 export default function ForgotPasswordPage() {
   const router = useRouter();
   const { resetPassword, loading: authLoading } = useAuth();
-  const [focusedField, setFocusedField] = useState(null);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [formData, setFormData] = useState({
@@ -111,8 +111,6 @@ export default function ForgotPasswordPage() {
           value={formData.email}
           onChange={handleChange}
           placeholder="sarah@example.com"
-          focusedField={focusedField}
-          setFocusedField={setFocusedField}
         />
 
         <SubmitButton disabled={isSubmitting || authLoading}>

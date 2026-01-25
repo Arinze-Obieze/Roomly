@@ -9,7 +9,7 @@ export async function middleware(request) {
 
   // Define route types
   const isAuthPage = pathname === '/login' || pathname === '/signup' || 
-                     pathname === '/forgot-password' || pathname === '/reset-password';
+                     pathname === '/forgot-password';
   const isAuthApiRoute = pathname.startsWith('/api/auth') || pathname === '/api/signup';
   const isProtectedRoute = pathname.startsWith('/profile') || 
                           pathname.startsWith('/listings') ||
