@@ -14,7 +14,7 @@ export async function middleware(request) {
   const isProtectedRoute = pathname.startsWith('/profile') || 
                           pathname.startsWith('/listings') ||
                           pathname.startsWith('/dashboard') || // Add dashboard as protected
-                          (pathname.startsWith('/api') && !isAuthApiRoute);
+                          (pathname.startsWith('/api') && !isAuthApiRoute && !pathname.startsWith('/api/properties'));
 
   // Redirect authenticated users away from auth pages
   if (isAuthPage && user) {

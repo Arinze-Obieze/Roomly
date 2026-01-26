@@ -6,6 +6,8 @@ export async function GET(request, { params }) {
     const supabase = await createClient();
     const { id } = await params;
 
+    const { data: { user } } = await supabase.auth.getUser();
+
     const { data: property, error } = await supabase
       .from('properties')
       .select(`
@@ -16,6 +18,12 @@ export async function GET(request, { params }) {
           display_order,
           is_primary,
           media_type
+        ),
+        users (
+          id,
+          full_name,
+          profile_picture,
+          is_verified
         )
       `)
       .eq('id', id)
@@ -30,12 +38,31 @@ export async function GET(request, { params }) {
       );
     }
 
+    // Soft Gating: Scrub sensitive data if user is not authenticated
+    if (!user) {
+      // Hide exact address
+      property.street = undefined;
+      
+      // Hide host full name (show first name only)
+      if (property.users && property.users.full_name) {
+        property.users.full_name = property.users.full_name.split(' ')[0];
+      }
+    }
+
     // Transform media URLs to public URLs
-    if (property.property_media) {
+    if (property.property_media && property.property_media.length > 0) {
       property.property_media = property.property_media.map(media => ({
         ...media,
-        url: supabase.storage.from('property-media').getPublicUrl(media.url).data.publicUrl
+        url: media.url.startsWith('http') ? media.url : supabase.storage.from('property-media').getPublicUrl(media.url).data.publicUrl
       }));
+    } else {
+        // Fallback for no media
+        property.property_media = [{
+            id: 'placeholder',
+            url: 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
+            media_type: 'image',
+            is_primary: true
+        }];
     }
 
     return NextResponse.json(property);

@@ -81,35 +81,54 @@ export async function GET(request) {
       );
     }
 
-    const transformedData = data.map(property => ({
+    const { data: { user } } = await supabase.auth.getUser();
+
+    const transformedData = data.map(property => {
+      let hostName = property.users?.full_name || 'Unknown';
+      if (!user && hostName !== 'Unknown') {
+        hostName = hostName.split(' ')[0];
+      }
+
+      return {
       id: property.id,
       title: property.title,
       location: `${property.city}, ${property.state}`,
       price: `€${property.price_per_month}`,
       period: 'month',
-      image: property.property_media?.find(m => m.is_primary)?.url 
-        ? supabase.storage.from('property-media').getPublicUrl(property.property_media.find(m => m.is_primary).url).data.publicUrl
-        : property.property_media?.[0]?.url 
-          ? supabase.storage.from('property-media').getPublicUrl(property.property_media[0].url).data.publicUrl
-          : null,
+      image: (() => {
+        const primary = property.property_media?.find(m => m.is_primary);
+        if (primary?.url) {
+            return primary.url.startsWith('http') 
+                ? primary.url 
+                : supabase.storage.from('property-media').getPublicUrl(primary.url).data.publicUrl;
+        }
+        const first = property.property_media?.[0];
+        if (first?.url) {
+             return first.url.startsWith('http')
+                ? first.url
+                : supabase.storage.from('property-media').getPublicUrl(first.url).data.publicUrl;
+        }
+        return 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image';
+      })(),
       images: property.property_media?.sort((a, b) => a.display_order - b.display_order).map(m => 
-        supabase.storage.from('property-media').getPublicUrl(m.url).data.publicUrl
+        m.url.startsWith('http') 
+            ? m.url 
+            : supabase.storage.from('property-media').getPublicUrl(m.url).data.publicUrl
       ) || [],
       bedrooms: property.bedrooms,
       bathrooms: property.bathrooms,
       propertyType: property.property_type,
       amenities: (property.amenities || []).map(a => ({ icon: 'FaWifi', label: a })),
-      amenities: (property.amenities || []).map(a => ({ icon: 'FaWifi', label: a })),
       verified: false,
       host: {
-        name: property.users?.full_name || 'Unknown',
+        name: hostName,
         avatar: property.users?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(property.users?.full_name || 'Unknown')}&background=random`,
         id: property.listed_by_user_id
       },
       description: property.description,
       availableFrom: property.available_from,
       createdAt: property.created_at
-    }));
+    }});
 
     return NextResponse.json({
       data: transformedData,

@@ -61,6 +61,8 @@ export const Header = ({ showFilters, setShowFilters }) => {
           </div>
 
           <div className="flex items-center gap-4">
+            {user ? (
+              <>
             <button className="relative p-2 hover:bg-slate-100 rounded-lg transition-colors">
               <MdNotificationsNone size={22} className="text-slate-600" />
               <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -112,6 +114,13 @@ export const Header = ({ showFilters, setShowFilters }) => {
                   </div>
                 )}
               </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-3">
+                 <Link href="/login" className="text-sm font-semibold text-slate-600 hover:text-slate-900 transition-colors">Log In</Link>
+                 <Link href="/signup" className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20 active:scale-95">Sign Up</Link>
+              </div>
+            )}
           </div>
         </div>
 
@@ -120,9 +129,11 @@ export const Header = ({ showFilters, setShowFilters }) => {
             <HeaderNavItem 
               icon={MdHome} 
               label="Discover" 
-              active={isActive('/dashboard')}
-              onClick={() => router.push('/dashboard')}
+              active={isActive('/dashboard') || isActive('/rooms')}
+              onClick={() => router.push(user ? '/dashboard' : '/rooms')}
             />
+            {user && (
+              <>
             <HeaderNavItem 
               icon={FaRegEdit} 
               label="My Listings" 
@@ -148,6 +159,8 @@ export const Header = ({ showFilters, setShowFilters }) => {
               active={isActive('/community')}
               onClick={() => router.push('/community')}
             />
+              </>
+            )}
           </nav>
 
           <div className="relative w-96">
@@ -190,6 +203,8 @@ export const Header = ({ showFilters, setShowFilters }) => {
           </div>
           
           <div className="flex items-center gap-2">
+            {user ? (
+              <>
             <button className="p-2 rounded-lg hover:bg-slate-100 relative">
               <MdNotificationsNone size={22} />
               <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
@@ -228,6 +243,13 @@ export const Header = ({ showFilters, setShowFilters }) => {
                 </div>
               )}
             </div>
+              </>
+            ) : (
+                <div className="flex items-center gap-3">
+                   <Link href="/login" className="text-sm font-semibold text-slate-600">Log In</Link>
+                   <Link href="/signup" className="text-sm font-bold text-cyan-600">Sign Up</Link>
+                </div>
+            )}
           </div>
         </div>
 

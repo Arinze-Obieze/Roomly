@@ -12,9 +12,13 @@ export const useAuthContext = () => {
   return context;
 };
 
+import SignUpModal from '@/components/modals/SignUpModal';
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginMessage, setLoginMessage] = useState('');
 
   const refreshSession = useCallback(async () => {
     try {
@@ -64,6 +68,11 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const openLoginModal = (message = '') => {
+    setLoginMessage(message);
+    setShowLoginModal(true);
+  };
+
   useEffect(() => {
     // Initial session check
     refreshSession().finally(() => setLoading(false));
@@ -75,7 +84,17 @@ export function AuthProvider({ children }) {
     refreshSession,
     updateProfile,
     signOut,
+    openLoginModal
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      <SignUpModal 
+        isOpen={showLoginModal} 
+        onClose={() => setShowLoginModal(false)} 
+        message={loginMessage} 
+      />
+    </AuthContext.Provider>
+  );
 }

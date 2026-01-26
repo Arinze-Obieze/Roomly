@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { FaWifi, FaPaw, FaCar, FaShower, FaTree } from 'react-icons/fa';
 
 const PropertiesContext = createContext();
 
@@ -63,111 +64,51 @@ export const PropertiesProvider = ({ children }) => {
       }
       setError(null);
 
-      const supabase = createClient();
-      
-      // Build query
-      let query = supabase
-        .from('properties')
-        .select(`
-          *,
-          property_media (
-            id,
-            url,
-            media_type,
-            display_order
-          )
-        `, { count: 'exact' })
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
+      // Build query params
+      const params = new URLSearchParams({
+        page: page.toString(),
+        pageSize: pageSize.toString()
+      });
 
-      // Apply filters
       if (filters.priceRange && filters.priceRange !== 'all') {
-        const priceRanges = {
-          budget: { min: 0, max: 800 },
-          mid: { min: 800, max: 1500 },
-          premium: { min: 1500, max: 999999 }
-        };
-        const range = priceRanges[filters.priceRange];
-        if (range) {
-          query = query.gte('price', range.min).lte('price', range.max);
-        }
+        params.append('priceRange', filters.priceRange);
       }
-
-      if (filters.bedrooms && filters.bedrooms.length > 0) {
-        query = query.in('bedrooms', filters.bedrooms);
+      if (filters.bedrooms?.length > 0) {
+        params.append('bedrooms', filters.bedrooms.join(','));
       }
-
       if (filters.propertyType && filters.propertyType !== 'any') {
-        query = query.eq('property_type', filters.propertyType);
+        params.append('propertyType', filters.propertyType);
       }
-
       if (filters.verifiedOnly) {
-        // Only show properties from verified users
-        query = query.eq('users.is_verified', true);
+        params.append('verifiedOnly', 'true');
       }
-
-      if (filters.amenities && filters.amenities.length > 0) {
-        // Assuming amenities is a JSONB array column
-        query = query.contains('amenities', filters.amenities);
+      if (filters.amenities?.length > 0) {
+        params.append('amenities', filters.amenities.join(','));
       }
-
       if (filters.location) {
-        query = query.ilike('location', `%${filters.location}%`);
+        params.append('location', filters.location);
       }
 
-      // Apply pagination
-      const from = (page - 1) * pageSize;
-      const to = from + pageSize - 1;
-      query = query.range(from, to);
+      const response = await fetch(`/api/properties?${params.toString()}`, {
+        signal: abortControllerRef.current.signal
+      });
 
-      const { data, error: fetchError, count } = await query;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch properties');
+      }
 
-      if (fetchError) throw fetchError;
+      const { data: transformedData, pagination: newPagination } = await response.json();
 
-      // Transform data to match your listing format
-      const transformedData = await Promise.all(data.map(async property => {
-        // Fetch user data separately
-        const { data: userData } = await supabase
-          .from('users')
-          .select('id, full_name, avatar_url, is_verified')
-          .eq('id', property.listed_by_user_id)
-          .single();
-
-        return {
-          id: property.id,
-          title: property.title,
-          location: `${property.city}, ${property.state}`,
-          price: `€${property.price_per_month}`,
-          period: 'month',
-          image: property.property_media?.[0]?.url || '/placeholder-property.jpg',
-          images: property.property_media?.map(m => m.url) || [],
-          bedrooms: property.bedrooms,
-          bathrooms: property.bathrooms,
-          propertyType: property.property_type,
-          amenities: transformAmenities(property.amenities || []),
-          verified: userData?.is_verified || false,
-          host: {
-            name: userData?.full_name || 'Unknown',
-            avatar: userData?.profile_picture || null,
-            id: property.listed_by_user_id
-          },
-          matchScore: calculateMatchScore(property, filters),
-          description: property.description,
-          availableFrom: property.available_from,
-          createdAt: property.created_at
-        };
+      const dataWithHydratedIcons = transformedData.map(p => ({
+         ...p,
+         amenities: transformAmenities(p.amenities || []),
+         matchScore: calculateMatchScore(p, filters)
       }));
-
-      const newPagination = {
-        page,
-        pageSize,
-        total: count || 0,
-        hasMore: (page * pageSize) < (count || 0)
-      };
 
       // Update cache
       cacheRef.current.set(cacheKey, {
-        data: transformedData,
+        data: dataWithHydratedIcons,
         pagination: newPagination,
         timestamp: Date.now()
       });
@@ -178,22 +119,23 @@ export const PropertiesProvider = ({ children }) => {
         cacheRef.current.delete(firstKey);
       }
 
-      setProperties(append ? prev => [...prev, ...transformedData] : transformedData);
+      setProperties(append ? prev => [...prev, ...dataWithHydratedIcons] : dataWithHydratedIcons);
       setPagination(newPagination);
 
-      return { data: transformedData, pagination: newPagination };
+      return { data: dataWithHydratedIcons, pagination: newPagination };
 
     } catch (err) {
       if (err.name === 'AbortError') {
-        console.log('Fetch aborted');
         return;
       }
       console.error('Error fetching properties:', err);
       setError(err.message);
       return { data: [], pagination: { page: 1, pageSize, total: 0, hasMore: false } };
     } finally {
-      setLoading(false);
-      abortControllerRef.current = null;
+      if (!abortControllerRef.current?.signal.aborted) {
+         setLoading(false);
+         abortControllerRef.current = null;
+      }
     }
   }, []);
 
@@ -253,20 +195,22 @@ export const PropertiesProvider = ({ children }) => {
 };
 
 /**
- * Helper function to transform amenities from database format
+ * Helper function to transform amenities from database format or API format
  */
 function transformAmenities(amenities) {
   const iconMap = {
-    wifi: { icon: 'FaWifi', label: 'WiFi' },
-    pets: { icon: 'FaPaw', label: 'Pets Allowed' },
-    parking: { icon: 'FaCar', label: 'Parking' },
-    ensuite: { icon: 'FaShower', label: 'Ensuite' },
-    garden: { icon: 'FaTree', label: 'Garden' }
+    wifi: { icon: FaWifi, label: 'WiFi' },
+    pets: { icon: FaPaw, label: 'Pets Allowed' },
+    parking: { icon: FaCar, label: 'Parking' },
+    ensuite: { icon: FaShower, label: 'Ensuite' },
+    garden: { icon: FaTree, label: 'Garden' }
   };
 
   return amenities.map(amenity => {
-    const key = amenity.toLowerCase();
-    return iconMap[key] || { icon: 'FaWifi', label: amenity };
+    // Handle both string (DB) and object (API) formats
+    const label = typeof amenity === 'string' ? amenity : amenity.label;
+    const key = label ? label.toLowerCase() : '';
+    return iconMap[key] || { icon: FaWifi, label: label || 'Amenity' };
   });
 }
 

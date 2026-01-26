@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { MdLocationOn, MdVerified, MdFavorite, MdFavoriteBorder } from "react-icons/md";
@@ -8,30 +9,40 @@ import { useSavedProperties } from "@/contexts/SavedPropertiesContext";
 
 export const ListingCard = ({ data, onSelect }) => {
   const router = useRouter();
-  const { user } = useAuthContext();
+  const { user, openLoginModal } = useAuthContext();
   const { isPropertySaved, toggleSave } = useSavedProperties();
   const isOwner = user?.id === data.host?.id;
   
   const isSaved = isPropertySaved(data.id);
+  const [imgSrc, setImgSrc] = useState(data.image);
+
+  useEffect(() => {
+    setImgSrc(data.image);
+  }, [data.image]);
 
   const handleSave = (e) => {
     e.stopPropagation();
+    if (!user) {
+      openLoginModal('You need an account to save/favorite a room.');
+      return;
+    }
     toggleSave(data.id);
   };
 
   return (
     <div 
       onClick={() => onSelect?.()}
-      className="group bg-white rounded-2xl lg:rounded-3xl border border-slate-200 overflow-hidden active:scale-[0.98] transition-all duration-200 cursor-pointer lg:hover:shadow-xl lg:hover:-translate-y-1"
+      className="group bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
     >
       <div className="relative h-48 md:h-52 lg:h-56 w-full overflow-hidden">
         <Image 
-          src={data.image} 
+          src={imgSrc || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image'} 
           alt={data.title}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover group-hover:scale-105 transition-transform duration-500"
           priority={false}
+          onError={() => setImgSrc('https://placehold.co/600x400/e2e8f0/64748b?text=Image+Error')}
         />
         
         {/* Save Button - Top Right */}
@@ -51,7 +62,7 @@ export const ListingCard = ({ data, onSelect }) => {
         {/* Match Score or Profile Prompt - Top Left */}
         {!isOwner && (
           <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
-            {data.matchScore !== null ? (
+            {user && data.matchScore !== null ? (
                <div className="bg-white/90 backdrop-blur text-slate-900 px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs">
                  <div className={`w-1.5 h-1.5 rounded-full ${data.matchScore > 85 ? 'bg-green-500' : data.matchScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
                  <span className="font-bold">{data.matchScore}% Match</span>
@@ -60,11 +71,15 @@ export const ListingCard = ({ data, onSelect }) => {
                <div 
                  onClick={(e) => {
                    e.stopPropagation();
+                   if (!user) {
+                     openLoginModal('Sign up to see compatibility match.');
+                     return;
+                   }
                    router.push('/profile?tab=preferences');
                  }}
                  className="bg-cyan-600/90 backdrop-blur text-white px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs hover:bg-cyan-700 transition-colors cursor-pointer"
                >
-                 <span className="font-bold whitespace-nowrap">Complete Profile to View Match</span>
+                 <span className="font-bold whitespace-nowrap">{user ? 'Complete Profile to View Match' : 'Sign up to see compatibility'}</span>
                </div>
             )}
           </div>
