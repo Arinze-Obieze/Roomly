@@ -8,7 +8,9 @@ export default function HostSidebar({
   contacting, 
   onContactHost, 
   onEditListing, 
-  onViewProfile 
+  onViewProfile,
+  contactButtonText,
+  isPrivate
 }) {
   return (
     <div className="space-y-6">
@@ -22,7 +24,7 @@ export default function HostSidebar({
             {host.avatar ? (
               <img 
                 src={host.avatar} 
-                className="w-16 h-16 rounded-full object-cover bg-slate-100" 
+                className={`w-16 h-16 rounded-full object-cover bg-slate-100 ${isPrivate ? 'blur-sm grayscale' : ''}`} 
                 alt={host.name}
               />
             ) : (
@@ -34,7 +36,7 @@ export default function HostSidebar({
             <div>
               <div className="font-bold text-slate-900 flex items-center gap-2">
                 {isOwner ? 'You' : host.name}
-                {host.verified && <MdVerified className="text-cyan-500" title="Verified Host" />}
+                {host.verified && !isPrivate && <MdVerified className="text-cyan-500" title="Verified Host" />}
               </div>
               <div className="text-sm text-slate-500">Joined 2024</div>
             </div>
@@ -53,7 +55,7 @@ export default function HostSidebar({
               disabled={contacting}
               className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {contacting ? 'Starting Chat...' : 'Contact Host'}
+              {contacting ? 'Loading...' : (contactButtonText || 'Contact Host')}
             </button>
         )}
         <p className="text-xs text-center text-slate-400 mt-4">

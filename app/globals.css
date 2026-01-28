@@ -4,19 +4,16 @@
   /* ============================================
      ROOMLY DESIGN SYSTEM - WCAG AA COMPLIANT
      ============================================ */
-  
+
   /* === CYAN COLOR SYSTEM (Primary Brand Color) === */
   /* WCAG AA compliant cyan scale - All text colors meet 4.5:1 contrast on white/dark backgrounds */
-  --color-cyan-50: #ecfeff;    /* Very light cyan - backgrounds, subtle hover states */
-  --color-cyan-100: #cffafe;   /* Light cyan - badges, tags, highlights */
+  --color-cyan-50: #ecfeff; /* Very light cyan - backgrounds, subtle hover states */
+  --color-cyan-100: #cffafe; /* Light cyan - badges, tags, highlights */
 }
 
-
-button{
+button {
   cursor: pointer;
 }
-
-
 
 .shadow-primary-lg {
   box-shadow: var(--shadow-cyan-lg);
@@ -70,10 +67,6 @@ button{
     max-width: 1536px;
   }
 }
-
-
-
-
 
 /* ============================================
    LEGACY COMPATIBILITY CLASSES
@@ -205,4 +198,13 @@ button{
   h3 {
     page-break-after: avoid;
   }
+}
+
+/* Scrollbar hide utility */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

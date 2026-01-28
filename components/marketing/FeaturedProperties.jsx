@@ -5,6 +5,8 @@ import { ListingCard } from "@/components/dashboard/ui/ListingCard";
 import Link from "next/link";
 import { MdArrowForward } from "react-icons/md";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
+import { useRef, useEffect, useState } from "react";
 
 export default function FeaturedProperties() {
   const router = useRouter();
@@ -16,10 +18,20 @@ export default function FeaturedProperties() {
     }
   });
 
+  // Carousel Logic
+  const carouselRef = useRef();
+  const [width, setWidth] = useState(0);
+
+  useEffect(() => {
+    if (carouselRef.current) {
+        setWidth(carouselRef.current.scrollWidth - carouselRef.current.offsetWidth);
+    }
+  }, [properties, loading]);
+
   // Loading Skeleton
   if (loading) {
     return (
-        <section className="py-20 bg-slate-50">
+        <section className="py-12 md:py-20 bg-slate-50">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="flex justify-between items-end mb-10">
                     <div className="space-y-2">
@@ -37,16 +49,14 @@ export default function FeaturedProperties() {
     );
   }
 
-  // If no properties, hide section or show something else? For marketing we should probably always have something, 
-  // but if DB empty, we might just hide.
   if (properties.length === 0) return null;
 
   return (
-    <section className="py-20 bg-slate-50">
+    <section className="py-12 md:py-20 bg-slate-50 overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
         
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between mb-10 gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 md:mb-10 gap-4">
             <div className="max-w-2xl">
                 <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
                     Featured Rooms
@@ -65,8 +75,47 @@ export default function FeaturedProperties() {
             </Link>
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Mobile Custom Carousel (Framer Motion) */}
+        <div className="md:hidden -mx-4">
+            <motion.div 
+                ref={carouselRef} 
+                className="cursor-grab active:cursor-grabbing overflow-hidden px-4"
+                whileTap={{ cursor: "grabbing" }}
+            >
+                <motion.div 
+                    drag="x" 
+                    dragConstraints={{ right: 0, left: -width }}
+                    className="flex gap-4"
+                >
+                    {properties.slice(0, 4).map(property => (
+                        <motion.div 
+                            key={property.id} 
+                            className="min-w-[85vw] sm:min-w-[300px]"
+                        >
+                            <ListingCard 
+                                data={property} 
+                                onSelect={() => router.push(`/rooms/${property.id}`)}
+                            />
+                        </motion.div>
+                    ))}
+                </motion.div>
+            </motion.div>
+            
+            {/* Visual Indication of Scroll - Simple Dots */}
+            <div className="flex justify-center gap-2 mt-6">
+                 {properties.slice(0, 4).map((_, i) => (
+                    <div key={i} className="w-2 h-2 rounded-full bg-slate-200"></div>
+                 ))}
+            </div>
+            
+            {/* Swipe Instruction */}
+            <p className="text-center text-xs text-slate-400 mt-2 font-medium uppercase tracking-widest">
+                Swipe to explore
+            </p>
+        </div>
+
+        {/* Desktop Grid (Standard) */}
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {properties.slice(0, 4).map(property => (
                 <ListingCard 
                     key={property.id} 
@@ -76,13 +125,13 @@ export default function FeaturedProperties() {
             ))}
         </div>
 
-        {/* Mobile View All */}
-        <div className="mt-8 text-center md:hidden">
+        {/* Mobile View All Link */}
+        <div className="mt-6 text-center md:hidden">
             <Link 
                 href="/rooms"
-                className="inline-flex items-center justify-center w-full px-6 py-4 bg-white border border-slate-200 rounded-xl font-bold text-slate-900 hover:bg-slate-50 transition-colors"
+                className="inline-flex items-center gap-2 text-sm font-bold text-slate-900 border-b-2 border-slate-900 pb-1 hover:text-cyan-600 hover:border-cyan-600 transition-colors"
             >
-                View all 1,200+ rooms
+                View all properties <MdArrowForward />
             </Link>
         </div>
 

@@ -6,7 +6,7 @@ import { usePropertiesWithFilters } from "@/hooks/usePropertiesWithFilters";
 
 // New Components
 import PublicHeader from "@/components/public/PublicHeader";
-import SearchHero from "@/components/public/SearchHero";
+// import SearchHero from "@/components/public/SearchHero"; // Removed as FilterBar now handles search
 import FilterBar from "@/components/public/FilterBar";
 
 // UI Components
@@ -28,25 +28,28 @@ export default function RoomsPage() {
     refresh 
   } = usePropertiesWithFilters({
     autoFetch: true,
-    debounceMs: 300,
-    initialFilters: {
-        priceRange: 'all',
-        propertyType: 'any',
-        bedrooms: [],
-        verifiedOnly: false
-    }
+    debounceMs: 300
   });
 
-  // Handle Search Hero
-  const handleLocationSearch = (location) => {
-    updateFilters({ location });
-    // Scroll to listings
-    document.getElementById('listings')?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  // Handle Filter Bar
   const handleFilterChange = (key, value) => {
-    updateFilters({ [key]: value });
+    // If key is object (like priceRange), it spreads. 
+    // If value is object (like {min, max}), we might want to spread it or keep as object property?
+    // Backend expects: minPrice, maxPrice, bedrooms, propertyType, etc.
+    // FilterBar sends: 'priceRange' -> {min, max}
+    // We need to map these to the flat structure expected by useProperties/API usually, 
+    // OR updateFilters handles it.
+    // Let's look at FilterContext default filters: it has `priceRange: 'all'` usually.
+    // But now we want support for min/max.
+    
+    // Let's flatten the updates here to match typical query params if needed, 
+    // or assume Context handles object values.
+    // Given the previous `priceRange` was a string 'all'|'budget', we are changing it to numbers.
+    
+    if (key === 'priceRange') {
+        updateFilters({ minPrice: value.min, maxPrice: value.max });
+    } else {
+        updateFilters({ [key]: value });
+    }
   };
 
   // Infinite scroll
@@ -68,9 +71,34 @@ export default function RoomsPage() {
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
       <PublicHeader />
       
-      <SearchHero onSearch={handleLocationSearch} />
+      {/* Search Hero removed/replaced by a spacer or smaller header if needed? 
+          The previous SearchHero was big and beautiful. 
+          The new FilterBar is sticky. 
+          If we remove SearchHero, the page might look empty at top. 
+          Proposal: Keep SearchHero but hide its internal search box? 
+          OR just have the FilterBar overlaid on a hero image?
+          The user "Unified Filter Bar" usually implies it IS the hero search.
+          Let's try to keep a visual hero background but place the FilterBar prominently.
+          Actually, the user said "look at how the properties are uploaded... suggest filters".
+          And "In price range use slider...".
+          And "Unified Filter Bar UI Design".
+          
+          Let's place the FilterBar *over* a Hero section or just at the top.
+          For now, I will render a simple "Find your home" header background and the filter bar below/over it.
+      */}
+      
+      <div className="bg-slate-900 py-12 px-4 text-center">
+          <h1 className="text-3xl md:text-5xl font-bold text-white mb-4">
+            Find your perfect place
+          </h1>
+          <p className="text-slate-300 max-w-2xl mx-auto">
+            Browse thousands of rooms and apartments across Ireland
+          </p>
+      </div>
 
-      <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+      <div className="-mt-8"> {/* Negative margin to overlap/pull up */}
+         <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+      </div>
 
       <main id="listings" className="flex-1 container mx-auto px-4 md:px-6 py-8 md:py-12">
         
@@ -98,9 +126,11 @@ export default function RoomsPage() {
              </p>
              <button 
                onClick={() => updateFilters({ 
-                 priceRange: 'all', 
+                 minPrice: 0, 
+                 maxPrice: 5000, 
                  propertyType: 'any', 
                  bedrooms: [], 
+                 bathrooms: 'any',
                  location: '' 
                 })}
                className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors"

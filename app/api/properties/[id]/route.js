@@ -6,8 +6,25 @@ export async function GET(request, { params }) {
     const supabase = await createClient();
     const { id } = await params;
 
+    const authStart = Date.now();
     const { data: { user } } = await supabase.auth.getUser();
+    console.log(`[PERF_DETAIL] Auth Check: ${Date.now() - authStart}ms`);
 
+    // Check for interest status
+    let interestStatus = null;
+    if (user) {
+      const interestStart = Date.now();
+      const { data: interest } = await supabase
+        .from('property_interests')
+        .select('status')
+        .eq('property_id', id)
+        .eq('seeker_id', user.id)
+        .maybeSingle();
+      interestStatus = interest?.status;
+      console.log(`[PERF_DETAIL] Interest Check: ${Date.now() - interestStart}ms`);
+    }
+
+    const propStart = Date.now();
     const { data: property, error } = await supabase
       .from('properties')
       .select(`
@@ -23,11 +40,13 @@ export async function GET(request, { params }) {
           id,
           full_name,
           profile_picture,
-          is_verified
+          is_verified,
+          privacy_setting
         )
       `)
       .eq('id', id)
       .single();
+    console.log(`[PERF_DETAIL] Property Fetch: ${Date.now() - propStart}ms`);
 
     if (error) throw error;
 
@@ -38,16 +57,9 @@ export async function GET(request, { params }) {
       );
     }
 
-    // Soft Gating: Scrub sensitive data if user is not authenticated
-    if (!user) {
-      // Hide exact address
-      property.street = undefined;
-      
-      // Hide host full name (show first name only)
-      if (property.users && property.users.full_name) {
-        property.users.full_name = property.users.full_name.split(' ')[0];
-      }
-    }
+    const isMutualInterest = interestStatus === 'accepted';
+    const isPrivate = property.privacy_setting === 'private';
+    const shouldMask = isPrivate && !isMutualInterest;
 
     // Transform media URLs to public URLs
     if (property.property_media && property.property_media.length > 0) {
@@ -65,7 +77,32 @@ export async function GET(request, { params }) {
         }];
     }
 
-    return NextResponse.json(property);
+    if (shouldMask) {
+      // Apply Masking
+      property.title = `Room in ${property.city}`;
+      property.street = undefined; // Hide street
+      property.price_range = `€${Math.floor(property.price_per_month / 100) * 100}-${Math.ceil(property.price_per_month / 100) * 100}`;
+      property.price_per_month = undefined;
+      property.description = property.description?.substring(0, 100) + '...';
+      property.isBlurry = true;
+
+      if (property.users && property.users.full_name) {
+        const nameParts = property.users.full_name.split(' ');
+        property.users.full_name = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1][0]}.` : property.users.full_name;
+      }
+    } else if (!user) {
+      // Basic gating for unauthenticated
+      property.street = undefined;
+      if (property.users && property.users.full_name) {
+        property.users.full_name = property.users.full_name.split(' ')[0];
+      }
+    }
+
+    return NextResponse.json({
+      ...property,
+      isPrivate,
+      interestStatus
+    });
   } catch (error) {
     console.error('Error fetching property:', error);
     return NextResponse.json(

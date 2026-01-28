@@ -36,7 +36,7 @@ export default function NewHero() {
         </div>
 
         {/* Headline */}
-        <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight drop-shadow-xl animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100">
+        <h1 className="text-3xl sm:text-4xl md:text-6xl lg:text-7xl font-bold text-white mb-6 tracking-tight drop-shadow-xl animate-in fade-in slide-in-from-bottom-6 duration-700 delay-100 px-4">
           Share a home, <br />
           <span className="text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-blue-500">
             not just the rent.
@@ -44,31 +44,32 @@ export default function NewHero() {
         </h1>
 
         {/* Subhead */}
-        <p className="text-lg md:text-xl text-slate-200 mb-10 max-w-2xl font-medium drop-shadow-md animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200">
+        <p className="text-base sm:text-lg md:text-xl text-slate-200 mb-8 md:mb-10 max-w-2xl font-medium drop-shadow-md animate-in fade-in slide-in-from-bottom-8 duration-700 delay-200 px-4">
            Find compatible flatmates and verified rooms across Ireland. 
            We match you based on lifestyle, habits, and vibes.
         </p>
 
         {/* Search & Action Block */}
-        <div className="w-full max-w-xl animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300">
+        <div className="w-full max-w-xl animate-in fade-in slide-in-from-bottom-10 duration-700 delay-300 px-4">
           <form onSubmit={handleSearch} className="relative group mb-4">
-             <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none z-10">
-               <MdLocationOn className="text-slate-400 group-focus-within:text-cyan-500 transition-colors text-2xl" />
+             <div className="absolute inset-y-0 left-0 pl-4 md:pl-5 flex items-center pointer-events-none z-10">
+               <MdLocationOn className="text-slate-400 group-focus-within:text-cyan-500 transition-colors text-xl md:text-2xl" />
              </div>
              
              <input 
                type="text" 
                value={location}
                onChange={(e) => setLocation(e.target.value)}
-               placeholder="Where do you want to live? (e.g. Dublin)" 
-               className="w-full pl-14 pr-36 py-5 rounded-2xl bg-white shadow-2xl shadow-black/20 text-slate-900 text-lg outline-none ring-4 ring-transparent focus:ring-cyan-500/30 transition-all placeholder:text-slate-400 placeholder:font-normal"
+               placeholder="Where to? (e.g. Dublin)" 
+               className="w-full pl-10 md:pl-14 pr-14 sm:pr-36 py-4 md:py-5 rounded-2xl bg-white shadow-2xl shadow-black/20 text-slate-900 text-base md:text-lg outline-none ring-4 ring-transparent focus:ring-cyan-500/30 transition-all placeholder:text-slate-400 placeholder:font-normal"
              />
              
              <button 
                type="submit"
-               className="absolute inset-y-2 right-2 bg-slate-900 hover:bg-slate-800 text-white px-8 rounded-xl font-bold transition-all active:scale-95 shadow-lg flex items-center gap-2"
+               className="absolute inset-y-1.5 right-1.5 md:inset-y-2 md:right-2 bg-slate-900 hover:bg-slate-800 text-white w-10 sm:w-auto sm:px-8 rounded-xl font-bold transition-all active:scale-95 shadow-lg flex items-center justify-center gap-2"
+               aria-label="Search"
              >
-               <MdSearch size={24} />
+               <MdSearch size={20} className="md:w-6 md:h-6" />
                <span className="hidden sm:inline">Search</span>
              </button>
           </form>

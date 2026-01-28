@@ -88,6 +88,12 @@ export const PropertiesProvider = ({ children }) => {
       if (filters.location) {
         params.append('location', filters.location);
       }
+      if (filters.minBedrooms) {
+        params.append('minBedrooms', filters.minBedrooms.toString());
+      }
+      if (filters.minBathrooms) {
+        params.append('minBathrooms', filters.minBathrooms.toString());
+      }
 
       const response = await fetch(`/api/properties?${params.toString()}`, {
         signal: abortControllerRef.current.signal

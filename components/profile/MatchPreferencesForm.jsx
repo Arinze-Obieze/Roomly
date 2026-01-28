@@ -16,11 +16,27 @@ const MOVE_IN_OPTIONS = [
 const OCCUPATION_OPTIONS = ['Student', 'Professional', 'Unemployed', 'Retired'];
 
 export default function MatchPreferencesForm({ user, onComplete, initialData, role = 'seeker' }) {
+  const supabase = createClient();
+
   /* New State for Logic */
   const [userRole, setUserRole] = useState(role); // Default to seeker
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [mode, setMode] = useState(initialData ? 'view' : 'edit');
+
+  const [formData, setFormData] = useState({
+    location_areas: [],
+    move_in_window: 'flexible',
+    budget_min: '',
+    budget_max: '',
+    occupation_preference: [],
+    age_min: 18,
+    age_max: 60,
+    gender_preference: 'any',
+    accepted_smoking: [],
+    accepted_pets: false,
+    ...initialData
+  });
 
   const STEPS = [
     { id: 'logistics', title: 'Start with the Basics' },
@@ -32,7 +48,26 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
     setUserRole(role || 'seeker');
   }, [role]);
 
-  // ... (keep useEffect for initialData merging)
+  useEffect(() => {
+    if (initialData) {
+      setFormData(prev => ({ ...prev, ...initialData }));
+    }
+  }, [initialData]);
+
+  const handleChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleCheckboxGroup = (field, value) => {
+    setFormData(prev => {
+      const current = prev[field] || [];
+      if (current.includes(value)) {
+        return { ...prev, [field]: current.filter(item => item !== value) };
+      } else {
+        return { ...prev, [field]: [...current, value] };
+      }
+    });
+  };
 
   /* Stepper Logic */
   const handleNext = () => {

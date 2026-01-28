@@ -8,17 +8,16 @@ export default function TrustBar() {
     ];
   
     return (
-      <div className="bg-white border-b border-slate-100 py-8">
+      <div className="bg-white border-b border-slate-100 py-6 md:py-8">
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-16 lg:gap-24 opacity-80">
             
-            {/* Stats */}
             {stats.map((stat, i) => (
-              <div key={i} className="flex flex-col items-center md:items-start text-center md:text-left group cursor-default">
-                  <span className="text-2xl md:text-3xl font-bold text-slate-900 group-hover:text-cyan-600 transition-colors">
+              <div key={i} className="flex flex-col items-center md:items-start text-center md:text-left group cursor-default min-w-[100px]">
+                  <span className="text-3xl md:text-3xl font-bold text-slate-900 group-hover:text-cyan-600 transition-colors">
                       {stat.value}
                   </span>
-                  <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider">
+                  <span className="text-sm font-semibold text-slate-500 uppercase tracking-wider whitespace-nowrap">
                       {stat.label}
                   </span>
               </div>

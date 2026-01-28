@@ -16,19 +16,18 @@ export default function ProfileHeader({ isEditing, onToggleEdit, hideEditButton 
     year: 'numeric'
   });
 
+  const avatarUrl = user.profile_picture || user.avatar_url;
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 p-6 mb-6">
       <div className="flex flex-col md:flex-row items-center gap-6">
         <div className="relative group">
-          {user.avatar_url ? (
+          {avatarUrl ? (
             <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-slate-50">
-              <Image
-                src={user.avatar_url}
+              <img
+                src={avatarUrl}
                 alt={user.full_name}
-                fill
-                sizes="96px"
-                className="object-cover"
-                priority
+                className="w-full h-full object-cover"
               />
             </div>
           ) : (

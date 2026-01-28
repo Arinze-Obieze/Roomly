@@ -20,21 +20,71 @@ export function AuthProvider({ children }) {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginMessage, setLoginMessage] = useState('');
 
-  const refreshSession = useCallback(async () => {
-    try {
-      const response = await fetch('/api/auth/session');
-      const data = await response.json();
-      
-      if (data.authenticated && data.user) {
-        setUser(data.user);
+  useEffect(() => {
+    const supabase = createClient();
+
+    // 1. Check active session immediately
+    const checkUser = async () => {
+      try {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        if (authUser) {
+          const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
+          
+          setUser({ ...authUser, ...profile });
+        } else {
+          setUser(null);
+        }
+      } catch (error) {
+        console.error('Error checking auth:', error);
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkUser();
+
+    // 2. Listen for auth changes (Login, Logout, Auto-refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (session?.user) {
+         // Fetch profile on login/change
+         const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+            
+        setUser({ ...session.user, ...profile });
       } else {
         setUser(null);
       }
-    } catch (error) {
-      console.error('Error refreshing session:', error);
-      setUser(null);
-    }
+      setLoading(false);
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const refreshSession = async () => {
+     const supabase = createClient();
+     const { data: { user: authUser } } = await supabase.auth.getUser();
+     
+     if (authUser) {
+        const { data: profile } = await supabase
+            .from('users')
+            .select('*')
+            .eq('id', authUser.id)
+            .single();
+        setUser({ ...authUser, ...profile });
+     } else {
+        setUser(null);
+     }
+  };
 
   const updateProfile = async (updates) => {
     try {
@@ -45,10 +95,7 @@ export function AuthProvider({ children }) {
         .eq('id', user.id);
 
       if (error) throw error;
-
-      // Update local state immediately for better UX
       setUser(prev => ({ ...prev, ...updates }));
-      
       return { success: true };
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -72,11 +119,6 @@ export function AuthProvider({ children }) {
     setLoginMessage(message);
     setShowLoginModal(true);
   };
-
-  useEffect(() => {
-    // Initial session check
-    refreshSession().finally(() => setLoading(false));
-  }, []);
 
   const value = {
     user,

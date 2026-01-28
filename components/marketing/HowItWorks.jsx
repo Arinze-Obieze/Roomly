@@ -20,10 +20,10 @@ export default function HowItWorks() {
   ];
 
   return (
-    <section className="py-24 bg-slate-50 border-y border-slate-200">
+    <section className="py-12 md:py-24 bg-slate-50 border-y border-slate-200">
       <div className="container mx-auto px-4 md:px-6">
         
-        <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-16 gap-6">
+        <div className="flex flex-col md:flex-row items-center md:items-end justify-between mb-16 gap-6 text-center md:text-left">
             <h2 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight max-w-xl">
                 Simple, safe, and stress-free.
             </h2>

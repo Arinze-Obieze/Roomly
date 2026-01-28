@@ -1,17 +1,16 @@
-"use client";
-
 import { useRouter, usePathname } from "next/navigation";
 import { 
   MdHome, 
   MdFavoriteBorder, 
-  MdChatBubbleOutline, 
-  MdGroups, 
-  MdAddCircleOutline,
+  MdChatBubbleOutline,
+  MdPersonOutline,
+  MdStorefront,
+  MdGroups
 } from "react-icons/md";
-import { FaRegEdit } from "react-icons/fa";
 import { useChat } from "@/contexts/ChatContext";
 
 import { BottomNavItem } from "../ui/BottomNavItem";
+import { FaRegEdit } from "react-icons/fa";
 
 export const BottomNav = () => {
   const router = useRouter();
@@ -22,8 +21,8 @@ export const BottomNav = () => {
   const isActive = (path) => pathname === path;
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-lg border-t border-slate-200 py-3 px-2 shadow-lg-up">
-      <div className="flex justify-around items-center">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-lg border-t border-slate-200 py-3 px-2 shadow-lg-up safe-area-bottom">
+      <div className="flex justify-around items-end">
         <BottomNavItem
           icon={MdHome}
           label="Discover"
@@ -31,35 +30,43 @@ export const BottomNav = () => {
           onClick={() => router.push('/dashboard')}
         />
         <BottomNavItem
-          icon={MdFavoriteBorder}
-          label="Saved"
-          active={isActive('/saved')}
-          onClick={() => router.push('/saved')}
+          icon={MdGroups}
+          label="Buddy-Up"
+          active={pathname?.startsWith('/dashboard/buddy')}
+          onClick={() => router.push('/dashboard/buddy')}
         />
-        <BottomNavItem
-          icon={FaRegEdit}
-          label="Manage Listings"
-          active={isActive('/my-properties')}
+        
+        {/* Middle Highlighted Tab: Manage Listings */}
+         <button
           onClick={() => router.push('/my-properties')}
-        />
-        {/* <BottomNavItem
-          icon={MdAddCircleOutline}
-          label="List"
-          active={isActive('/listings/new')}
-          onClick={() => router.push('/listings/new')}
-        /> */}
+          className="relative -top-6 group"
+        >
+          <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-full shadow-lg border-4 border-white transition-all active:scale-95 ${
+            isActive('/my-properties') 
+              ? 'bg-slate-900 text-white' 
+              : 'bg-cyan-600 text-white hover:bg-cyan-700'
+          }`}>
+            <FaRegEdit size={20} />
+          </div>
+          <span className={`absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-bold whitespace-nowrap ${
+            isActive('/my-properties') ? 'text-slate-900' : 'text-slate-500'
+          }`}>
+            Listings
+          </span>
+        </button>
+
         <BottomNavItem
           icon={MdChatBubbleOutline}
-          label="Chat"
+          label="Messages"
           badge={unreadCount > 0 ? unreadCount : null}
           active={isActive('/messages')}
           onClick={() => router.push('/messages')}
         />
-        <BottomNavItem 
-          icon={MdGroups} 
-          label="Community" 
-          active={isActive('/community')}
-          onClick={() => router.push('/community')}
+        <BottomNavItem
+          icon={MdPersonOutline}
+          label="Profile"
+          active={isActive('/profile')}
+          onClick={() => router.push('/profile')}
         />
       </div>
     </nav>

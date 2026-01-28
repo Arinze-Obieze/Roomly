@@ -27,10 +27,46 @@ export default function RoomDetailsPage() {
   // Check if current user is the host
   const isOwner = user?.id === property?.host?.id;
   const isSaved = property ? isPropertySaved(property.id) : false;
+  const [interestLoading, setInterestLoading] = useState(false);
+
+  const handleShowInterest = async () => {
+    if (!user) {
+      openLoginModal('Sign up to show interest in this private listing.');
+      return;
+    }
+
+    try {
+      setInterestLoading(true);
+      const response = await fetch(`/api/properties/${property.id}/interest`, { method: 'POST' });
+      const resData = await response.json();
+
+      if (resData.success) {
+        toast.success(resData.message || 'Interest sent! Landlord will be notified.');
+        // Refresh property data
+        const refreshResponse = await fetch(`/api/properties/${params.id}`);
+        const freshData = await refreshResponse.json();
+        setProperty(prev => ({
+            ...prev,
+            interestStatus: freshData.interestStatus || 'pending'
+        }));
+      } else {
+        toast.error(resData.error || 'Failed to send interest');
+      }
+    } catch (error) {
+      toast.error('Something went wrong');
+    } finally {
+      setInterestLoading(false);
+    }
+  };
 
   const handleContactHost = async () => {
     if (!user) {
         openLoginModal('Log in to message the host.');
+        return;
+    }
+
+    if (property.isBlurry) {
+        handleShowInterest();
         return;
     }
     
@@ -39,7 +75,7 @@ export default function RoomDetailsPage() {
     const conversationId = await startConversation(
         property.id, 
         property.host.id, 
-        `Hi ${property.host.name}, I'm interested in your property on ${property.street || property.city}. Is it still available?`
+        `Hi ${property.host.name}, I'm interested in your property in ${property.city}. Is it still available?`
     );
 
     if (conversationId) {
@@ -141,7 +177,9 @@ export default function RoomDetailsPage() {
        />
 
        <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8">
-          <PropertyGallery media={property.media} title={property.title} />
+          <div className={property.isBlurry ? 'blur-2xl pointer-events-none select-none grayscale contrast-125' : ''}>
+             <PropertyGallery media={property.media} title={property.title} />
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
              {/* Main Info */}
@@ -157,14 +195,16 @@ export default function RoomDetailsPage() {
                             {property.city}, {property.state}
                          </span>
                        </div>
-                       {!user && (
-                          <div className="mt-2 text-xs font-medium text-slate-400 bg-slate-100 inline-block px-2 py-1 rounded">
-                             Exact address hidden
+                       {property.isBlurry && (
+                          <div className="mt-2 text-xs font-bold text-cyan-600 bg-cyan-50 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cyan-100">
+                             <MdLock size={14} /> Private Listing &bull; Exact address hidden
                           </div>
                        )}
                      </div>
-                     <div className="text-right">
-                       <div className="text-2xl font-bold text-cyan-600">€{property.price_per_month}</div>
+                     <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm md:text-right">
+                       <div className="text-2xl font-bold text-cyan-600">
+                        {property.isBlurry ? property.price_range : `€${property.price_per_month}`}
+                       </div>
                        <div className="text-slate-500 text-sm">per month</div>
                      </div>
                    </div>
@@ -231,8 +271,14 @@ export default function RoomDetailsPage() {
                   isOwner={isOwner}
                   contacting={contacting}
                   onContactHost={handleContactHost}
+                  contactButtonText={
+                    property.isPrivate && property.interestStatus !== 'accepted'
+                        ? (property.interestStatus === 'pending' ? 'Interest Sent' : 'Show Interest')
+                        : 'Message Host'
+                  }
                   onEditListing={() => router.push('/my-properties')}
-                  onViewProfile={() => router.push(user ? `/users/${property.host.id}` : '#')}
+                  onViewProfile={() => router.push(user && !property.isBlurry ? `/users/${property.host.id}` : '#')}
+                  isPrivate={property.isBlurry}
                 />
              </div>
           </div>

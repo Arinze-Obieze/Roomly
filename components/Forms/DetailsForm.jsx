@@ -27,6 +27,42 @@ export default function DetailsForm({ formData, focusedField, setFocusedField, h
         />
 
         <div>
+          <label className="field-label mb-3">Listing Privacy</label>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-6">
+              <button
+                  type="button"
+                  onClick={() => handleChange('privacy_setting', 'public')}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      formData.privacy_setting === 'public' 
+                      ? 'border-cyan-600 bg-cyan-50/50' 
+                      : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+                  }`}
+              >
+                  <div className="font-bold text-slate-900 mb-1 flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${formData.privacy_setting === 'public' ? 'bg-cyan-600' : 'bg-slate-300'}`} />
+                      Public Listing
+                  </div>
+                  <p className="text-xs text-slate-500">Visible to everyone. Best for maximum exposure.</p>
+              </button>
+              <button
+                  type="button"
+                  onClick={() => handleChange('privacy_setting', 'private')}
+                  className={`p-4 rounded-xl border-2 text-left transition-all ${
+                      formData.privacy_setting === 'private' 
+                      ? 'border-cyan-600 bg-cyan-50/50' 
+                      : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+                  }`}
+              >
+                  <div className="font-bold text-slate-900 mb-1 flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${formData.privacy_setting === 'private' ? 'bg-cyan-600' : 'bg-slate-300'}`} />
+                      Private Listing
+                  </div>
+                  <p className="text-xs text-slate-500">Hide exact address. Seekers must show interest first.</p>
+              </button>
+          </div>
+        </div>
+
+        <div>
           <label className="field-label">Description</label>
           <textarea
             name="description"

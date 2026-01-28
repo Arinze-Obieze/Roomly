@@ -15,6 +15,8 @@ export async function GET(request) {
     const propertyType = searchParams.get('propertyType');
     const verifiedOnly = searchParams.get('verifiedOnly') === 'true';
     const amenities = searchParams.get('amenities')?.split(',').filter(Boolean);
+    const minBedrooms = parseInt(searchParams.get('minBedrooms'));
+    const minBathrooms = parseInt(searchParams.get('minBathrooms'));
     const location = searchParams.get('location');
 
     const supabase = await createClient();
@@ -54,6 +56,14 @@ export async function GET(request) {
     if (bedrooms && bedrooms.length > 0) {
       query = query.in('bedrooms', bedrooms);
     }
+    
+    if (minBedrooms) {
+      query = query.gte('bedrooms', minBedrooms);
+    }
+    
+    if (minBathrooms) {
+      query = query.gte('bathrooms', minBathrooms);
+    }
 
     if (propertyType && propertyType !== 'any' && propertyType !== 'studio') {
       query = query.eq('property_type', propertyType);
@@ -71,7 +81,9 @@ export async function GET(request) {
     const to = from + pageSize - 1;
     query = query.range(from, to);
 
+    const queryStart = Date.now();
     const { data, error, count } = await query;
+    console.log(`[PERF_DEBUG] DB Query Time: ${Date.now() - queryStart}ms`);
 
     if (error) {
       console.error('Database error:', error);
@@ -81,12 +93,80 @@ export async function GET(request) {
       );
     }
 
+    const authStart = Date.now();
     const { data: { user } } = await supabase.auth.getUser();
+    console.log(`[PERF_DEBUG] Auth getUser Time: ${Date.now() - authStart}ms`);
+
+    // Fetch interests for the current user to check for mutual unlocks
+    let interests = [];
+    if (user) {
+      const interestStart = Date.now();
+      const { data: interestData } = await supabase
+        .from('property_interests')
+        .select('property_id, status')
+        .eq('seeker_id', user.id);
+      interests = interestData || [];
+      console.log(`[PERF_DEBUG] Interests Fetch Time: ${Date.now() - interestStart}ms`);
+    }
 
     const transformedData = data.map(property => {
+      const interest = interests.find(i => i.property_id === property.id);
+      const isMutualInterest = interest?.status === 'accepted';
+      const isPrivate = property.privacy_setting === 'private';
+      const shouldMask = isPrivate && !isMutualInterest;
+
       let hostName = property.users?.full_name || 'Unknown';
+      
+      // Basic masking for unauthenticated or private
       if (!user && hostName !== 'Unknown') {
         hostName = hostName.split(' ')[0];
+      }
+
+      if (shouldMask) {
+          // Privacy Masking Logic
+          const nameParts = hostName.split(' ');
+          const maskedName = nameParts.length > 1 
+            ? `${nameParts[0]} ${nameParts[1][0]}.` 
+            : hostName;
+
+          return {
+            id: property.id,
+            title: `Room in ${property.city}`,
+            location: `${property.city}, ${property.state}`,
+            price: `€${Math.floor(property.price_per_month / 100) * 100}-${Math.ceil(property.price_per_month / 100) * 100}`,
+            period: 'month',
+            image: (() => {
+              const primary = property.property_media?.find(m => m.is_primary);
+              if (primary?.url) {
+                  return primary.url.startsWith('http') 
+                      ? primary.url 
+                      : supabase.storage.from('property-media').getPublicUrl(primary.url).data.publicUrl;
+              }
+              const first = property.property_media?.[0];
+              if (first?.url) {
+                   return first.url.startsWith('http')
+                      ? first.url
+                      : supabase.storage.from('property-media').getPublicUrl(first.url).data.publicUrl;
+              }
+              return 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image';
+            })(),
+            isBlurry: true,
+            bedrooms: property.bedrooms,
+            bathrooms: property.bathrooms,
+            propertyType: property.property_type,
+            amenities: (property.amenities || []).slice(0, 3).map(a => ({ icon: 'FaWifi', label: a })),
+            verified: false,
+            isPrivate: true,
+            interestStatus: interest?.status || null,
+            host: {
+              name: maskedName,
+              avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(maskedName)}&background=random`,
+              id: property.listed_by_user_id
+            },
+            description: property.description?.substring(0, 100) + '...',
+            availableFrom: property.available_from,
+            createdAt: property.created_at
+          };
       }
 
       return {
@@ -120,9 +200,11 @@ export async function GET(request) {
       propertyType: property.property_type,
       amenities: (property.amenities || []).map(a => ({ icon: 'FaWifi', label: a })),
       verified: false,
+      isPrivate: isPrivate,
+      interestStatus: interest?.status || null,
       host: {
         name: hostName,
-        avatar: property.users?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(property.users?.full_name || 'Unknown')}&background=random`,
+        avatar: property.users?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(hostName)}&background=random`,
         id: property.listed_by_user_id
       },
       description: property.description,

@@ -176,25 +176,7 @@ export const FilterContent = ({ variant }) => {
         </div>
       </FilterSection>
 
-      <div className={`${isSidebar ? 'mt-6' : 'mt-4'}`}>
-        <label className="flex items-center justify-between p-3 border border-slate-100 bg-white rounded-xl shadow-sm cursor-pointer hover:border-cyan-200 transition-colors">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-cyan-50 text-cyan-600 rounded-lg">
-              <MdVerified size={20} />
-            </div>
-            <div>
-              <p className="text-sm font-bold text-slate-900">Verified Only</p>
-              <p className="text-xs text-slate-500">Trusted listings</p>
-            </div>
-          </div>
-          <input
-            type="checkbox"
-            checked={filters.verifiedOnly}
-            onChange={(e) => updateFilters({ verifiedOnly: e.target.checked })}
-            className="w-5 h-5 rounded-md border-slate-300 text-cyan-600 focus:ring-cyan-500"
-          />
-        </label>
-      </div>
+
 
       {isSidebar && (
         <div className="mt-6 space-y-2">

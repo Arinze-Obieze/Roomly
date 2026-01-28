@@ -18,6 +18,7 @@ export default function ProfileForm({ onCancel }) {
     phone_number: user?.phone_number || '',
     bio: user?.bio || '',
     date_of_birth: user?.date_of_birth || '',
+    privacy_setting: user?.privacy_setting || 'public',
   });
 
   const handleChange = (e) => {
@@ -160,6 +161,42 @@ export default function ProfileForm({ onCancel }) {
             onChange={handleChange}
             className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:border-transparent transition-all"
           />
+        </div>
+        
+        <div className="col-span-1 md:col-span-2">
+            <label className="block text-sm font-medium text-slate-700 mb-2">Profile Privacy</label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, privacy_setting: 'public' }))}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                        formData.privacy_setting === 'public' 
+                        ? 'border-cyan-600 bg-cyan-50/50' 
+                        : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+                    }`}
+                >
+                    <div className="font-bold text-slate-900 mb-1 flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${formData.privacy_setting === 'public' ? 'bg-cyan-600' : 'bg-slate-300'}`} />
+                        Public Profile
+                    </div>
+                    <p className="text-xs text-slate-500">Your full profile is visible to landlords.</p>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, privacy_setting: 'private' }))}
+                    className={`p-4 rounded-xl border-2 text-left transition-all ${
+                        formData.privacy_setting === 'private' 
+                        ? 'border-cyan-600 bg-cyan-50/50' 
+                        : 'border-slate-100 bg-slate-50 hover:border-slate-200'
+                    }`}
+                >
+                    <div className="font-bold text-slate-900 mb-1 flex items-center gap-2">
+                        <div className={`w-2 h-2 rounded-full ${formData.privacy_setting === 'private' ? 'bg-cyan-600' : 'bg-slate-300'}`} />
+                        Private Profile
+                    </div>
+                    <p className="text-xs text-slate-500">Hide your identity until you show interest in a room.</p>
+                </button>
+            </div>
         </div>
         
         <div className="col-span-1 md:col-span-2">

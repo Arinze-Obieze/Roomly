@@ -70,6 +70,7 @@ export default function CreateListingForm({ onClose, initialData = null }) {
       title: '',
       description: '',
       property_type: '',
+      privacy_setting: 'public', // Default to public
       price_per_month: '',
       state: '',
       city: '',
@@ -213,6 +214,8 @@ export default function CreateListingForm({ onClose, initialData = null }) {
         body.append('bathrooms', formData.bathrooms);
         body.append('square_meters', formData.square_meters);
         body.append('available_from', formData.available_from);
+        body.append('available_from', formData.available_from);
+        body.append('privacy_setting', formData.privacy_setting);
         body.append('amenities', JSON.stringify(formData.amenities));
 
         formData.photos.forEach(photo => {

@@ -24,3 +24,4 @@ export { default as DashboardFilters } from './DashboardFilters';
 export { default as PropertyGrid } from './PropertyGrid';
 export { default as EmptyState } from './EmptyState';
 export { default as ErrorState } from './ErrorState';
+export { default as FilterPills } from './FilterPills';

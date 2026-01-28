@@ -2,7 +2,7 @@
 
 import { useFilters } from "./filters/useFilters";
 
-export default function DashboardFilters({ setShowFilters }) {
+export default function DashboardFilters() {
   const { filters, updateFilters } = useFilters();
   
   const TABS = [
@@ -17,12 +17,7 @@ export default function DashboardFilters({ setShowFilters }) {
 
   return (
     <div className="lg:hidden flex gap-2 mb-6 overflow-x-auto pb-2 scrollbar-hide">
-      <button
-         onClick={() => setShowFilters(true)}
-         className="shrink-0 px-4 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium flex items-center gap-2"
-      >
-        <span>Filters</span>
-      </button>
+
       {TABS.map((tab) => (
         <button 
           key={tab.id} 
