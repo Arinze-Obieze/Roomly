@@ -18,30 +18,28 @@ export default function FeaturedProperties() {
     }
   });
 
-  // Carousel Logic
   const carouselRef = useRef();
   const [width, setWidth] = useState(0);
 
   useEffect(() => {
-    if (carouselRef.current) {
+    const calculateWidth = () => {
+      if (carouselRef.current) {
         setWidth(carouselRef.current.scrollWidth - carouselRef.current.offsetWidth);
-    }
+      }
+    };
+
+    calculateWidth();
+    window.addEventListener('resize', calculateWidth);
+    return () => window.removeEventListener('resize', calculateWidth);
   }, [properties, loading]);
 
-  // Loading Skeleton
   if (loading) {
     return (
-        <section className="py-12 md:py-20 bg-slate-50">
-            <div className="container mx-auto px-4 md:px-6">
-                <div className="flex justify-between items-end mb-10">
-                    <div className="space-y-2">
-                        <div className="h-8 w-64 bg-slate-200 rounded-lg animate-pulse"></div>
-                        <div className="h-5 w-96 bg-slate-200 rounded-lg animate-pulse"></div>
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <section className="py-16 md:py-24 bg-slate-50">
+            <div className="container mx-auto px-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                     {[1,2,3,4].map(i => (
-                        <div key={i} className="h-[350px] bg-white rounded-3xl animate-pulse"></div>
+                        <div key={i} className="h-[400px] bg-white rounded-[2rem] animate-pulse"></div>
                     ))}
                 </div>
             </div>
@@ -52,70 +50,64 @@ export default function FeaturedProperties() {
   if (properties.length === 0) return null;
 
   return (
-    <section className="py-12 md:py-20 bg-slate-50 overflow-hidden">
+    <section className="py-16 md:py-32 bg-slate-50 overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
         
-        {/* Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-end justify-between mb-8 md:mb-10 gap-4">
-            <div className="max-w-2xl">
-                <h2 className="text-3xl md:text-4xl font-bold text-slate-900 mb-3 tracking-tight">
-                    Featured Rooms
+        {/* Header: Focused Signal */}
+        <div className="flex flex-col md:flex-row items-end justify-between mb-12 md:mb-16 gap-6">
+            <div className="max-w-xl text-center md:text-left mx-auto md:mx-0">
+                <h2 className="text-3xl md:text-5xl font-sans font-extrabold text-navy-950 mb-4 tracking-tight">
+                    Featured Homes
                 </h2>
-                <p className="text-lg text-slate-500 font-medium">
-                    Verified listings with high compatibility scores.
+                <p className="text-lg text-slate-500 font-light leading-relaxed">
+                    Hand-picked, verified listings with high compatibility. <br className="hidden md:block" />
+                    <span className="inline-flex items-center gap-1 text-terracotta-500 font-medium justify-center md:justify-start">Log in to see your match scores.</span>
                 </p>
             </div>
             
             <Link 
                 href="/rooms"
-                className="hidden md:flex items-center gap-2 font-bold text-slate-900 hover:text-cyan-600 transition-colors group"
+                className="hidden md:inline-flex items-center gap-2 font-bold text-navy-950 hover:text-terracotta-500 transition-colors group text-sm uppercase tracking-widest mb-2"
             >
-                View all properties
+                Explore all rooms
                 <MdArrowForward className="group-hover:translate-x-1 transition-transform" />
             </Link>
         </div>
 
-        {/* Mobile Custom Carousel (Framer Motion) */}
-        <div className="md:hidden -mx-4">
-            <motion.div 
-                ref={carouselRef} 
-                className="cursor-grab active:cursor-grabbing overflow-hidden px-4"
-                whileTap={{ cursor: "grabbing" }}
-            >
+        {/* Mobile Carousel - Improved with constraint safety */}
+        <div className="md:hidden">
+            <div className="overflow-visible">
                 <motion.div 
+                    ref={carouselRef} 
+                    className="flex gap-4 cursor-grab active:cursor-grabbing"
                     drag="x" 
                     dragConstraints={{ right: 0, left: -width }}
-                    className="flex gap-4"
+                    whileTap={{ cursor: "grabbing" }}
                 >
                     {properties.slice(0, 4).map(property => (
-                        <motion.div 
+                        <div 
                             key={property.id} 
-                            className="min-w-[85vw] sm:min-w-[300px]"
+                            className="min-w-[80vw] sm:min-w-[320px] first:ml-0"
                         >
                             <ListingCard 
                                 data={property} 
                                 onSelect={() => router.push(`/rooms/${property.id}`)}
                             />
-                        </motion.div>
+                        </div>
                     ))}
                 </motion.div>
-            </motion.div>
-            
-            {/* Visual Indication of Scroll - Simple Dots */}
-            <div className="flex justify-center gap-2 mt-6">
-                 {properties.slice(0, 4).map((_, i) => (
-                    <div key={i} className="w-2 h-2 rounded-full bg-slate-200"></div>
-                 ))}
             </div>
             
-            {/* Swipe Instruction */}
-            <p className="text-center text-xs text-slate-400 mt-2 font-medium uppercase tracking-widest">
-                Swipe to explore
-            </p>
+            {/* Carousel Indicators */}
+            <div className="flex justify-center gap-2 mt-8">
+                 {properties.slice(0, 4).map((_, i) => (
+                    <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-200"></div>
+                 ))}
+            </div>
         </div>
 
-        {/* Desktop Grid (Standard) */}
-        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Desktop Grid */}
+        <div className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-8">
             {properties.slice(0, 4).map(property => (
                 <ListingCard 
                     key={property.id} 
@@ -125,11 +117,11 @@ export default function FeaturedProperties() {
             ))}
         </div>
 
-        {/* Mobile View All Link */}
-        <div className="mt-6 text-center md:hidden">
+        {/* Mobile View All */}
+        <div className="mt-12 text-center md:hidden">
             <Link 
                 href="/rooms"
-                className="inline-flex items-center gap-2 text-sm font-bold text-slate-900 border-b-2 border-slate-900 pb-1 hover:text-cyan-600 hover:border-cyan-600 transition-colors"
+                className="bg-navy-950 text-white px-8 py-4 rounded-2xl font-bold flex items-center justify-center gap-2 mx-auto w-fit shadow-xl"
             >
                 View all properties <MdArrowForward />
             </Link>

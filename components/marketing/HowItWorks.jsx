@@ -1,50 +1,51 @@
-'use client';
-
 export default function HowItWorks() {
   const steps = [
     {
       num: "01",
-      title: "Tell us what you need",
-      description: "Set your budget, preferred location, and lifestyle preferences. We use this to filter out mismatched rooms instantly."
+      title: "Set your vibe",
+      description: "Define your budget and lifestyle. We use this to filter out mismatched rooms instantly."
     },
     {
       num: "02",
-      title: "See who you match with",
-      description: "Browse verified listings and check your Match Score. See upfront if you’re compatible with the current flatmates."
+      title: "Check Match Scores",
+      description: "Browse verified listings and see upfront if you’re compatible with current housemates."
     },
     {
       num: "03",
-      title: "Chat & move in",
-      description: "Connect securely through our platform, schedule a viewing, and secure your new home deposit-free."
+      title: "Connect & Move In",
+      description: "Chat securely, schedule a viewing, and secure your new home with total confidence."
     }
   ];
 
   return (
-    <section className="py-12 md:py-24 bg-slate-50 border-y border-slate-200">
+    <section className="py-16 md:py-40 bg-navy-950 text-white overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
         
-        <div className="flex flex-col md:flex-row items-center md:items-end justify-between mb-16 gap-6 text-center md:text-left">
-            <h2 className="text-3xl md:text-5xl font-bold text-slate-900 tracking-tight max-w-xl">
-                Simple, safe, and stress-free.
+        <div className="text-center max-w-3xl mx-auto mb-16 md:mb-32">
+            <h2 className="text-3xl md:text-6xl font-sans font-extrabold mb-6 tracking-tight">
+                Simple. Safe. <br />
+                <span className="text-terracotta-400">Stress-free.</span>
             </h2>
-            <p className="text-lg text-slate-500 font-medium max-w-md">
-                We've streamlined every step of the rental process so you can focus on finding your people.
+            <p className="text-lg md:text-xl text-navy-200 font-light leading-relaxed text-balance">
+                We've streamlined the process so you can focus on finding your people, not just a property.
             </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-            {/* Connector Line (Desktop) */}
-            <div className="hidden md:block absolute top-[60px] left-[10%] right-[10%] h-0.5 bg-slate-200 -z-0"></div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-12 md:gap-24 relative">
+            {/* Background Narrative Line */}
+            <div className="hidden md:block absolute top-[50px] left-0 right-0 h-px bg-white/10 -z-0"></div>
 
             {steps.map((step, i) => (
-                <div key={i} className="relative z-10 flex flex-col items-center text-center">
-                    <div className="w-12 h-12 rounded-full bg-slate-900 text-white flex items-center justify-center font-bold text-lg mb-6 shadow-lg shadow-slate-900/20">
-                        {step.num}
+                <div key={i} className="relative z-10 flex flex-col items-center md:items-start text-center md:text-left group">
+                    <div className="w-16 h-16 rounded-2xl bg-white/5 backdrop-blur-xl border border-white/10 flex items-center justify-center font-bold text-2xl mb-8 group-hover:bg-terracotta-500 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 shadow-2xl">
+                        <span className="text-transparent bg-clip-text bg-linear-to-br from-white to-white/40 group-hover:text-white">
+                          {step.num}
+                        </span>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900 mb-3">
+                    <h3 className="text-2xl font-bold mb-4 tracking-tight">
                         {step.title}
                     </h3>
-                    <p className="text-slate-500 leading-relaxed max-w-xs mx-auto">
+                    <p className="text-navy-200/70 font-light leading-relaxed text-lg">
                         {step.description}
                     </p>
                 </div>

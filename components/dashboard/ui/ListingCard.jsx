@@ -129,7 +129,7 @@ export const ListingCard = ({ data, onSelect }) => {
   return (
     <div 
       onClick={() => onSelect?.()}
-      className="group bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+      className="group bg-white rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 border border-slate-100"
     >
       <div className="relative aspect-[4/3] w-full overflow-hidden">
         <Image 
@@ -137,22 +137,25 @@ export const ListingCard = ({ data, onSelect }) => {
           alt={data.title}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={`object-cover transition-all duration-500 ${data.isBlurry ? 'blur-2xl scale-110 grayscale-[0.2]' : 'group-hover:scale-105'}`}
+          className={`object-cover transition-transform duration-700 ${data.isBlurry ? 'blur-2xl scale-110 grayscale-[0.2]' : 'group-hover:scale-110'}`}
           priority={false}
           onError={() => setImgSrc('https://placehold.co/600x400/e2e8f0/64748b?text=Image+Error')}
         />
         
+        {/* Gradient Overlay for better text visibility if needed */}
+        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 to-transparent opacity-60"></div>
+
         {/* Actions - Top Right */}
-        <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
+        <div className="absolute top-4 right-4 flex flex-col gap-3 z-10 transition-opacity duration-300">
             {!isOwner && !data.isBlurry && (
             <button 
                 onClick={handleSave}
-                className="p-2 bg-white/90 backdrop-blur rounded-full shadow-md hover:bg-white transition-colors active:scale-95"
+                className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-lg hover:bg-slate-50 transition-all active:scale-95"
             >
                 {isSaved ? (
-                <MdFavorite className="text-red-500 text-xl" />
+                <MdFavorite className="text-terracotta-500 text-xl" />
                 ) : (
-                <MdFavoriteBorder className="text-slate-600 text-xl" />
+                <MdFavoriteBorder className="text-slate-400 text-xl hover:text-terracotta-500 transition-colors" />
                 )}
             </button>
             )}
@@ -161,11 +164,11 @@ export const ListingCard = ({ data, onSelect }) => {
              <button 
                 onClick={handleShare}
                 disabled={sharing}
-                className="p-2 bg-white/90 backdrop-blur rounded-full shadow-md hover:bg-white transition-colors active:scale-95 text-slate-600 hover:text-cyan-600"
+                className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-lg hover:bg-slate-50 transition-all active:scale-95 text-slate-400 hover:text-navy-950"
                 title="Share to Buddy Group"
             >
                 {sharing ? (
-                    <div className="w-5 h-5 border-2 border-slate-200 border-t-cyan-500 rounded-full animate-spin" />
+                    <div className="w-4 h-4 border-2 border-slate-200 border-t-navy-950 rounded-full animate-spin" />
                 ) : (
                     <MdGroupAdd className="text-xl" />
                 )}
@@ -175,19 +178,18 @@ export const ListingCard = ({ data, onSelect }) => {
 
         {/* Private Badge */}
         {data.isPrivate && (
-           <div className="absolute top-3 right-3 bg-slate-900/90 backdrop-blur text-white px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs z-10 font-bold uppercase tracking-wider">
-             <MdLock /> Private
+           <div className="absolute top-4 left-4 bg-navy-950 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 text-xs z-10 font-bold uppercase tracking-wider backdrop-blur-md bg-opacity-90">
+             <MdLock className="text-terracotta-500" /> Private
            </div>
         )}
 
-        {/* Match Score or Profile Prompt - Top Left */}
-        {/* ... (rest of code) ... */}
-        {!isOwner && !data.isBlurry && (
-          <div className="absolute top-3 left-3 flex items-center gap-1.5 z-10">
+        {/* Match Score or Profile Prompt - Top Left (if not private) */}
+        {!isOwner && !data.isBlurry && !data.isPrivate && (
+          <div className="absolute top-4 left-4 flex items-center gap-1.5 z-10">
             {user && data.matchScore !== null ? (
-               <div className="bg-white/90 backdrop-blur text-slate-900 px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs">
-                 <div className={`w-1.5 h-1.5 rounded-full ${data.matchScore > 85 ? 'bg-green-500' : data.matchScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
-                 <span className="font-bold">{data.matchScore}% Match</span>
+               <div className="bg-white/95 backdrop-blur-sm text-navy-950 px-3 py-1.5 rounded-full shadow-xl flex items-center gap-2 text-xs font-bold border border-white/20">
+                 <div className={`w-2 h-2 rounded-full ${data.matchScore > 85 ? 'bg-emerald-500' : data.matchScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
+                 <span>{data.matchScore}% Match</span>
                </div>
             ) : (
                <div 
@@ -199,47 +201,49 @@ export const ListingCard = ({ data, onSelect }) => {
                    }
                    router.push('/profile?tab=preferences');
                  }}
-                 className="bg-cyan-600/90 backdrop-blur text-white px-2.5 py-1 rounded-full shadow-lg flex items-center gap-1.5 text-xs hover:bg-cyan-700 transition-colors cursor-pointer"
+                 className="bg-navy-950/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-xs hover:bg-navy-800 transition-all cursor-pointer border border-white/10"
                >
-                 <span className="font-bold whitespace-nowrap">{user ? 'Complete Profile to View Match' : 'Sign up to see compatibility'}</span>
+                 <span className="font-bold whitespace-nowrap">{user ? 'See Match Score' : 'Sign up to see match'}</span>
                </div>
             )}
           </div>
         )}
       </div>
 
-      <div className="p-4">
+      <div className="p-6">
         {/* Price & Title Row */}
-        <div className="flex justify-between items-start mb-1">
+        <div className="flex justify-between items-start mb-2">
            <div className="flex items-baseline gap-1">
-             <span className="text-lg font-bold text-slate-900">{data.price}</span>
-             <span className="text-sm text-slate-500 font-medium">/{data.period === 'monthly' ? 'mo' : data.period}</span>
+             <span className="text-2xl font-extrabold text-navy-950">{data.price}</span>
+             <span className="text-sm text-slate-400 font-medium">/{data.period === 'monthly' ? 'mo' : data.period}</span>
            </div>
-           {/* Rating or New badge could go here */}
+           
+           {/* Verified Badge if applicable (mock logic or prop) */}
+           {data.verified && <MdVerified className="text-terracotta-500 text-xl" title="Verified Listing" />}
         </div>
         
-        <h3 className="font-semibold text-slate-700 text-sm mb-2 line-clamp-1">{data.title}</h3>
+        <h3 className="font-bold text-navy-900 text-lg mb-3 line-clamp-1 group-hover:text-terracotta-600 transition-colors">{data.title}</h3>
 
-        <div className="flex items-center gap-1 text-slate-500 text-xs mb-3">
-            <MdLocationOn className="text-cyan-500 shrink-0" size={14} />
-            <span className="truncate">{data.location}</span>
+        <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-6">
+            <MdLocationOn className="text-terracotta-500 shrink-0" size={16} />
+            <span className="truncate font-medium">{data.location}</span>
         </div>
 
         {data.isBlurry ? (
             /* Interest UI for Private Listings */
-            <div className="mt-3">
+            <div className="mt-4">
                 <button
                     onClick={handleShowInterest}
                     disabled={interestLoading || data.interestStatus === 'pending'}
-                    className={`w-full py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all active:scale-[0.98] ${
+                    className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all active:scale-[0.98] ${
                         data.interestStatus === 'pending'
                         ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-default'
-                        : 'bg-cyan-600 text-white hover:bg-cyan-700 shadow-lg shadow-cyan-600/20'
+                        : 'bg-navy-950 text-white hover:bg-navy-800 shadow-xl shadow-navy-900/20'
                     }`}
                 >
                     {data.interestStatus === 'pending' ? (
                         <>
-                            <MdCheckCircle className="text-base" />
+                            <MdCheckCircle className="text-lg" />
                             Interest Sent
                         </>
                     ) : interestLoading ? (
@@ -250,14 +254,14 @@ export const ListingCard = ({ data, onSelect }) => {
                 </button>
             </div>
         ) : (
-            <div className="flex items-center justify-between mt-3 pt-3 border-t border-slate-50">
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
                {/* Amenities/Icons */}
-                <div className="flex gap-3 text-slate-500">
+                <div className="flex gap-4 text-slate-400">
                     {data.amenities?.slice(0, 3).map((am, i) => {
                         const IconComponent = am.icon; 
                         return (
-                        <div key={i} className="flex items-center gap-1 text-xs" title={am.label}>
-                            {IconComponent && typeof IconComponent !== 'string' && <IconComponent size={14} />} 
+                        <div key={i} className="flex items-center gap-1.5 text-xs font-medium" title={am.label}>
+                            {IconComponent && typeof IconComponent !== 'string' && <IconComponent size={16} />} 
                             <span className="hidden sm:inline">{am.value || ''}</span>
                         </div>
                         );
@@ -266,7 +270,7 @@ export const ListingCard = ({ data, onSelect }) => {
 
                 {/* Simple Author Avatar */}
                 <div 
-                    className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1 rounded-full transition-colors -mr-1"
+                    className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 px-2 py-1 -mr-2 rounded-full transition-colors"
                     onClick={(e) => {
                         e.stopPropagation();
                         if (data.host?.id && !data.isBlurry) {
@@ -275,21 +279,21 @@ export const ListingCard = ({ data, onSelect }) => {
                     }} 
                 >
                     {data.host.avatar ? (
-                    <div className="relative w-6 h-6 rounded-full overflow-hidden bg-slate-100 ring-1 ring-slate-100">
+                    <div className="relative w-8 h-8 rounded-full overflow-hidden bg-slate-100 ring-2 ring-white shadow-sm">
                         <Image 
                         src={data.host.avatar} 
                         alt={data.host.name}
                         fill
-                        sizes="24px"
+                        sizes="32px"
                         className="object-cover"
                         />
                     </div>
                     ) : (
-                    <div className="w-6 h-6 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-[10px] font-bold ring-1 ring-slate-100">
+                    <div className="w-8 h-8 rounded-full bg-navy-50 text-navy-700 flex items-center justify-center text-xs font-bold ring-2 ring-white shadow-sm">
                         {data.host.name?.slice(0, 1).toUpperCase() || '?'}
                     </div>
                     )}
-                    <span className="text-xs font-medium text-slate-500 max-w-[60px] truncate">
+                    <span className="text-xs font-bold text-navy-900 max-w-[80px] truncate hidden sm:block">
                     {isOwner ? 'You' : data.host.name?.split(' ')[0]}
                     </span>
                  </div>

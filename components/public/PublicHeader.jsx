@@ -28,28 +28,28 @@ export default function PublicHeader() {
         
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2 group">
-          <div className="w-8 h-8 rounded-lg bg-linear-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-bold text-lg shadow-lg shadow-cyan-500/20 group-hover:scale-105 transition-transform">
+          <div className="w-8 h-8 rounded-lg bg-navy-950 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-105 transition-transform">
             R
           </div>
-          <span className="font-bold text-xl text-slate-900 tracking-tight">Roomly</span>
+          <span className="font-sans font-extrabold text-xl text-navy-950 tracking-tighter">Roomly<span className="text-terracotta-500">.</span></span>
         </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-6">
-           <Link href="/rooms" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Find a Room</Link>
-           <Link href="/how-it-works" className="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">How it Works</Link>
+           <Link href="/rooms" className="text-sm font-medium text-slate-600 hover:text-navy-700 transition-colors">Find a Room</Link>
+           <Link href="/how-it-works" className="text-sm font-medium text-slate-600 hover:text-navy-700 transition-colors">How it Works</Link>
         </nav>
 
         {/* Desktop Actions */}
         <div className="hidden md:flex items-center gap-4">
           {!user ? (
             <>
-              <Link href="/login" className="text-sm font-semibold text-slate-700 hover:text-slate-900">
+              <Link href="/login" className="text-sm font-semibold text-slate-700 hover:text-navy-700">
                 Log In
               </Link>
               <Link 
                 href="/signup" 
-                className="bg-slate-900 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-slate-800 transition-all shadow-md active:scale-95"
+                className="bg-terracotta-500 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-terracotta-600 transition-all shadow-md shadow-terracotta-500/20 active:scale-95"
               >
                 Sign Up
               </Link>
@@ -57,7 +57,7 @@ export default function PublicHeader() {
           ) : (
             <Link 
                 href="/dashboard" 
-                className="bg-slate-100 text-slate-900 px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-slate-200 transition-all"
+                className="bg-navy-600 text-white px-5 py-2.5 rounded-full text-sm font-semibold hover:bg-navy-700 transition-all"
             >
                 Go to Dashboard
             </Link>
@@ -93,7 +93,7 @@ export default function PublicHeader() {
               {!user ? (
                 <>
                   <Link href="/login" className="w-full text-center py-3 rounded-xl bg-slate-100 font-semibold text-slate-900">Log In</Link>
-                  <Link href="/signup" className="w-full text-center py-3 rounded-xl bg-cyan-600 text-white font-bold shadow-lg shadow-cyan-200">Sign Up</Link>
+                  <Link href="/signup" className="w-full text-center py-3 rounded-xl bg-terracotta-500 text-white font-bold shadow-lg shadow-terracotta-500/20">Sign Up</Link>
                 </>
               ) : (
                  <Link href="/dashboard" className="w-full text-center py-3 rounded-xl bg-slate-900 text-white font-bold">Go to Dashboard</Link>

@@ -1,14 +1,61 @@
 @import "tailwindcss";
 
-@theme {
-  /* ============================================
-     ROOMLY DESIGN SYSTEM - WCAG AA COMPLIANT
-     ============================================ */
+:root {
+  --color-navy-50: #f0f4f8;
+  --color-navy-100: #d9e2ec;
+  --color-navy-200: #bcccdc;
+  --color-navy-300: #9fb3c8;
+  --color-navy-400: #829ab1;
+  --color-navy-500: #627d98;
+  --color-navy-600: #486581;
+  --color-navy-700: #334e68;
+  --color-navy-800: #243b53;
+  --color-navy-900: #102a43;
+  --color-navy-950: #020617;
 
-  /* === CYAN COLOR SYSTEM (Primary Brand Color) === */
-  /* WCAG AA compliant cyan scale - All text colors meet 4.5:1 contrast on white/dark backgrounds */
-  --color-cyan-50: #ecfeff; /* Very light cyan - backgrounds, subtle hover states */
-  --color-cyan-100: #cffafe; /* Light cyan - badges, tags, highlights */
+  /* Updated to a warmer, more sophisticated earthy terracotta */
+  --color-terracotta-50: #fbf8f7;
+  --color-terracotta-100: #f2e9e6;
+  --color-terracotta-200: #e5d3cd;
+  --color-terracotta-300: #d8bdb4;
+  --color-terracotta-400: #cba79b;
+  --color-terracotta-500: #9c5240; /* Primary Warm Terracotta */
+  --color-terracotta-600: #8d4a3a;
+  --color-terracotta-700: #7d4233;
+  --color-terracotta-800: #6e3a2d;
+  --color-terracotta-900: #5e3226;
+}
+
+@theme {
+  --color-navy-50: var(--color-navy-50);
+  --color-navy-100: var(--color-navy-100);
+  --color-navy-200: var(--color-navy-200);
+  --color-navy-300: var(--color-navy-300);
+  --color-navy-400: var(--color-navy-400);
+  --color-navy-500: var(--color-navy-500);
+  --color-navy-600: var(--color-navy-600);
+  --color-navy-700: var(--color-navy-700);
+  --color-navy-800: var(--color-navy-800);
+  --color-navy-900: var(--color-navy-900);
+  --color-navy-950: var(--color-navy-950);
+
+  --color-terracotta-50: var(--color-terracotta-50);
+  --color-terracotta-100: var(--color-terracotta-100);
+  --color-terracotta-200: var(--color-terracotta-200);
+  --color-terracotta-300: var(--color-terracotta-300);
+  --color-terracotta-400: var(--color-terracotta-400);
+  --color-terracotta-500: var(--color-terracotta-500);
+  --color-terracotta-600: var(--color-terracotta-600);
+  --color-terracotta-700: var(--color-terracotta-700);
+  --color-terracotta-800: var(--color-terracotta-800);
+  --color-terracotta-900: var(--color-terracotta-900);
+
+  --font-serif: var(--font-fraunces), serif;
+  --font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui;
+
+  /* Specific Aliases */
+  --color-accent: #020617; /* Navy stays as sophisticated accent */
+  --color-primary: #9c5240; /* Warm Terracotta as Primary */
 }
 
 button {
@@ -74,11 +121,11 @@ button {
    ============================================ */
 
 .field-label {
-  composes: form-label;
+/* Removed invalid composes property */
 }
 
 .field-hint {
-  composes: form-hint;
+/* Removed invalid composes property */
 }
 
 .auth-header-title {
@@ -95,7 +142,7 @@ button {
 }
 
 .link-primary {
-  composes: link;
+/* Removed invalid composes property */
   color: var(--color-primary-text);
 }
 
