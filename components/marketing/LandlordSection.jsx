@@ -6,7 +6,7 @@ import Link from 'next/link';
 export default function LandlordSection() {
   return (
     <section id="landlords" className="py-20 lg:py-32 bg-slate-50 border-t border-slate-200">
-      <div className="container mx-auto px-4 md:px-6">
+      <div className="w-full max-w-7xl mx-auto px-6 md:px-12">
         
         <div className="text-center max-w-4xl mx-auto mb-16">
             <span className="bg-navy-950 text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest mb-6 inline-block">

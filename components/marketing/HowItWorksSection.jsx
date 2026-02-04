@@ -42,7 +42,7 @@ export default function HowItWorksSection() {
 
   return (
     <section id="how-it-works" className="py-20 bg-slate-50 border-y border-slate-200">
-      <div className="container mx-auto px-4 md:px-6">
+      <div className="w-full max-w-7xl mx-auto px-6 md:px-12">
         
         <div className="text-center max-w-3xl mx-auto mb-16">
           <h2 className="text-3xl md:text-5xl font-bold text-navy-950 mb-6">How Roomly Works</h2>

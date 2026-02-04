@@ -7,7 +7,7 @@ import { MdCheckCircle } from 'react-icons/md';
 export default function HeroSection() {
   return (
     <section className="relative w-full pt-16 pb-20 lg:pt-24 lg:pb-32 bg-white overflow-hidden">
-        <div className="container mx-auto px-4 md:px-6">
+        <div className="w-full max-w-7xl mx-auto px-6 md:px-12">
             <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
                 
                 {/* LEFT CONTENT */}
@@ -127,7 +127,7 @@ export default function HeroSection() {
 
         {/* QUICK STATS BAR */}
         <div className="mt-20 border-t border-slate-100 bg-slate-50/50">
-            <div className="container mx-auto px-4 py-8">
+            <div className="w-full max-w-7xl mx-auto px-6 md:px-12 py-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200 gap-6 text-center">
                     <div className="px-4">
                         <div className="text-3xl font-bold text-navy-950 mb-1">Live Now</div>

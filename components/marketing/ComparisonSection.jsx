@@ -23,7 +23,7 @@ export default function ComparisonSection() {
 
   return (
     <section className="py-20 lg:py-32 bg-slate-50">
-      <div className="container mx-auto px-4 md:px-6">
+      <div className="w-full max-w-7xl mx-auto px-6 md:px-12">
         
         <div className="text-center max-w-3xl mx-auto mb-16">
             <h2 className="text-3xl md:text-4xl font-bold text-navy-950 mb-4">

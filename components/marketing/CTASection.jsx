@@ -6,7 +6,7 @@ import { MdFlashOn, MdCheckCircle, MdThumbUp } from 'react-icons/md';
 export default function CTASection() {
   return (
     <section className="py-20 lg:py-24 bg-linear-to-br from-terracotta-500 to-terracotta-600">
-      <div className="container mx-auto px-4 md:px-6 text-center">
+      <div className="w-full max-w-7xl mx-auto px-6 md:px-12 text-center">
         
         <h2 className="text-3xl md:text-5xl font-bold text-white mb-6 tracking-tight">
             Ready to Find Your Perfect Flatmate?
