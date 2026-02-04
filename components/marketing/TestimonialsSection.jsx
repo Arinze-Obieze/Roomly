@@ -1,93 +1,58 @@
-import React from 'react';
+'use client';
 
-const testimonials = [
-  {
-    text: "I was skeptical about an algorithm finding me a flatmate, but the match was 98% accurate. We're both night owls and neat freaks. It just works.",
-    author: "Sarah J.",
-    role: "Tech Worker in Dublin 2",
-    bg: "bg-white",
-    textColor: "text-slate-800"
-  },
-  {
-    text: "The ID verification gave me peace of mind that I just couldn't get from Facebook groups.",
-    author: "Michael R.",
-    role: "Student, UCD",
-    bg: "bg-slate-900",
-    textColor: "text-white"
-  },
-  {
-    text: "Finally, a platform that treats renting like a professional transaction, not a blind date.",
-    author: "Ciara M.",
-    role: "Landlord, Galway",
-    bg: "bg-cyan-50",
-    textColor: "text-slate-900"
-  },
-];
+import { MdStar } from 'react-icons/md';
 
 export default function TestimonialsSection() {
+  const testimonials = [
+    {
+      quote: "I found my perfect flatmate in just 3 days. Our 89% match score was spot on—we both love quiet evenings and early mornings. Best rental experience I've ever had.",
+      author: "Emma L., Dublin 2",
+      role: "Renter"
+    },
+    {
+      quote: "As a landlord, I used to get 60+ messages per listing. Now I only get inquiries from high-match seekers. My last tenant had a 92% match and has been amazing.",
+      author: "David K., Dublin 4",
+      role: "Landlord"
+    },
+    {
+      quote: "The compatibility breakdown showed me exactly why we'd get along. No surprises after moving in. This should be the standard for all rental sites.",
+      author: "Aoife M., Dublin 8",
+      role: "Renter"
+    }
+  ];
+
   return (
-    <section className="py-32 bg-white overflow-hidden">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-          
-          {/* Header takes up the first column */}
-          <div className="lg:sticky lg:top-32">
-            <h2 className="text-5xl font-bold text-slate-900 mb-6 tracking-tighter">
-              Real stories from <span className="underline decoration-cyan-500 decoration-4 underline-offset-4">verified</span> renters.
+    <section className="py-20 lg:py-32 bg-white border-b border-slate-100">
+      <div className="container mx-auto px-4 md:px-6">
+        
+        <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-5xl font-bold text-navy-950 mb-6">
+                What Roomly Users Are Saying
             </h2>
-            <p className="text-lg text-slate-600 mb-8">
-              Join thousands of people who found their home harmony through Roomly.
-            </p>
-            <button className="text-cyan-600 font-bold flex items-center gap-2 hover:gap-4 transition-all">
-              Read all reviews <span>&rarr;</span>
-            </button>
-          </div>
-
-          {/* Reviews Staggered Column 1 */}
-          <div className="space-y-8 pt-0 lg:pt-20">
-             <ReviewCard data={testimonials[0]} />
-             <ReviewCard
-               data={{
-                 text: "I matched with someone who shares my exact lifestyle preferences. No more gambling on random roommates. This is how renting should be in 2025.",
-                 author: "Emma L.",
-                 role: "Nurse, Cork City",
-                 bg: "bg-slate-50",
-                 textColor: "text-slate-900"
-               }}
-             />
-          </div>
-
-          {/* Reviews Staggered Column 2 */}
-          <div className="space-y-8">
-             <ReviewCard data={testimonials[1]} />
-             <ReviewCard data={testimonials[2]} />
-          </div>
-
         </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {testimonials.map((t, i) => (
+                <div key={i} className="bg-slate-50 p-8 rounded-3xl border border-slate-100 flex flex-col h-full hover:shadow-lg transition-shadow">
+                    <div className="flex gap-1 text-yellow-400 text-xl mb-6">
+                        {[...Array(5)].map((_, j) => (
+                            <MdStar key={j} />
+                        ))}
+                    </div>
+                    
+                    <blockquote className="text-slate-700 font-medium leading-relaxed mb-6 flex-1 italic">
+                        &quot;{t.quote}&quot;
+                    </blockquote>
+                    
+                    <div className="mt-auto pt-6 border-t border-slate-200">
+                        <div className="font-bold text-navy-950">{t.author}</div>
+                        <div className="text-sm text-slate-500">{t.role}</div>
+                    </div>
+                </div>
+            ))}
+        </div>
+
       </div>
     </section>
-  );
-}
-
-function ReviewCard({ data }) {
-  return (
-    <div className={`p-8 rounded-4xl ${data.bg} shadow-2xl shadow-slate-200/50 transition-transform hover:-translate-y-1 duration-300`}>
-      {/* A large stylized quote mark */}
-      <div className={`text-6xl font-serif leading-none opacity-20 mb-4 ${data.textColor === 'text-white' ? 'text-cyan-400' : 'text-slate-900'}`}>
-        &ldquo;
-      </div>
-      <p className={`text-lg font-medium leading-relaxed mb-6 ${data.textColor}`}>
-        {data.text}
-      </p>
-      <div className="flex items-center gap-3">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${data.textColor === 'text-white' ? 'bg-white/20 text-white' : 'bg-slate-900 text-white'}`}>
-          {data.author[0]}
-        </div>
-        <div>
-          <p className={`text-sm font-bold ${data.textColor}`}>{data.author}</p>
-          <p className={`text-xs opacity-70 ${data.textColor}`}>{data.role}</p>
-        </div>
-      </div>
-    </div>
   );
 }

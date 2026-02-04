@@ -13,6 +13,7 @@ export default function BuddyDashboard({ group }) {
   const { user } = useAuthContext();
   const [activeTab, setActiveTab] = useState('chat');
   const [members, setMembers] = useState([]);
+  const [sharedProperties, setSharedProperties] = useState([]);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const supabase = createClient();
 
@@ -21,6 +22,12 @@ export default function BuddyDashboard({ group }) {
         fetchMembers();
     }
   }, [group?.id]);
+
+  useEffect(() => {
+    if (activeTab === 'properties' && group?.id) {
+        fetchSharedProperties();
+    }
+  }, [activeTab, group?.id]);
 
   const fetchMembers = async () => {
     const { data } = await supabase
@@ -36,6 +43,30 @@ export default function BuddyDashboard({ group }) {
         .eq('status', 'active');
     
     if (data) setMembers(data);
+  };
+
+  const fetchSharedProperties = async () => {
+       const { data } = await supabase
+            .from('buddy_messages')
+            .select('*')
+            .eq('group_id', group.id)
+            .eq('attachment_type', 'property')
+            .order('created_at', { ascending: false });
+        
+       if (data) {
+           // Dedup properties by ID if shared multiple times? 
+           // For now, let's show all shares (chronological). 
+           // actually, unique might be better.
+           const unique = [];
+           const seen = new Set();
+           data.forEach(msg => {
+               if (msg.attachment_data && !seen.has(msg.attachment_data.id)) {
+                   seen.add(msg.attachment_data.id);
+                   unique.push({ ...msg.attachment_data, shared_at: msg.created_at });
+               }
+           });
+           setSharedProperties(unique);
+       }
   };
 
   if (!group) return <div>Loading group...</div>;
@@ -79,8 +110,46 @@ export default function BuddyDashboard({ group }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Sidebar / Tabs (Mobile adapted) */}
-        <div className="lg:col-span-1 space-y-4">
+        {/* Mobile Tabs (Horizontal Scroll) */}
+        <div className="lg:hidden col-span-1 bg-white rounded-2xl border border-slate-100 p-2 mb-4 overflow-x-auto flex gap-2 no-scrollbar">
+             <button 
+                onClick={() => setActiveTab('chat')}
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
+                    activeTab === 'chat' ? 'bg-red-50 text-red-500 border border-red-100' : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                }`}
+            >
+                <MdChat size={18} />
+                Chat
+            </button>
+            <button 
+                onClick={() => setActiveTab('properties')}
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
+                    activeTab === 'properties' ? 'bg-cyan-50 text-cyan-600 border border-cyan-100' : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                }`}
+            >
+                <MdHomeWork size={18} />
+                Properties
+            </button>
+            <button 
+                onClick={() => setActiveTab('members')}
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
+                    activeTab === 'members' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                }`}
+            >
+                <MdPerson size={18} />
+                Members
+            </button>
+             <button 
+                onClick={() => alert('Settings coming soon')}
+                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap text-slate-400 hover:text-slate-600`}
+            >
+                <MdSettings size={18} />
+                Settings
+            </button>
+        </div>
+
+        {/* Desktop Sidebar / Tabs */}
+        <div className="hidden lg:block lg:col-span-1 space-y-4">
             <div className="bg-white rounded-3xl border border-slate-100 p-2 shadow-sm">
                 <button 
                     onClick={() => setActiveTab('chat')}
@@ -119,7 +188,7 @@ export default function BuddyDashboard({ group }) {
             </div>
 
             {/* Members List (Sidebar specific) */}
-             <div className="hidden lg:block bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
+             <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
                 <h3 className="font-bold text-slate-900 mb-4">Members</h3>
                 <div className="space-y-3">
                     {members.map(m => (
@@ -150,15 +219,51 @@ export default function BuddyDashboard({ group }) {
              {activeTab === 'chat' && <GroupChat groupId={group.id} />}
              
              {activeTab === 'properties' && (
-                <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center h-[500px] flex flex-col items-center justify-center">
-                    <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                        <MdHomeWork className="text-slate-300 text-4xl" />
+                sharedProperties.length > 0 ? (
+                    <div className="bg-white rounded-3xl border border-slate-100 p-6 min-h-[500px]">
+                        <h3 className="font-bold text-slate-900 mb-6">Shared Properties ({sharedProperties.length})</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {sharedProperties.map((prop, i) => (
+                                <a 
+                                    key={`${prop.id}-${i}`} 
+                                    href={`/rooms/${prop.id}`}
+                                    className="block group border border-slate-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all"
+                                >
+                                    <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden">
+                                        <img src={prop.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold shadow-sm">
+                                            Shared {dayjs(prop.shared_at).fromNow()}
+                                        </div>
+                                    </div>
+                                    <div className="p-4">
+                                        <div className="flex justify-between items-start mb-1">
+                                            <h4 className="font-bold text-slate-900 line-clamp-1">{prop.title}</h4>
+                                        </div>
+                                        <div className="text-slate-500 text-sm mb-3 flex items-center gap-1">
+                                             <MdHomeWork size={14} /> {prop.location}
+                                        </div>
+                                        <div className="flex items-center justify-between mt-2">
+                                            <span className="font-extrabold text-slate-900">{prop.price}</span>
+                                            <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-2 py-1 rounded-full group-hover:bg-cyan-600 group-hover:text-white transition-colors">
+                                                View
+                                            </span>
+                                        </div>
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
                     </div>
-                    <h3 className="text-xl font-bold text-slate-900">No properties yet</h3>
-                    <p className="text-slate-500 max-w-xs mx-auto mt-2">
-                        Share properties from the dashboard to discuss them with your group.
-                    </p>
-                </div>
+                ) : (
+                    <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center h-[500px] flex flex-col items-center justify-center">
+                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
+                            <MdHomeWork className="text-slate-300 text-4xl" />
+                        </div>
+                        <h3 className="text-xl font-bold text-slate-900">No properties yet</h3>
+                        <p className="text-slate-500 max-w-xs mx-auto mt-2">
+                            Share properties from the dashboard to discuss them with your group.
+                        </p>
+                    </div>
+                )
              )}
 
              {activeTab === 'members' && (

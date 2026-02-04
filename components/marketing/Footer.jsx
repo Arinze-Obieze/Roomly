@@ -1,123 +1,107 @@
-import { FaFacebook, FaInstagram, FaTwitter } from "react-icons/fa";
+'use client';
+
+import React from 'react';
+import Link from 'next/link';
+import { FaInstagram, FaTwitter, FaLinkedin, FaFacebook } from 'react-icons/fa';
 
 export default function Footer() {
-  const quickLinks = [
-    { label: 'Find a Room', href: '/rooms' },
-    { label: 'List a Room', href: '/listings/new' },
-    { label: 'How It Works', href: '/how-it-works' },
-    { label: 'Safety & Trust', href: '/trust' }
-  ];
-
-  const legalLinks = [
-    { label: 'Terms of Service', href: '#' },
-    { label: 'Privacy Policy', href: '#' }
-  ];
-
-  const socialIcons = [
-    { icon: FaFacebook, href: '#' },
-    { icon: FaTwitter, href: '#' },
-    { icon: FaInstagram, href: '#' }
-  ];
+  const currentYear = new Date().getFullYear();
 
   return (
-    <footer className="bg-navy-950 text-white pt-16 pb-8 md:pt-24 md:pb-12 overflow-hidden relative border-t border-white/5 font-sans">
-      
-      {/* Background Watermark - Hidden on mobile */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full text-center pointer-events-none select-none opacity-[0.03] hidden md:block">
-        <span className="text-[12rem] md:text-[20rem] font-black tracking-tighter text-white leading-none whitespace-nowrap">
-          ROOMLY
-        </span>
-      </div>
-
-      <div className="container mx-auto px-4 md:px-6 relative z-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-12 mb-16 md:mb-20">
+    <footer className="bg-white border-t border-slate-200">
+      <div className="max-w-7xl mx-auto px-6 py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12">
           
-          {/* Brand Column - Full width on mobile */}
-          <div className="space-y-6 col-span-1 sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-2">
-              <span className="text-2xl md:text-3xl font-bold tracking-tighter text-white">Roomly<span className="text-terracotta-500">.</span></span>
-            </div>
-            <p className="text-slate-400 text-sm md:text-base leading-relaxed max-w-md font-light">
-              Making house sharing social, safe, and stress-free across Ireland.
+          {/* Column 1: Brand */}
+          <div className="space-y-6">
+            <Link href="/" className="inline-block group">
+              <span className="font-sans font-extrabold text-2xl text-navy-950 tracking-tighter">Roomly<span className="text-terracotta-500">.</span></span>
+            </Link>
+            <p className="text-slate-600 leading-relaxed font-medium">
+              Intelligent roommate matching for harmonious homes in Ireland.
             </p>
-            <div className="flex gap-3 md:gap-4">
-              {socialIcons.map((social, index) => (
-                <a 
-                  key={index} 
-                  href={social.href} 
-                  className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-300 hover:bg-terracotta-500 hover:text-white hover:border-terracotta-500 transition-all duration-300 active:scale-95 touch-manipulation"
-                  aria-label={`Follow us on ${social.icon.name.replace('Fa', '')}`}
-                >
-                  <social.icon size={18} className="md:w-5 md:h-5" />
-                </a>
-              ))}
+            <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
+               <span>Built in Dublin</span>
+               <span className="text-xl">🇮🇪</span>
+            </div>
+            <div className="flex items-center gap-4 pt-2">
+              <SocialLink href="#" icon={<FaInstagram size={20} />} />
+              <SocialLink href="#" icon={<FaTwitter size={20} />} />
+              <SocialLink href="#" icon={<FaLinkedin size={20} />} />
             </div>
           </div>
 
-          {/* Quick Links */}
+          {/* Column 2: Platform */}
           <div>
-            <h5 className="font-bold text-white mb-6 md:mb-8 text-xs md:text-sm uppercase tracking-widest">Platform</h5>
-            <ul className="space-y-3 md:space-y-4">
-              {quickLinks.map((link) => (
-                <li key={link.label}>
-                  <a 
-                    href={link.href} 
-                    className="text-slate-400 hover:text-white transition-colors text-sm md:text-base font-light block py-1 md:py-0"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
+            <h4 className="font-bold text-navy-950 text-sm uppercase tracking-wider mb-6">Platform</h4>
+            <ul className="space-y-4 text-slate-600 font-medium">
+              <li><Link href="/" className="hover:text-terracotta-500 transition-colors">Home</Link></li>
+              <li><Link href="#how-it-works" className="hover:text-terracotta-500 transition-colors">How It Works</Link></li>
+              <li><Link href="/rooms" className="hover:text-terracotta-500 transition-colors">Browse Rooms</Link></li>
+              <li><Link href="#features" className="hover:text-terracotta-500 transition-colors">Why Roomly</Link></li>
+              <li><Link href="#landlords" className="hover:text-terracotta-500 transition-colors">For Landlords</Link></li>
             </ul>
           </div>
 
-          {/* Legal Links */}
+          {/* Column 3: Legal */}
           <div>
-            <h5 className="font-bold text-white mb-6 md:mb-8 text-xs md:text-sm uppercase tracking-widest">Legal</h5>
-            <ul className="space-y-3 md:space-y-4">
-              {legalLinks.map((link) => (
-                <li key={link.label}>
-                  <a 
-                    href={link.href} 
-                    className="text-slate-400 hover:text-white transition-colors text-sm md:text-base font-light block py-1 md:py-0"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
+            <h4 className="font-bold text-navy-950 text-sm uppercase tracking-wider mb-6">Legal</h4>
+            <ul className="space-y-4 text-slate-600 font-medium">
+              <li><Link href="/terms" className="hover:text-terracotta-500 transition-colors">Terms of Service</Link></li>
+              <li><Link href="/privacy" className="hover:text-terracotta-500 transition-colors">Privacy Policy</Link></li>
+              <li><Link href="/cookies" className="hover:text-terracotta-500 transition-colors">Cookie Policy</Link></li>
+              <li><Link href="/gdpr" className="hover:text-terracotta-500 transition-colors">GDPR Compliance</Link></li>
             </ul>
           </div>
 
-          {/* Contact Column */}
-          <div className="col-span-1 sm:col-span-2 lg:col-span-1">
-            <h5 className="font-bold text-white mb-6 md:mb-8 text-xs md:text-sm uppercase tracking-widest">Support</h5>
-            <div className="space-y-4">
-              <p className="text-slate-400 text-sm md:text-base font-light">Got questions? We're here.</p>
-              <a 
-                href="mailto:hello@roomly.ie" 
-                className="inline-block text-lg md:text-xl font-bold text-white hover:text-terracotta-400 transition-colors break-all"
-              >
+          {/* Column 4: Support */}
+          <div>
+            <h4 className="font-bold text-navy-950 text-sm uppercase tracking-wider mb-6">Support</h4>
+            <div className="space-y-4 text-slate-600 font-medium">
+              <p>Have questions?</p>
+              <a href="mailto:hello@roomly.ie" className="inline-block text-terracotta-500 font-bold text-lg hover:underline decoration-2">
                 hello@roomly.ie
               </a>
-              <p className="text-slate-500 text-xs mt-2 md:mt-4">
-                Available Mon–Fri, 9am–6pm
-              </p>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 mt-4 text-sm">
+                <p className="font-bold text-navy-950 mb-1">Response time:</p>
+                <p>Within 24 hours</p>
+                <div className="h-px bg-slate-200 my-2"></div>
+                <p className="font-bold text-navy-950 mb-1">Hours:</p>
+                <p>Mon-Fri, 9am-6pm GMT</p>
+              </div>
             </div>
           </div>
 
         </div>
+      </div>
 
-        {/* Bottom Bar - Stack on mobile */}
-        <div className="border-t border-white/5 pt-8 md:pt-12 flex flex-col md:flex-row justify-between items-center gap-4 md:gap-6">
-          <p className="text-slate-500 text-xs md:text-sm font-light text-center md:text-left order-2 md:order-1">
-            &copy; {new Date().getFullYear()} Roomly Technologies Ltd. All rights reserved.
-          </p>
-          <div className="flex items-center gap-2 order-1 md:order-2 mb-4 md:mb-0">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-slate-500 text-xs font-medium uppercase tracking-widest">Systems Operational</span>
-          </div>
+      {/* Bottom Footer Bar */}
+      <div className="bg-navy-950 py-8 px-6 text-center md:text-left">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-slate-400 text-sm font-medium">
+                © {currentYear} Roomly Technologies Ltd. Registered in Ireland.
+            </p>
+            <div className="flex items-center gap-6 text-sm font-bold text-slate-400">
+                <Link href="/terms" className="hover:text-white transition-colors">Terms</Link>
+                <Link href="/privacy" className="hover:text-white transition-colors">Privacy</Link>
+                <Link href="/cookies" className="hover:text-white transition-colors">Cookies</Link>
+                <span className="flex items-center gap-1 text-slate-500 font-medium">
+                    Made with <span className="text-red-500">❤️</span> in Dublin
+                </span>
+            </div>
         </div>
       </div>
     </footer>
+  );
+}
+
+function SocialLink({ href, icon }) {
+  return (
+    <a 
+      href={href} 
+      className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-terracotta-500 hover:text-white transition-all duration-300"
+    >
+      {icon}
+    </a>
   );
 }

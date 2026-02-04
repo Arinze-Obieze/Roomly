@@ -35,7 +35,7 @@ export default function ValueProps() {
       <div className="container mx-auto px-4 md:px-6">
         
         {/* Section Header: Pure Signal */}
-        <div className="text-center max-w-3xl mx-auto mb-16 md:mb-32">
+        <div className="max-w-3xl mx-auto md:mx-0 text-center md:text-left mb-16 md:mb-32">
             <h2 className="text-3xl md:text-6xl font-sans font-extrabold text-navy-950 mb-6 tracking-tight">
                 Built for the <br />
                 <span className="text-terracotta-500">Modern Irish Renter.</span>

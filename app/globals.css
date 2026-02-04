@@ -13,17 +13,25 @@
   --color-navy-900: #102a43;
   --color-navy-950: #020617;
 
-  /* Updated to a warmer, more sophisticated earthy terracotta */
-  --color-terracotta-50: #fbf8f7;
-  --color-terracotta-100: #f2e9e6;
-  --color-terracotta-200: #e5d3cd;
-  --color-terracotta-300: #d8bdb4;
-  --color-terracotta-400: #cba79b;
-  --color-terracotta-500: #9c5240; /* Primary Warm Terracotta */
-  --color-terracotta-600: #8d4a3a;
-  --color-terracotta-700: #7d4233;
-  --color-terracotta-800: #6e3a2d;
-  --color-terracotta-900: #5e3226;
+  /* CORAL PALETTE (Replacing "Terracotta" naming with Coral values) */
+  --color-terracotta-50: #FFF4ED;
+  --color-terracotta-100: #ffe3e3;
+  --color-terracotta-200: #ffc9c9;
+  --color-terracotta-300: #ffa5a5;
+  --color-terracotta-400: #ff8585;
+  --color-terracotta-500: #FF6B6B; /* Primary Coral */
+  --color-terracotta-600: #FF5252; /* Hover Coral */
+  --color-terracotta-700: #fa3e3e;
+  --color-terracotta-800: #d82e2e;
+  --color-terracotta-900: #b51f1f;
+
+  /* Teal & Yellow */
+  --color-teal-50: #f0fdfc;
+  --color-teal-100: #ccfbf7;
+  --color-teal-500: #4ECDC4;
+  --color-teal-600: #3dbdb4;
+  
+  --color-yellow-400: #FFE66D;
 }
 
 @theme {
@@ -50,12 +58,18 @@
   --color-terracotta-800: var(--color-terracotta-800);
   --color-terracotta-900: var(--color-terracotta-900);
 
-  --font-serif: var(--font-fraunces), serif;
-  --font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui;
+  --color-teal-50: var(--color-teal-50);
+  --color-teal-100: var(--color-teal-100);
+  --color-teal-500: var(--color-teal-500);
+  --color-teal-600: var(--color-teal-600);
+  
+  --color-yellow-400: var(--color-yellow-400);
 
-  /* Specific Aliases */
-  --color-accent: #020617; /* Navy stays as sophisticated accent */
-  --color-primary: #9c5240; /* Warm Terracotta as Primary */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui;
+  --font-heading: var(--font-space-grotesk), sans-serif;
+  
+  /* Aliases */
+  --color-primary: #FF6B6B;
 }
 
 button {
@@ -121,11 +135,11 @@ button {
    ============================================ */
 
 .field-label {
-/* Removed invalid composes property */
+  /* Removed invalid composes property */
 }
 
 .field-hint {
-/* Removed invalid composes property */
+  /* Removed invalid composes property */
 }
 
 .auth-header-title {
@@ -142,7 +156,7 @@ button {
 }
 
 .link-primary {
-/* Removed invalid composes property */
+  /* Removed invalid composes property */
   color: var(--color-primary-text);
 }
 
@@ -254,4 +268,15 @@ button {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Snap Scroll Utilities */
+.snap-x {
+  scroll-snap-type: x mandatory;
+}
+.snap-center {
+  scroll-snap-align: center;
+}
+.snap-start {
+  scroll-snap-align: start;
 }

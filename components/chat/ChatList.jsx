@@ -6,12 +6,20 @@ import { MdInbox, MdSend, MdImage } from 'react-icons/md';
 import { formatDistanceToNow } from 'date-fns';
 
 export const ChatList = ({ activeTab, onTabChange }) => {
-  const { conversations, activeConversation, setActiveConversation, loading } = useChat();
+  const { 
+      conversations, 
+      activeConversation, 
+      setActiveConversation, 
+      loading,
+      fetchNextConversations,
+      hasNextConversations,
+      isFetchingNextConversations
+  } = useChat();
   const { user } = useAuthContext();
 
   const filteredConversations = conversations.filter(c => {
-    if (activeTab === 'received') return c.host_id === user?.id; // Messages sent to me (as host)
-    return c.tenant_id === user?.id; // Messages I sent (as tenant)
+    if (activeTab === 'received') return c.host_id === user?.id; 
+    return c.tenant_id === user?.id; 
   });
 
   if (loading) {
@@ -69,8 +77,6 @@ export const ChatList = ({ activeTab, onTabChange }) => {
         ) : (
           <div className="divide-y divide-slate-100">
             {filteredConversations.map(conv => {
-              // Determine other party details activeTab
-              // If I am host (Received tab), show Tenant. If I am tenant (Sent tab), show Host.
               const otherParty = activeTab === 'received' ? conv.tenant : conv.host;
               const isActive = activeConversation === conv.id;
 
@@ -98,7 +104,6 @@ export const ChatList = ({ activeTab, onTabChange }) => {
                      {/* Property Thumbnail Badge */}
                      {conv.property?.property_media?.[0]?.url && (
                         <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-slate-100">
-                             {/* Note: We will fix image URL resolution later if needed, assume relative for now */}
                              <img 
                                 src={`https://aiovmhiokeisdizhcxvm.supabase.co/storage/v1/object/public/property-media/${conv.property.property_media[0].url}`}
                                 alt="Property"
@@ -129,6 +134,19 @@ export const ChatList = ({ activeTab, onTabChange }) => {
                 </button>
               );
             })}
+            
+            {/* Load More Button */}
+            {hasNextConversations && (
+                <div className="p-4 text-center">
+                    <button 
+                        onClick={() => fetchNextConversations()}
+                        disabled={isFetchingNextConversations}
+                        className="text-xs text-cyan-600 hover:text-cyan-700 font-medium disabled:opacity-50"
+                    >
+                        {isFetchingNextConversations ? 'Loading...' : 'Load More Conversations'}
+                    </button>
+                </div>
+            )}
           </div>
         )}
       </div>

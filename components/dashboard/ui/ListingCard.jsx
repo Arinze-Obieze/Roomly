@@ -87,6 +87,7 @@ export const ListingCard = ({ data, onSelect }) => {
 
         if (res.ok) {
             toast.success('Shared to group chat!');
+            router.push('/buddy');
         } else {
             throw new Error('Failed to share');
         }

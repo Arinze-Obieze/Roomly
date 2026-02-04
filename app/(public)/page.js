@@ -1,25 +1,31 @@
-import PublicHeader from '@/components/public/PublicHeader';
+import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
-import NewHero from '@/components/marketing/NewHero';
-import TrustBar from '@/components/marketing/TrustBar';
-import FeaturedProperties from '@/components/marketing/FeaturedProperties';
-import LocationBento from '@/components/marketing/LocationBento';
-import ValueProps from '@/components/marketing/ValueProps';
-import HowItWorks from '@/components/marketing/HowItWorks';
-import CTABanner from '@/components/marketing/CTABanner';
+import HeroSection from '@/components/marketing/HeroSection';
+import ProblemSection from '@/components/marketing/ProblemSection';
+import SolutionSection from '@/components/marketing/SolutionSection';
+import HowItWorksSection from '@/components/marketing/HowItWorksSection';
+import FeaturesSection from '@/components/marketing/FeaturesSection';
+import LandlordSection from '@/components/marketing/LandlordSection';
+import TestimonialsSection from '@/components/marketing/TestimonialsSection';
+import ComparisonSection from '@/components/marketing/ComparisonSection';
+import FAQSection from '@/components/marketing/FAQSection';
+import CTASection from '@/components/marketing/CTASection';
 
 export default function HomePage() {
   return (
     <div className="font-sans bg-white text-slate-900 min-h-screen flex flex-col">
-      <PublicHeader />
+      <Navbar />
       <main className="flex-1">
-        <NewHero />
-        <TrustBar />
-        <FeaturedProperties />
-        <LocationBento />
-        <ValueProps />
-        <HowItWorks />
-        <CTABanner />
+        <HeroSection />
+        <ProblemSection />
+        <SolutionSection />
+        <HowItWorksSection />
+        <FeaturesSection />
+        <LandlordSection />
+        <TestimonialsSection />
+        <ComparisonSection />
+        <FAQSection />
+        <CTASection />
       </main>
       <Footer />
     </div>

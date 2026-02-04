@@ -203,10 +203,12 @@ const ListPropertyButton = ({ onClick }) => (
 export const Header = ({ showFilters, setShowFilters }) => {
   const router = useRouter();
   const pathname = usePathname();
-  const { user, signOut } = useAuthContext();
+  const { user, signOut, loading } = useAuthContext(); // Added loading
   const { unreadCount } = useChat();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  // ... (unchanged code) ...
 
   const handleLogout = async () => {
     await signOut();
@@ -252,7 +254,12 @@ export const Header = ({ showFilters, setShowFilters }) => {
           <Logo />
           
           <div className="flex items-center gap-4">
-            {user ? (
+            {loading ? (
+                <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 bg-slate-100 rounded-lg animate-pulse"></div>
+                    <div className="w-32 h-8 bg-slate-100 rounded-lg animate-pulse"></div>
+                </div>
+            ) : user ? (
               <>
                  {/* Saved Button (New) */}
                 <button 
@@ -319,7 +326,9 @@ export const Header = ({ showFilters, setShowFilters }) => {
           <Logo />
           
           <div className="flex items-center gap-2">
-            {user ? (
+            {loading ? (
+                <div className="w-8 h-8 bg-slate-100 rounded-full animate-pulse"></div>
+            ) : user ? (
               <>
                  {/* Saved Button (New - Mobile) */}
                 <button 

@@ -22,43 +22,76 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const supabase = createClient();
+    let mounted = true;
 
     // 1. Check active session immediately
     const checkUser = async () => {
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (authUser) {
-          const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', authUser.id)
-            .single();
-          
-          setUser({ ...authUser, ...profile });
-        } else {
-          setUser(null);
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        
+        if (authError) throw authError;
+
+        if (mounted) {
+           if (authUser) {
+            try {
+                const { data: profile, error: profileError } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', authUser.id)
+                .single();
+                
+                if (profileError && profileError.code !== 'PGRST116') {
+                    console.warn('Error fetching profile:', profileError.message);
+                }
+
+                if (mounted) {
+                    setUser({ ...authUser, ...(profile || {}) });
+                }
+            } catch (innerError) {
+                console.warn('Profile fetch failed:', innerError.message);
+                if (mounted) setUser(authUser);
+            }
+           } else {
+             setUser(null);
+           }
         }
       } catch (error) {
-        console.error('Error checking auth:', error);
-        setUser(null);
+        if (error.name === 'AbortError' || error.message?.includes('aborted')) return;
+        console.error('Error checking auth:', error.message);
+        if (mounted) setUser(null);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     };
 
     checkUser();
 
-    // 2. Listen for auth changes (Login, Logout, Auto-refresh)
+    // 2. Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
       if (session?.user) {
-         // Fetch profile on login/change
-         const { data: profile } = await supabase
-            .from('users')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
+         // Debounce or lightweight check could be here, but for now just safely set
+         setUser(prev => {
+             // If we already have this user and profile, don't wipe it out until we fetch profile
+             if (prev?.id === session.user.id) return prev; 
+             return session.user;
+         });
+         
+         // Fetch profile in background to update
+         try {
+            const { data: profile } = await supabase
+                .from('users')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
             
-        setUser({ ...session.user, ...profile });
+            if (mounted && profile) {
+                setUser(u => ({ ...u, ...session.user, ...profile }));
+            }
+         } catch (e) {
+             // silent fail
+         }
       } else {
         setUser(null);
       }
@@ -66,7 +99,8 @@ export function AuthProvider({ children }) {
     });
 
     return () => {
-      subscription.unsubscribe();
+      mounted = false;
+      subscription?.unsubscribe();
     };
   }, []);
 

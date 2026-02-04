@@ -16,7 +16,7 @@ export default function DashboardLayout({ children }) {
       <PropertiesProvider>
         <SavedPropertiesProvider>
           <ChatProvider>
-            <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20 lg:pb-0">
+            <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 lg:pb-0">
             {/* Background Texture */}
             <div className="fixed inset-0 opacity-[0.03] pointer-events-none z-0" 
                  style={{ backgroundImage: "url('https://grainy-gradients.vercel.app/noise.svg')" }} />

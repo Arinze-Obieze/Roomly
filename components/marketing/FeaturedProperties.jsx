@@ -5,8 +5,6 @@ import { ListingCard } from "@/components/dashboard/ui/ListingCard";
 import Link from "next/link";
 import { MdArrowForward } from "react-icons/md";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
-import { useRef, useEffect, useState } from "react";
 
 export default function FeaturedProperties() {
   const router = useRouter();
@@ -17,21 +15,6 @@ export default function FeaturedProperties() {
         verifiedOnly: true
     }
   });
-
-  const carouselRef = useRef();
-  const [width, setWidth] = useState(0);
-
-  useEffect(() => {
-    const calculateWidth = () => {
-      if (carouselRef.current) {
-        setWidth(carouselRef.current.scrollWidth - carouselRef.current.offsetWidth);
-      }
-    };
-
-    calculateWidth();
-    window.addEventListener('resize', calculateWidth);
-    return () => window.removeEventListener('resize', calculateWidth);
-  }, [properties, loading]);
 
   if (loading) {
     return (
@@ -74,32 +57,24 @@ export default function FeaturedProperties() {
             </Link>
         </div>
 
-        {/* Mobile Carousel - Improved with constraint safety */}
+        {/* Mobile Carousel - Native CSS Snap Scrolling */}
         <div className="md:hidden">
-            <div className="overflow-visible">
-                <motion.div 
-                    ref={carouselRef} 
-                    className="flex gap-4 cursor-grab active:cursor-grabbing"
-                    drag="x" 
-                    dragConstraints={{ right: 0, left: -width }}
-                    whileTap={{ cursor: "grabbing" }}
-                >
-                    {properties.slice(0, 4).map(property => (
-                        <div 
-                            key={property.id} 
-                            className="min-w-[80vw] sm:min-w-[320px] first:ml-0"
-                        >
-                            <ListingCard 
-                                data={property} 
-                                onSelect={() => router.push(`/rooms/${property.id}`)}
-                            />
-                        </div>
-                    ))}
-                </motion.div>
+            <div className="flex gap-4 overflow-x-auto scrollbar-hide snap-x snap-mandatory pb-6 px-4 -mx-4">
+                {properties.slice(0, 4).map(property => (
+                    <div 
+                        key={property.id} 
+                        className="min-w-[85vw] snap-center"
+                    >
+                        <ListingCard 
+                            data={property} 
+                            onSelect={() => router.push(`/rooms/${property.id}`)}
+                        />
+                    </div>
+                ))}
             </div>
             
             {/* Carousel Indicators */}
-            <div className="flex justify-center gap-2 mt-8">
+            <div className="flex justify-center gap-2 mt-4">
                  {properties.slice(0, 4).map((_, i) => (
                     <div key={i} className="w-1.5 h-1.5 rounded-full bg-slate-200"></div>
                  ))}

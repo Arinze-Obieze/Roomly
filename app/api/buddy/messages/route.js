@@ -70,7 +70,7 @@ export async function POST(request) {
         .select('id')
         .eq('group_id', groupId)
         .eq('user_id', user.id)
-        .status('active') // Ensure active
+        .eq('status', 'active') // Ensure active
         .single();
 
     if (!member) {

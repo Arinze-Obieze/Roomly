@@ -40,7 +40,7 @@ export function SavedPropertiesProvider({ children }) {
         const ids = new Set(data.map(item => item.property_id));
         setSavedPropertyIds(ids);
       } catch (error) {
-        console.error('Error fetching saved properties:', error);
+        console.error('Error fetching saved properties:', error.message || error);
       } finally {
         setLoading(false);
       }

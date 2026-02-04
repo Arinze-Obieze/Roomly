@@ -13,12 +13,16 @@ export const ChatWindow = () => {
         messages, 
         sendMessage, 
         conversations,
-        fetchMessages 
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage
     } = useChat();
     const { user } = useAuthContext();
     const [newMessage, setNewMessage] = useState('');
     const [sending, setSending] = useState(false);
     const messagesEndRef = useRef(null);
+    const scrollContainerRef = useRef(null);
+    const [prevScrollHeight, setPrevScrollHeight] = useState(null);
 
     // Find full conversation object to get details
     const conversation = conversations.find(c => c.id === activeConversation);
@@ -29,15 +33,52 @@ export const ChatWindow = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
+    // Auto-scroll on new message (only if at bottom or first load - simplified for now)
     useEffect(() => {
-        if (activeConversation) {
-            fetchMessages(activeConversation);
-        }
-    }, [activeConversation, fetchMessages]);
+        // If we are loading *previous* messages, DONT scroll to bottom. 
+        // We handle that in useLayoutEffect below.
+        // This effect should strictly be for "New Incoming Message" or "Initial Load"
+        
+        if (messages.length > 0) {
+             const lastMsg = messages[messages.length - 1];
+             
+             // Initial load (approx check)
+             if (messages.length <= 50 && !prevScrollHeight) { 
+                 scrollToBottom();
+                 return;
+             }
 
+             // If new message is mine, always scroll
+             if (isMe(lastMsg)) {
+                 scrollToBottom();
+             }
+             // If new message is from others, only scroll if we were already close to bottom?
+             // For now, simpler: Scroll if we didn't just load previous pages.
+             else if (!prevScrollHeight) {
+                 // Optional: check scrollTop vs scrollHeight
+                 scrollToBottom();
+             }
+        }
+    }, [messages.length, prevScrollHeight]);
+
+    // Scroll Position Maintenance for Pagination
     useEffect(() => {
-        scrollToBottom();
-    }, [messages]);
+        if (prevScrollHeight && scrollContainerRef.current) {
+            const newScrollHeight = scrollContainerRef.current.scrollHeight;
+            const diff = newScrollHeight - prevScrollHeight;
+            if (diff > 0) {
+                scrollContainerRef.current.scrollTop += diff;
+            }
+            setPrevScrollHeight(null);
+        }
+    }, [messages, prevScrollHeight]);
+
+    const handleLoadMore = async () => {
+        if (scrollContainerRef.current) {
+            setPrevScrollHeight(scrollContainerRef.current.scrollHeight);
+        }
+        await fetchNextPage();
+    };
 
     const handleSend = async (e) => {
         e.preventDefault();
@@ -93,7 +134,19 @@ export const ChatWindow = () => {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4">
+            <div 
+                ref={scrollContainerRef}
+                className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4"
+            >
+                {hasNextPage && (
+                    <button 
+                        onClick={handleLoadMore}
+                        disabled={isFetchingNextPage}
+                        className="mx-auto block text-xs font-medium text-slate-500 hover:text-cyan-600 bg-slate-100 px-3 py-1 rounded-full mb-4"
+                    >
+                        {isFetchingNextPage ? 'Loading...' : 'Load Previous Messages'}
+                    </button>
+                )}
                 {messages.map((msg, i) => {
                     const isMyMsg = isMe(msg);
                     const showTime = i === 0 || new Date(msg.created_at) - new Date(messages[i-1].created_at) > 5 * 60 * 1000;

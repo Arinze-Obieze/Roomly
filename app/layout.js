@@ -1,15 +1,15 @@
-import { Plus_Jakarta_Sans, Fraunces } from "next/font/google";
+import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthContext";
 import GlobalToaster from "@/components/ui/GlobalToaster";
 
-const plusJakartaSans = Plus_Jakarta_Sans({
-  variable: "--font-plus-jakarta-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
 });
 
-const fraunces = Fraunces({
-  variable: "--font-fraunces",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
 });
 
@@ -37,16 +37,22 @@ export const metadata = {
     ],
   },
 };
+import QueryProvider from '@/providers/QueryProvider';
+
+// ... existing imports
+
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
       <body
-        className={`${plusJakartaSans.variable} ${fraunces.variable} font-sans antialiased`}
+        className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased`}
       >
-        <AuthProvider>
-          <GlobalToaster/>
-          {children}
-        </AuthProvider>
+        <QueryProvider>
+          <AuthProvider>
+            <GlobalToaster/>
+            {children}
+          </AuthProvider>
+        </QueryProvider>
       </body>
     </html>
   );

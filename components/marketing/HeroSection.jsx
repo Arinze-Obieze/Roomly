@@ -1,127 +1,149 @@
-import React from 'react';
+'use client';
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { MdCheckCircle } from 'react-icons/md';
 
 export default function HeroSection() {
   return (
-    <section className="relative w-full min-h-screen flex items-center justify-center bg-slate-950 overflow-hidden pt-20">
-      
-      {/* 1. Dynamic Background - The "Alive" Feel */}
-      <div className="absolute inset-0 w-full h-full">
-        <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-cyan-500/20 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[10%] right-[-5%] w-[600px] h-[600px] bg-indigo-600/20 rounded-full blur-[120px]" />
-        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-      </div>
+    <section className="relative w-full pt-16 pb-20 lg:pt-24 lg:pb-32 bg-white overflow-hidden">
+        <div className="container mx-auto px-4 md:px-6">
+            <div className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20">
+                
+                {/* LEFT CONTENT */}
+                <div className="flex-1 max-w-2xl lg:max-w-none text-center lg:text-left">
+                    <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold text-navy-950 tracking-tight leading-[1.1] mb-6">
+                        Find Flatmates You&apos;ll <span className="text-terracotta-500">Actually</span> Get Along With
+                    </h1>
+                    
+                    <p className="text-lg md:text-xl text-slate-600 mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                        See your compatibility score with every roommate <span className="font-bold text-navy-900">BEFORE</span> you message them. 
+                        Match on lifestyle, not just location. Find your perfect home in Dublin.
+                    </p>
 
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 grid lg:grid-cols-2 gap-12 items-center">
-        
-        {/* Left Section */}
-        <div className="flex flex-col items-start text-left space-y-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-900/30 border border-cyan-500/30 backdrop-blur-md">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyan-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-cyan-500"></span>
-            </span>
-            <span className="text-xs font-medium text-cyan-300 tracking-wide uppercase">Now Live in Ireland</span>
-          </div>
+                    <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 mb-10">
+                        <Link 
+                            href="/signup" 
+                            className="w-full sm:w-auto px-8 py-4 bg-terracotta-500 hover:bg-terracotta-600 text-white rounded-xl font-bold text-lg transition-all shadow-xl shadow-terracotta-500/20 hover:-translate-y-1"
+                        >
+                            Find Your Perfect Room →
+                        </Link>
+                        <Link 
+                            href="/rooms" 
+                            className="text-terracotta-500 font-bold hover:text-terracotta-600 underline underline-offset-4 decoration-2"
+                        >
+                            or browse rooms without signing up
+                        </Link>
+                    </div>
 
-          <h1 className="text-5xl md:text-7xl font-bold text-white leading-[1.1] tracking-tight">
-            Don't just rent. <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-indigo-400">
-              Match perfectly.
-            </span>
-          </h1>
+                    <div className="grid grid-cols-2 md:grid-cols-2 gap-y-3 gap-x-6 text-sm font-medium text-slate-500 max-w-md mx-auto lg:mx-0 text-left">
+                        <div className="flex items-center gap-2">
+                            <MdCheckCircle className="text-emerald-500 text-lg shrink-0" />
+                            100% free to use
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <MdCheckCircle className="text-emerald-500 text-lg shrink-0" />
+                            Verified profiles only
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <MdCheckCircle className="text-emerald-500 text-lg shrink-0" />
+                            87% avg. compatibility match
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <MdCheckCircle className="text-emerald-500 text-lg shrink-0" />
+                            Secure messaging built-in
+                        </div>
+                    </div>
+                </div>
 
-          <p className="text-lg text-slate-400 max-w-lg leading-relaxed">
-            The first algorithm-driven flatmate finder in Ireland. We verify identity and compatibility before you ever say hello.
-          </p>
+                {/* RIGHT VISUAL (Mockup) */}
+                <div className="flex-1 w-full max-w-lg lg:max-w-none relative animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
+                    <div className="relative z-10 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden transform lg:rotate-2 hover:rotate-0 transition-transform duration-500">
+                        {/* Fake Listing Header */}
+                        <div className="h-48 bg-slate-200 relative mb-4">
+                            <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium bg-slate-100">
+                                [Room Image Placeholder]
+                            </div>
+                            <div className="absolute bottom-4 left-4">
+                                <span className="bg-navy-950 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">
+                                    private room
+                                </span>
+                            </div>
+                        </div>
 
-          <div className="w-full max-w-md p-1.5 rounded-2xl card flex items-center shadow-2xl transition-all duration-300">
-            <input 
-              type="email" 
-              placeholder="email@address.com" 
-              className="flex-1 bg-transparent border-none text-white placeholder-slate-500 px-4 focus:ring-0 focus:outline-none"
-            />
-            <button className="btn-primary px-6 py-3 ml-3 rounded-xl font-bold">
-              Join
-            </button>
-          </div>
-          
-          <div className="flex items-center gap-4 text-sm text-slate-500 font-medium">
-            <div className="flex -space-x-2">
-              {[
-                "https://images.unsplash.com/photo-1603415526960-f7e0328c63b1?auto=format&fit=crop&w=200&q=80",
-                "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=200&q=80",
-                "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=200&q=80"
-              ].map((src, i) => (
-                <img
-                  key={i}
-                  src={src}
-                  className="w-8 h-8 rounded-full border-2 border-slate-950 ring-2 ring-white/5 object-cover"
-                />
-              ))}
+                        <div className="p-6 pt-2">
+                            <div className="flex justify-between items-start mb-4">
+                                <div>
+                                    <h3 className="text-xl font-bold text-navy-950">Room in Dublin 2</h3>
+                                    <p className="text-slate-500 font-medium">€750/month</p>
+                                </div>
+                                <div className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-sm font-bold border border-emerald-100 flex items-center gap-1">
+                                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                                    92% Match
+                                </div>
+                            </div>
+                            
+                            <hr className="border-slate-100 mb-4" />
+                            
+                            <div className="space-y-3 mb-6">
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-500">Cleanliness</span>
+                                    <span className="font-bold text-emerald-600 flex items-center gap-1">
+                                        <MdCheckCircle /> Perfect match
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-500">Social Level</span>
+                                    <span className="font-bold text-emerald-600 flex items-center gap-1">
+                                        <MdCheckCircle /> Great match
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-500">Schedule</span>
+                                    <span className="font-bold text-emerald-600 flex items-center gap-1">
+                                        <MdCheckCircle /> Excellent match
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-slate-500">Pets</span>
+                                    <span className="font-bold text-emerald-600 flex items-center gap-1">
+                                        <MdCheckCircle /> No pets (both)
+                                    </span>
+                                </div>
+                            </div>
+
+                            <button className="w-full py-3 bg-navy-50 text-navy-900 font-bold rounded-xl hover:bg-navy-100 transition-colors">
+                                View Full Profile →
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Decorative Blob */}
+                    <div className="absolute -top-10 -right-10 w-72 h-72 bg-terracotta-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 -z-10 animate-pulse"></div>
+                    <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-teal-100 rounded-full mix-blend-multiply filter blur-3xl opacity-70 -z-10 animate-pulse delay-700"></div>
+                </div>
             </div>
-            <p>2,000+ people waiting</p>
-          </div>
         </div>
 
-        {/* Right: Floating Profiles */}
-        <div className="hidden lg:block relative h-[600px] w-full">
-          
-          {/* Main Profile Card (Front) */}
-          <div className="absolute top-10 right-10 w-80 h-96 bg-slate-900 border border-white/10 rounded-3xl p-6 shadow-2xl shadow-cyan-500/10 rotate-3 hover:rotate-0 transition-transform duration-700 ease-out z-20">
-
-            <img
-              src="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=300&q=80"
-              className="w-16 h-16 rounded-full mb-4 object-cover"
-            />
-
-            <p className="text-white font-semibold text-lg mb-1">Daniel Murphy</p>
-
-            <p className="text-slate-400 text-sm mb-6">Lives in Dublin, UX Designer</p>
-
-            <div className="flex gap-2">
-              <div className="h-8 w-20 bg-cyan-500/20 text-cyan-300 text-xs flex items-center justify-center rounded-lg">
-                Early Riser
-              </div>
-              <div className="h-8 w-24 bg-indigo-500/20 text-indigo-300 text-xs flex items-center justify-center rounded-lg">
-                Non-Smoker
-              </div>
+        {/* QUICK STATS BAR */}
+        <div className="mt-20 border-t border-slate-100 bg-slate-50/50">
+            <div className="container mx-auto px-4 py-8">
+                <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200 gap-6 text-center">
+                    <div className="px-4">
+                        <div className="text-3xl font-bold text-navy-950 mb-1">Live Now</div>
+                        <div className="text-sm font-medium text-slate-500 uppercase tracking-widest">Active Rooms in Dublin</div>
+                    </div>
+                    <div className="px-4 pt-6 md:pt-0">
+                        <div className="text-3xl font-bold text-terracotta-500 mb-1">87%</div>
+                        <div className="text-sm font-medium text-slate-500 uppercase tracking-widest">Avg. Match Score</div>
+                    </div>
+                    <div className="px-4 pt-6 md:pt-0">
+                        <div className="text-3xl font-bold text-navy-950 mb-1">Under 2h</div>
+                        <div className="text-sm font-medium text-slate-500 uppercase tracking-widest">Avg. Response Time</div>
+                    </div>
+                </div>
             </div>
-
-            <div className="absolute -right-6 top-10 bg-white text-slate-900 font-bold px-4 py-2 rounded-lg shadow-xl rotate-12">
-              98% Match
-            </div>
-          </div>
-          
-          {/* Back Card — Now a REAL profile */}
-          <div className="absolute top-20 right-28 w-80 h-96 bg-slate-800/50 border border-white/5 rounded-3xl -rotate-6 z-10 backdrop-blur-sm p-6">
-
-            <img
-              src="https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=300&q=80"
-              className="w-14 h-14 rounded-full mb-4 object-cover opacity-90"
-            />
-
-            <p className="text-white font-semibold text-lg mb-1 opacity-90">Aoife Byrne</p>
-
-            <p className="text-slate-300 text-sm mb-6 opacity-80">
-              From Cork — Software Engineer
-            </p>
-
-            <div className="flex gap-2 opacity-80">
-              <div className="h-8 w-24 bg-cyan-500/10 text-cyan-300 text-xs flex items-center justify-center rounded-lg">
-                Loves Pets
-              </div>
-              <div className="h-8 w-20 bg-indigo-500/10 text-indigo-300 text-xs flex items-center justify-center rounded-lg">
-                Quiet
-              </div>
-            </div>
-
-            <div className="absolute -right-4 top-8 bg-white/80 text-slate-900 font-bold px-3 py-1.5 rounded-lg shadow-lg rotate-6 text-sm">
-              92% Match
-            </div>
-          </div>
-
         </div>
-      </div>
     </section>
   );
 }

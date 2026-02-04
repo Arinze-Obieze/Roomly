@@ -21,7 +21,7 @@ export default function HowItWorks() {
     <section className="py-16 md:py-40 bg-navy-950 text-white overflow-hidden">
       <div className="container mx-auto px-4 md:px-6">
         
-        <div className="text-center max-w-3xl mx-auto mb-16 md:mb-32">
+        <div className="max-w-3xl mx-auto md:mx-0 text-center md:text-left mb-16 md:mb-32">
             <h2 className="text-3xl md:text-6xl font-sans font-extrabold mb-6 tracking-tight">
                 Simple. Safe. <br />
                 <span className="text-terracotta-400">Stress-free.</span>

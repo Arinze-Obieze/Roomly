@@ -45,7 +45,9 @@ export default function BuddyPage() {
       }
       // If no group, we just stay on this page to show the invite card
     } catch (error) {
-      console.error('Error fetching buddy group:', error);
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching buddy group:', error);
+      }
     } finally {
       setLoading(false);
     }
