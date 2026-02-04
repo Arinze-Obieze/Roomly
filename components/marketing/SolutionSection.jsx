@@ -53,47 +53,45 @@ export default function SolutionSection() {
                     <div className="p-8 space-y-6 bg-white">
                         <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-4">Lifestyle Breakdown</div>
                         
-                        {/* Item 1 */}
-                        <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                                <MdCleaningServices />
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="font-bold text-navy-950">Cleanliness</span>
-                                    <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">+30 pts</span>
+                        {[
+                            { 
+                              icon: MdCleaningServices, 
+                              colorClass: "bg-emerald-50 text-emerald-600",
+                              title: "Cleanliness", 
+                              badge: "+30 pts", 
+                              badgeClass: "bg-emerald-100 text-emerald-700",
+                              desc: "Excellent match. You're both very tidy." 
+                            },
+                            { 
+                              icon: MdPeople, 
+                              colorClass: "bg-emerald-50 text-emerald-600",
+                              title: "Social Level", 
+                              badge: "+18 pts", 
+                              badgeClass: "bg-emerald-100 text-emerald-700",
+                              desc: "Great match. Both enjoy quiet evenings." 
+                            },
+                            { 
+                              icon: MdVolumeUp, 
+                              colorClass: "bg-amber-50 text-amber-600",
+                              title: "Noise Tolerance", 
+                              badge: "-8 pts", 
+                              badgeClass: "bg-amber-100 text-amber-700",
+                              desc: "Slight difference. You prefer quiet, Sarah is flexible." 
+                            }
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-start gap-4">
+                                <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${item.colorClass}`}>
+                                    <item.icon />
                                 </div>
-                                <p className="text-sm text-slate-500">Excellent match. You&apos;re both very tidy.</p>
-                            </div>
-                        </div>
-
-                        {/* Item 2 */}
-                        <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-full bg-emerald-50 flex items-center justify-center text-emerald-600 shrink-0">
-                                <MdPeople />
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="font-bold text-navy-950">Social Level</span>
-                                    <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-0.5 rounded-full">+18 pts</span>
+                                <div className="flex-1">
+                                    <div className="flex justify-between items-center mb-1">
+                                        <span className="font-bold text-navy-950">{item.title}</span>
+                                        <span className={`${item.badgeClass} text-xs font-bold px-2 py-0.5 rounded-full`}>{item.badge}</span>
+                                    </div>
+                                    <p className="text-sm text-slate-500">{item.desc}</p>
                                 </div>
-                                <p className="text-sm text-slate-500">Great match. Both enjoy quiet evenings.</p>
                             </div>
-                        </div>
-
-                        {/* Item 3 */}
-                        <div className="flex items-start gap-4">
-                            <div className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 shrink-0">
-                                <MdVolumeUp />
-                            </div>
-                            <div className="flex-1">
-                                <div className="flex justify-between items-center mb-1">
-                                    <span className="font-bold text-navy-950">Noise Tolerance</span>
-                                    <span className="bg-amber-100 text-amber-700 text-xs font-bold px-2 py-0.5 rounded-full">-8 pts</span>
-                                </div>
-                                <p className="text-sm text-slate-500">Slight difference. You prefer quiet, Sarah is flexible.</p>
-                            </div>
-                        </div>
+                        ))}
 
                          <div className="mt-8 pt-6 border-t border-slate-100">
                             <div className="flex gap-4">
@@ -148,26 +146,18 @@ export default function SolutionSection() {
                     </p>
                     
                     <div className="space-y-3">
-                        <div className="flex items-center gap-3 text-sm font-bold">
-                            <span className="w-3 h-3 rounded-full bg-emerald-500"></span>
-                            <span className="w-16 text-emerald-600">90%+</span>
-                            <span className="text-slate-700">= Excellent match</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm font-bold">
-                            <span className="w-3 h-3 rounded-full bg-emerald-400"></span>
-                            <span className="w-16 text-emerald-500">80-89%</span>
-                            <span className="text-slate-700">= Great match</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm font-bold">
-                            <span className="w-3 h-3 rounded-full bg-yellow-400"></span>
-                            <span className="w-16 text-yellow-600">70-79%</span>
-                            <span className="text-slate-700">= Good match</span>
-                        </div>
-                        <div className="flex items-center gap-3 text-sm font-bold">
-                            <span className="w-3 h-3 rounded-full bg-red-400"></span>
-                            <span className="w-16 text-red-500">&lt; 70%</span>
-                            <span className="text-slate-700">= Proceed with caution</span>
-                        </div>
+                        {[
+                            { color: "bg-emerald-500", textClass: "text-emerald-600", label: "90%+", desc: "= Excellent match" },
+                            { color: "bg-emerald-400", textClass: "text-emerald-500", label: "80-89%", desc: "= Great match" },
+                            { color: "bg-yellow-400", textClass: "text-yellow-600", label: "70-79%", desc: "= Good match" },
+                            { color: "bg-red-400", textClass: "text-red-500", label: "< 70%", desc: "= Proceed with caution" },
+                        ].map((item, i) => (
+                            <div key={i} className="flex items-center gap-3 text-sm font-bold">
+                                <span className={`w-3 h-3 rounded-full ${item.color}`}></span>
+                                <span className={`w-16 ${item.textClass}`}>{item.label}</span>
+                                <span className="text-slate-700">{item.desc}</span>
+                            </div>
+                        ))}
                     </div>
                 </div>
 

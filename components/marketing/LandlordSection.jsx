@@ -87,14 +87,15 @@ export default function LandlordSection() {
                          <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
                             <div className="text-xs font-bold text-slate-400 uppercase mb-3">Incoming Messages Preview</div>
                             <div className="space-y-2">
-                                <div className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-slate-100">
-                                    <span className="font-bold text-navy-900 text-sm">John D.</span>
-                                    <span className="bg-emerald-100 text-emerald-700 text-xs font-bold px-2 py-1 rounded-full">91% Match 🎯</span>
-                                </div>
-                                <div className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-slate-100">
-                                    <span className="font-bold text-navy-900 text-sm">Sarah M.</span>
-                                    <span className="bg-emerald-50 text-emerald-600 text-xs font-bold px-2 py-1 rounded-full">85% Match ✅</span>
-                                </div>
+                                {[
+                                    { name: "John D.", match: "91% Match 🎯", badgeClass: "bg-emerald-100 text-emerald-700" },
+                                    { name: "Sarah M.", match: "85% Match ✅", badgeClass: "bg-emerald-50 text-emerald-600" }
+                                ].map((msg, i) => (
+                                    <div key={i} className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-slate-100">
+                                        <span className="font-bold text-navy-900 text-sm">{msg.name}</span>
+                                        <span className={`${msg.badgeClass} text-xs font-bold px-2 py-1 rounded-full`}>{msg.match}</span>
+                                    </div>
+                                ))}
                             </div>
                          </div>
                     </div>

@@ -1,8 +1,25 @@
-'use client';
-
+"use client"
+import { useState, useRef, useEffect } from 'react';
 import { MdWarning, MdEmail, MdQuestionMark } from 'react-icons/md';
+import CarouselProgress from './CarouselProgress';
 
 export default function ProblemSection() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollRef.current) {
+        const itemWidth = scrollRef.current.children[0].offsetWidth;
+        const index = Math.round(scrollRef.current.scrollLeft / itemWidth);
+        setActiveSlide(index);
+      }
+    };
+    const el = scrollRef.current;
+    if (el) el.addEventListener('scroll', handleScroll);
+    return () => el && el.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const problems = [
     {
       icon: MdWarning,
@@ -43,9 +60,9 @@ export default function ProblemSection() {
         </div>
 
         {/* 3-COLUMN PROBLEM LAYOUT */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div ref={scrollRef} className="flex md:grid md:grid-cols-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 md:gap-8 pb-8 md:pb-0 scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
           {problems.map((item, i) => (
-            <div key={i} className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group">
+            <div key={i} className="min-w-[85vw] md:min-w-0 snap-center bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl transition-all hover:-translate-y-1 group">
                 <div className="w-14 h-14 bg-red-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-red-100 transition-colors">
                     <item.icon className="text-red-500 text-3xl" />
                 </div>
@@ -68,6 +85,8 @@ export default function ProblemSection() {
             </div>
           ))}
         </div>
+
+        <CarouselProgress total={problems.length} current={activeSlide} />
 
         {/* TRANSITION TEXT */}
         <div className="text-center mt-16 animate-in slide-in-from-bottom-4 duration-700 delay-300">

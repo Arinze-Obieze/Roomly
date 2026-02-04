@@ -1,8 +1,26 @@
 'use client';
 
 import { MdStar } from 'react-icons/md';
+import { useState, useRef, useEffect } from 'react';
+import CarouselProgress from './CarouselProgress';
 
 export default function TestimonialsSection() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollRef.current) {
+        const itemWidth = scrollRef.current.children[0].offsetWidth;
+        const index = Math.round(scrollRef.current.scrollLeft / itemWidth);
+        setActiveSlide(index);
+      }
+    };
+    const el = scrollRef.current;
+    if (el) el.addEventListener('scroll', handleScroll);
+    return () => el && el.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const testimonials = [
     {
       quote: "I found my perfect flatmate in just 3 days. Our 89% match score was spot on—we both love quiet evenings and early mornings. Best rental experience I've ever had.",
@@ -31,9 +49,9 @@ export default function TestimonialsSection() {
             </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div ref={scrollRef} className="flex md:grid md:grid-cols-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 md:gap-8 pb-8 md:pb-0 scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
             {testimonials.map((t, i) => (
-                <div key={i} className="bg-slate-50 p-8 rounded-3xl border border-slate-100 flex flex-col h-full hover:shadow-lg transition-shadow">
+                <div key={i} className="min-w-[85vw] md:min-w-0 snap-center bg-slate-50 p-8 rounded-3xl border border-slate-100 flex flex-col h-full hover:shadow-lg transition-shadow">
                     <div className="flex gap-1 text-yellow-400 text-xl mb-6">
                         {[...Array(5)].map((_, j) => (
                             <MdStar key={j} />
@@ -51,6 +69,8 @@ export default function TestimonialsSection() {
                 </div>
             ))}
         </div>
+        
+        <CarouselProgress total={testimonials.length} current={activeSlide} />
 
       </div>
     </section>

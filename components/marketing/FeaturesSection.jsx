@@ -1,8 +1,26 @@
 'use client';
 
 import { MdVerified, MdChat, MdLock, MdPhoneAndroid, MdContentPasteSearch, MdFactCheck } from 'react-icons/md';
+import { useState, useRef, useEffect } from 'react';
+import CarouselProgress from './CarouselProgress';
 
 export default function FeaturesSection() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollRef.current) {
+        const itemWidth = scrollRef.current.children[0].offsetWidth;
+        const index = Math.round(scrollRef.current.scrollLeft / itemWidth);
+        setActiveSlide(index);
+      }
+    };
+    const el = scrollRef.current;
+    if (el) el.addEventListener('scroll', handleScroll);
+    return () => el && el.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const features = [
     {
       icon: MdContentPasteSearch,
@@ -49,9 +67,9 @@ export default function FeaturesSection() {
             </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 log:gap-12">
+        <div ref={scrollRef} className="flex md:grid md:grid-cols-2 lg:grid-cols-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 md:gap-8 lg:gap-12 pb-8 md:pb-0 scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
             {features.map((feat, i) => (
-                <div key={i} className="text-center p-8 rounded-3xl hover:bg-slate-50 transition-colors group border border-transparent hover:border-slate-100">
+                <div key={i} className="min-w-[70vw] md:min-w-0 snap-center text-center p-8 rounded-3xl hover:bg-slate-50 transition-colors group border border-transparent hover:border-slate-100">
                     <div className="w-16 h-16 mx-auto bg-terracotta-50 text-terracotta-500 rounded-2xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform duration-500">
                         <feat.icon />
                     </div>
@@ -60,6 +78,8 @@ export default function FeaturesSection() {
                 </div>
             ))}
         </div>
+
+        <CarouselProgress total={features.length} current={activeSlide} className="mt-8" />
 
       </div>
     </section>

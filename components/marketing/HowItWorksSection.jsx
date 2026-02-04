@@ -2,8 +2,26 @@
 
 import { MdPersonAdd, MdGridView, MdChat } from 'react-icons/md';
 import Link from 'next/link';
+import { useState, useRef, useEffect } from 'react';
+import CarouselProgress from './CarouselProgress';
 
 export default function HowItWorksSection() {
+  const [activeSlide, setActiveSlide] = useState(0);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (scrollRef.current) {
+        const itemWidth = scrollRef.current.children[0].offsetWidth;
+        const index = Math.round(scrollRef.current.scrollLeft / itemWidth);
+        setActiveSlide(index);
+      }
+    };
+    const el = scrollRef.current;
+    if (el) el.addEventListener('scroll', handleScroll);
+    return () => el && el.removeEventListener('scroll', handleScroll);
+  }, []);
+
   const steps = [
     {
       num: "01",
@@ -49,9 +67,9 @@ export default function HowItWorksSection() {
           <p className="text-lg text-slate-600">From signup to move-in in 3 simple steps</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div ref={scrollRef} className="flex md:grid md:grid-cols-3 overflow-x-auto md:overflow-visible snap-x snap-mandatory gap-4 md:gap-8 pb-8 md:pb-0 scrollbar-hide -mx-6 px-6 md:mx-0 md:px-0">
             {steps.map((step, i) => (
-                <div key={i} className="relative bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
+                <div key={i} className="min-w-[85vw] md:min-w-0 snap-center relative bg-white p-8 rounded-3xl border border-slate-200 shadow-sm hover:shadow-lg transition-shadow">
                     <div className="absolute -top-4 -right-4 text-9xl font-extrabold text-slate-100/50 select-none z-0">
                         {step.num}
                     </div>
@@ -76,6 +94,8 @@ export default function HowItWorksSection() {
                 </div>
             ))}
         </div>
+
+        <CarouselProgress total={steps.length} current={activeSlide} />
 
         <div className="text-center mt-16">
             <Link 
