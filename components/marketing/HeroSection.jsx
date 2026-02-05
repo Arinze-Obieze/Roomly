@@ -126,20 +126,20 @@ export default function HeroSection() {
         </div>
 
         {/* QUICK STATS BAR */}
-        <div className="mt-20 border-t border-slate-100 bg-slate-50/50">
-            <div className="w-full max-w-7xl mx-auto px-6 md:px-12 py-8">
-                <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-slate-200 gap-6 text-center">
-                    <div className="px-4">
-                        <div className="text-3xl font-bold text-navy-950 mb-1">Live Now</div>
-                        <div className="text-sm font-medium text-slate-500 uppercase tracking-widest">Active Rooms in Dublin</div>
+        <div className="mt-12 md:mt-20 border-t border-slate-100 bg-slate-50/50">
+            <div className="w-full max-w-7xl mx-auto px-2 md:px-12 py-6 md:py-8">
+                <div className="grid grid-cols-3 divide-x divide-slate-200 text-center">
+                    <div className="px-1 md:px-4">
+                        <div className="text-lg md:text-3xl font-bold text-navy-950 mb-0.5 md:mb-1">Live Now</div>
+                        <div className="text-[9px] md:text-sm font-medium text-slate-500 uppercase tracking-wide md:tracking-widest leading-tight">Active Rooms in Dublin</div>
                     </div>
-                    <div className="px-4 pt-6 md:pt-0">
-                        <div className="text-3xl font-bold text-terracotta-500 mb-1">87%</div>
-                        <div className="text-sm font-medium text-slate-500 uppercase tracking-widest">Avg. Match Score</div>
+                    <div className="px-1 md:px-4">
+                        <div className="text-lg md:text-3xl font-bold text-terracotta-500 mb-0.5 md:mb-1">87%</div>
+                        <div className="text-[9px] md:text-sm font-medium text-slate-500 uppercase tracking-wide md:tracking-widest leading-tight">Avg. Match Score</div>
                     </div>
-                    <div className="px-4 pt-6 md:pt-0">
-                        <div className="text-3xl font-bold text-navy-950 mb-1">Under 2h</div>
-                        <div className="text-sm font-medium text-slate-500 uppercase tracking-widest">Avg. Response Time</div>
+                    <div className="px-1 md:px-4">
+                        <div className="text-lg md:text-3xl font-bold text-navy-950 mb-0.5 md:mb-1">Under 2h</div>
+                        <div className="text-[9px] md:text-sm font-medium text-slate-500 uppercase tracking-wide md:tracking-widest leading-tight">Avg. Response Time</div>
                     </div>
                 </div>
             </div>

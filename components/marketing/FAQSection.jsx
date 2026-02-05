@@ -77,8 +77,8 @@ export default function FAQSection() {
 
         <div className="text-center mt-12 bg-blue-50 max-w-md mx-auto p-6 rounded-2xl border border-blue-100">
             <p className="font-bold text-navy-950 mb-1">Still have questions?</p>
-            <a href="mailto:hello@roomly.ie" className="inline-flex items-center gap-2 text-terracotta-500 font-bold hover:underline">
-                <MdEmail /> hello@roomly.ie
+            <a href="mailto:hello@roomfind.ieie" className="inline-flex items-center gap-2 text-terracotta-500 font-bold hover:underline">
+                <MdEmail /> hello@roomfind.ieie
             </a>
             <p className="text-xs text-slate-500 mt-2">Response time: Within 24 hours</p>
         </div>

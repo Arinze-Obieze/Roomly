@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { usePropertiesWithFilters } from "@/hooks/usePropertiesWithFilters";
 
 // New Components
-import PublicHeader from "@/components/public/PublicHeader";
+import Navbar from "@/components/marketing/Navbar";
 // import SearchHero from "@/components/public/SearchHero"; // Removed as FilterBar now handles search
 import FilterBar from "@/components/public/FilterBar";
 
@@ -69,7 +69,7 @@ export default function RoomsPage() {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
-      <PublicHeader />
+      <Navbar />
       
       {/* Search Hero removed/replaced by a spacer or smaller header if needed? 
           The previous SearchHero was big and beautiful. 
@@ -156,7 +156,7 @@ export default function RoomsPage() {
       {/* Footer Placeholder for completeness */}
       <footer className="bg-white border-t border-slate-200 py-12 mt-12">
          <div className="container mx-auto px-4 text-center text-slate-500 text-sm">
-            <p>&copy; 2024 Roomly. Made for Ireland.</p>
+            <p>&copy; 2024 roomfind.ie Made for Ireland.</p>
          </div>
       </footer>
     </div>

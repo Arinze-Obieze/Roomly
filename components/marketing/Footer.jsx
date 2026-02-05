@@ -22,7 +22,7 @@ export default function Footer() {
       { label: "GDPR Compliance", href: "/gdpr" },
     ],
     support: {
-        email: "hello@roomly.ie",
+        email: "hello@roomfind.ie",
         response: "Within 24 hours",
         hours: "Mon-Fri, 9am-6pm GMT"
     }
