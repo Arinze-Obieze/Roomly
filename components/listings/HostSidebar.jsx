@@ -28,15 +28,15 @@ export default function HostSidebar({
                 alt={host.name}
               />
             ) : (
-              <div className="w-16 h-16 rounded-full bg-cyan-100 text-cyan-700 flex items-center justify-center text-xl font-bold">
+              <div className="w-16 h-16 rounded-full bg-terracotta-100 text-terracotta-700 flex items-center justify-center text-xl font-bold">
                 {host.name?.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
               </div>
             )}
             
             <div>
-              <div className="font-bold text-slate-900 flex items-center gap-2">
+              <div className="font-bold text-navy-950 flex items-center gap-2">
                 {isOwner ? 'You' : host.name}
-                {host.verified && !isPrivate && <MdVerified className="text-cyan-500" title="Verified Host" />}
+                {host.verified && !isPrivate && <MdVerified className="text-terracotta-500" title="Verified Host" />}
               </div>
               <div className="text-sm text-slate-500">Joined 2024</div>
             </div>
@@ -53,7 +53,7 @@ export default function HostSidebar({
             <button 
               onClick={onContactHost}
               disabled={contacting}
-              className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-navy-950 text-white py-3 rounded-xl font-bold hover:bg-navy-900 transition-colors shadow-lg shadow-navy-950/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {contacting ? 'Loading...' : (contactButtonText || 'Contact Host')}
             </button>

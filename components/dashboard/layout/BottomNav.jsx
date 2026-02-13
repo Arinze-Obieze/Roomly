@@ -44,7 +44,7 @@ export const BottomNav = () => {
           <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-full shadow-lg border-4 border-white transition-all active:scale-95 ${
             isActive('/my-properties') 
               ? 'bg-slate-900 text-white' 
-              : 'bg-cyan-600 text-white hover:bg-cyan-700'
+              : 'bg-terracotta-500 text-white hover:bg-terracotta-600'
           }`}>
             <FaRegEdit size={20} />
           </div>

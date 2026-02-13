@@ -62,20 +62,20 @@ export default function HomeDashboard() {
   }, [hasMore, loading, loadNextPage]);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-navy-50">
       <div className="flex-1 min-w-0">
         <main className="p-4 lg:p-8 w-full max-w-[1920px] mx-auto">
           
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 xl:gap-16 2xl:gap-24 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8 items-start relative">
             
             {/* Center Feed (and Mobile Header) */}
-            <div className="lg:col-span-3 min-w-0">
-                <div className="sticky top-0 z-30 bg-slate-50 pt-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0">
+            <div className="lg:col-span-8 xl:col-span-9 min-w-0">
+                <div className="sticky top-0 z-30 bg-navy-50/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 transition-all">
                     <FilterPills onOpenFilters={() => setIsFilterModalOpen(true)} />
-                    <div className="h-px bg-slate-200 mt-2 lg:hidden" />
+                    <div className="h-px bg-navy-200 mt-2 lg:hidden" />
                 </div>
 
-                <div className="mb-4">
+                <div className="mb-6 hidden lg:block">
                     <DashboardFilters />
                 </div>
 
@@ -97,12 +97,14 @@ export default function HomeDashboard() {
                 />
 
                 {hasMore && (
-                    <div ref={loadMoreRef} className="h-20" />
+                    <div ref={loadMoreRef} className="h-24 flex items-center justify-center">
+                        <div className="w-8 h-8 border-4 border-terracotta-100 border-t-terracotta-500 rounded-full animate-spin"></div>
+                    </div>
                 )}
             </div>
 
-            {/* Right Sidebar (Desktop Only) */}
-            <div className="hidden lg:block lg:col-span-1 space-y-6 sticky top-24">
+            {/* Right Sidebar (Desktop Only) - Sticky & Independent */}
+            <div className="hidden lg:block lg:col-span-4 xl:col-span-3 space-y-6 sticky top-8 h-[calc(100vh-4rem)] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-navy-200">
                 <ProfileStrengthWidget />
                 
                 {/* Compact version of Buddy Invite for sidebar */}
@@ -110,7 +112,15 @@ export default function HomeDashboard() {
                      <BuddyWidget compact={true} />
                 </div>
 
-                {/* Future: Community Events etc */}
+                {/* Placeholder for future "Similar Listings" or "Community Events" */}
+                <div className="bg-gradient-to-br from-navy-800 to-navy-900 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden group cursor-pointer hover:shadow-xl transition-all border border-navy-700">
+                     <div className="relative z-10">
+                        <h3 className="font-bold text-lg mb-1 text-white">Find your tribe?</h3>
+                        <p className="text-navy-200 text-sm mb-4">Join 12,000+ others in the community chat.</p>
+                        <button className="bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-2 rounded-lg text-sm font-bold transition-colors text-white border border-white/10">Join Community</button>
+                     </div>
+                     <div className="absolute top-0 right-0 w-32 h-32 bg-terracotta-500/20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 group-hover:scale-125 transition-transform duration-700"></div>
+                </div>
             </div>
 
           </div>

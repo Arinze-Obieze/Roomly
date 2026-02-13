@@ -85,16 +85,16 @@ export default function PremiumSlider({
       >
         {/* Fill */}
         <div 
-          className="absolute top-0 left-0 h-full bg-cyan-600 rounded-full transition-[width] duration-150 ease-out"
+          className="absolute top-0 left-0 h-full bg-terracotta-500 rounded-full transition-[width] duration-150 ease-out"
           style={{ width: `${percentage}%` }}
         />
 
         {/* Thumb */}
         <div 
-          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 bg-white border-2 border-cyan-600 rounded-full shadow-md transform transition-transform duration-150 ease-out flex items-center justify-center hover:scale-110 active:scale-95 z-10 ${isDragging ? 'scale-110' : ''}`}
+          className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 bg-white border-2 border-terracotta-500 rounded-full shadow-md transform transition-transform duration-150 ease-out flex items-center justify-center hover:scale-110 active:scale-95 z-10 ${isDragging ? 'scale-110' : ''}`}
           style={{ left: `${percentage}%` }}
         >
-          <div className="w-1.5 h-1.5 bg-cyan-600 rounded-full" />
+          <div className="w-1.5 h-1.5 bg-terracotta-500 rounded-full" />
         </div>
 
         {/* Step Markers */}

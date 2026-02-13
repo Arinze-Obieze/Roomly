@@ -86,9 +86,8 @@ const BRAND_CONFIG = {
 
 // ========== EXTRACTED COMPONENTS ==========
 const Logo = () => (
-  <div className="flex items-center gap-3">
-    <div className={`${BRAND_CONFIG.logo.size} bg-linear-to-tr ${BRAND_CONFIG.logo.gradient} rounded-lg`} />
-    <h1 className="text-xl font-bold">{BRAND_CONFIG.name}</h1>
+  <div className="flex items-center gap-2 group">
+    <span className="font-sans font-extrabold text-2xl text-navy-950 tracking-tighter">Roomly<span className="text-terracotta-500">.</span></span>
   </div>
 );
 
@@ -121,7 +120,7 @@ const UserAvatar = ({ user, size = "w-8 h-8", showName = true }) => {
     .toUpperCase() || 'U';
     
   return (
-    <div className={`${size} rounded-full bg-cyan-100 text-cyan-700 border border-slate-200 flex items-center justify-center text-xs font-bold`}>
+    <div className={`${size} rounded-full bg-navy-50 text-navy-700 border border-slate-200 flex items-center justify-center text-xs font-bold`}>
       {initials}
     </div>
   );
@@ -154,7 +153,7 @@ const SearchBar = ({ placeholder = "Search locations..." }) => (
     <input 
       type="text" 
       placeholder={placeholder} 
-      className="w-full pl-11 pr-24 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all outline-none"
+      className="w-full pl-11 pr-24 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 transition-all outline-none"
     />
   </div>
 );
@@ -167,7 +166,7 @@ const MobileSearchBar = ({ placeholder = "Search locations..." }) => (
     <input 
       type="text" 
       placeholder={placeholder} 
-      className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition-all outline-none text-sm"
+      className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 transition-all outline-none text-sm"
     />
   </div>
 );
@@ -182,7 +181,7 @@ const AuthButtons = () => (
     </Link>
     <Link 
       href="/signup" 
-      className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-cyan-500/20 active:scale-95"
+      className="bg-terracotta-500 hover:bg-terracotta-600 text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-terracotta-500/20 active:scale-95"
     >
       Sign Up
     </Link>
@@ -192,7 +191,7 @@ const AuthButtons = () => (
 const ListPropertyButton = ({ onClick }) => (
   <button 
     onClick={onClick}
-    className="bg-linear-to-r from-cyan-500 to-indigo-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:shadow-lg hover:shadow-cyan-200 transition-all active:scale-[0.98]"
+    className="bg-terracotta-500 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:bg-terracotta-600 shadow-lg shadow-terracotta-500/20 transition-all active:scale-[0.98]"
   >
     <MdAddCircleOutline size={20} />
     List Property
@@ -361,7 +360,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
             ) : (
               <div className="flex items-center gap-3">
                 <Link href="/login" className="text-sm font-semibold text-slate-600">Log In</Link>
-                <Link href="/signup" className="text-sm font-bold text-cyan-600">Sign Up</Link>
+                <Link href="/signup" className="text-sm font-bold text-terracotta-500">Sign Up</Link>
               </div>
             )}
           </div>

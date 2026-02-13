@@ -5,8 +5,8 @@ export default function BuddyInviteCard({ onCreateGroup, onJoinGroup, compact = 
   return (
     <div className={`bg-white rounded-3xl border border-slate-100 shadow-sm ${compact ? 'p-5 mb-0' : 'p-6 mb-8'}`}>
       <div className={`text-center ${compact ? 'mb-4' : 'mb-6'}`}>
-        <div className={`bg-cyan-50 rounded-full flex items-center justify-center mx-auto ${compact ? 'w-12 h-12 mb-3' : 'w-16 h-16 mb-4'} border border-cyan-100`}>
-          <MdGroupAdd className={`text-cyan-600 ${compact ? 'text-xl' : 'text-3xl'}`} />
+        <div className={`bg-terracotta-50 rounded-full flex items-center justify-center mx-auto ${compact ? 'w-12 h-12 mb-3' : 'w-16 h-16 mb-4'} border border-terracotta-100`}>
+          <MdGroupAdd className={`text-terracotta-500 ${compact ? 'text-xl' : 'text-3xl'}`} />
         </div>
         <h2 className={`${compact ? 'text-lg' : 'text-xl'} font-bold text-slate-900 mb-1`}>Buddy-Up With Friends</h2>
         <p className="text-slate-500 text-sm">Team up with 1-3 friends to search for rooms together</p>

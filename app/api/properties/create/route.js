@@ -1,4 +1,3 @@
-// app/api/properties/route.js (with debug logging)
 import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
@@ -9,127 +8,114 @@ export async function POST(req) {
   try {
     console.log('[DEBUG] Starting property creation request');
     
-    // Get authenticated user using SSR client
     const supabase = await createClient();
-    console.log('[DEBUG] Supabase client created');
-    
-    // Check session first
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('[DEBUG] Session check:', { 
-      hasSession: !!session, 
-      sessionError: sessionError?.message 
-    });
     
     // Get user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('[DEBUG] User check:', { 
-      hasUser: !!user, 
-      userId: user?.id,
-      userEmail: user?.email,
-      authError: authError?.message 
-    });
     
     if (authError || !user) {
       console.error('[DEBUG] Authentication failed:', authError);
       return NextResponse.json({ 
-        error: 'Authentication required: You must be logged in to publish a property.',
-        debug: {
-          hasSession: !!session,
-          authError: authError?.message
-        }
+        error: 'Authentication required',
       }, { status: 401 });
     }
 
-    console.log('[DEBUG] User authenticated successfully:', user.id);
-
     const form = await req.formData();
     
-    // Extract fields
+    // Required fields check
     const requiredFields = [
-      'title', 'description', 'property_type', 'price_per_month',
-      'state', 'city', 'street', 'bedrooms', 'bathrooms', 'available_from',
+      'title', 'description', 
+      'property_category', // Maps to property_type
+      'price_per_month',
+      'state', 'city', 'street'
     ];
     
     for (const field of requiredFields) {
       if (!form.get(field)) {
         return NextResponse.json({ 
-          error: `Missing required field: ${field}` 
+          error: `Missing field: ${field}` 
         }, { status: 400 });
       }
     }
 
-    // Parse amenities (optional)
-    let amenities = [];
-    try {
-      amenities = JSON.parse(form.get('amenities') || '[]');
-    } catch {
-      amenities = [];
-    }
+    // Helper functions
+    const getJson = (key, def = []) => {
+        try {
+            const val = form.get(key);
+            return val ? JSON.parse(val) : def;
+        } catch (e) {
+            return def; 
+        }
+    };
 
-    // Handle files
-    const photos = form.getAll('photos[]');
-    const videos = form.getAll('videos[]');
+    const getNumber = (key) => {
+        const val = form.get(key);
+        return val ? Number(val) : null;
+    };
     
-    console.log('[DEBUG] Files received:', { 
-      photoCount: photos.length, 
-      videoCount: videos.length 
-    });
-    
-    if (!photos || photos.length < 1) {
-      return NextResponse.json({ 
-        error: 'At least one photo is required' 
-      }, { status: 400 });
-    }
-    if (photos.length > 10) {
-      return NextResponse.json({ 
-        error: 'Maximum 10 photos allowed' 
-      }, { status: 400 });
-    }
-    if (videos.length > 5) {
-      return NextResponse.json({ 
-        error: 'Maximum 5 videos allowed' 
-      }, { status: 400 });
-    }
+    const getBool = (key) => {
+        const val = form.get(key);
+        return val === 'true';
+    };
 
-    // Validate file types
-    for (const file of photos) {
-      if (!file.type.startsWith('image/')) {
-        return NextResponse.json({ 
-          error: 'All photos must be images' 
-        }, { status: 400 });
-      }
-    }
-    for (const file of videos) {
-      if (!file.type.startsWith('video/')) {
-        return NextResponse.json({ 
-          error: 'All videos must be videos' 
-        }, { status: 400 });
-      }
-    }
-
-    console.log('[DEBUG] Inserting property for user:', user.id);
-    
-    // 1. Insert property row
+    // Prepare DB object
     const propertyData = {
+      // Basics
       title: form.get('title'),
       description: form.get('description'),
-      property_type: form.get('property_type'),
-      price_per_month: Number(form.get('price_per_month')),
+      rental_type: form.get('rental_type') || 'monthly',
+      
+      // Property Details
+      property_type: form.get('property_category'),
+      offering_type: form.get('offering_type') || 'private_room',
+      bedrooms: getNumber('bedrooms') || 0,
+      bathrooms: getNumber('bathrooms') || 0,
+      square_meters: getNumber('floor_area'), // Mapping floor_area -> square_meters
+      year_built: getNumber('year_built'),
+      ber_rating: form.get('ber_rating'),
+      
+      // Location
       state: form.get('state'),
       city: form.get('city'),
       street: form.get('street'),
-      bedrooms: Number(form.get('bedrooms')),
-      bathrooms: Number(form.get('bathrooms')),
-      square_meters: form.get('square_meters') ? Number(form.get('square_meters')) : null,
-      available_from: form.get('available_from'),
-      amenities,
+      latitude: getNumber('latitude'),
+      longitude: getNumber('longitude'),
+      transport_options: getJson('transport_options', []),
+      is_gaeltacht: getBool('is_gaeltacht'),
+      
+      // Financials
+      price_per_month: getNumber('price_per_month'),
+      deposit: getNumber('deposit'),
+      bills_option: form.get('bills_option') || 'some',
+      custom_bills: getJson('custom_bills', []),
+      couples_allowed: getBool('couples_allowed'),
+      payment_methods: getJson('payment_methods', []),
+      
+      // Amenities
+      amenities: getJson('amenities', []),
+      
+      // Preferences
+      occupation_preference: form.get('occupation_preference') || 'any',
+      gender_preference: form.get('gender_preference') || 'any',
+      age_min: getNumber('age_min') || 18,
+      age_max: getNumber('age_max') || 99,
+      lifestyle_priorities: getJson('lifestyle_priorities', {}),
+      partner_description: form.get('partner_description'),
+      
+      // Availability
+      available_from: form.get('available_from') || null,
+      is_immediate: getBool('is_immediate'),
+      min_stay_months: getNumber('min_stay_months') || 6,
+      accept_viewings: getBool('accept_viewings'),
+      
+      // System
       listed_by_user_id: user.id,
       is_active: true,
       status: 'available',
     };
     
-    console.log('[DEBUG] Property data:', propertyData);
-    
+    console.log('[DEBUG] Inserting property:', propertyData);
+
     const { data: property, error: propErr } = await supabase
       .from('properties')
       .insert(propertyData)
@@ -137,139 +123,68 @@ export async function POST(req) {
       .single();
       
     if (propErr) {
-      console.error('[DEBUG] Property insert error:', {
-        message: propErr.message,
-        code: propErr.code,
-        details: propErr.details,
-        hint: propErr.hint
-      });
-      
-      // Detect RLS error
-      if (propErr.message && propErr.message.toLowerCase().includes('row-level security')) {
-        return NextResponse.json({ 
-          error: 'Permission denied: Row-level security policy violation.',
-          debug: {
-            error: propErr.message,
-            hint: propErr.hint,
-            userId: user.id
-          }
-        }, { status: 403 });
-      }
-      
+      console.error('[DEBUG] Insert error:', propErr);
       return NextResponse.json({ 
-        error: propErr.message || 'Failed to insert property',
-        debug: {
-          code: propErr.code,
-          details: propErr.details
-        }
+        error: propErr.message 
       }, { status: 500 });
     }
 
-    console.log('[DEBUG] Property created successfully:', property.id);
-
-    // 2. Upload media to storage and insert property_media
+    // Media Upload
+    // Handle 'new_photos[]', 'new_videos[]' (from frontend) and 'photos[]', 'videos[]' (legacy/API)
+    const files = [
+        ...form.getAll('new_photos[]').map(f => ({ file: f, type: 'image' })),
+        ...form.getAll('photos[]').map(f => ({ file: f, type: 'image' })),
+        ...form.getAll('new_videos[]').map(f => ({ file: f, type: 'video' })),
+        ...form.getAll('videos[]').map(f => ({ file: f, type: 'video' })),
+    ];
+    
     const mediaRecords = [];
     
-    // Parallel upload for photos
-    const photoUploadPromises = photos.map(async (file, i) => {
-      const ext = file.name.split('.').pop();
-      const path = `properties/${property.id}/photo_${i + 1}.${ext}`;
-      
-      console.log('[DEBUG] Uploading photo:', path);
-      
-      const { data: upload, error: uploadErr } = await supabase.storage
-        .from('property-media')
-        .upload(path, file, { contentType: file.type });
-        
-      if (uploadErr) {
-        console.error('[DEBUG] Photo upload error:', uploadErr);
-        throw uploadErr;
-      }
+    // Sequential upload to ensure order is preserved if needed, or mapped
+    // But parallel is faster. We need to assign display_order.
+    
+    let photoCount = 0;
+    let videoCount = 0;
 
-      const { data: { publicUrl } } = supabase.storage
-        .from('property-media')
-        .getPublicUrl(path);
+    const uploadPromises = files.map(async ({ file, type }, index) => {
+         if (!file || typeof file === 'string') return null; // Skip non-files
 
-      return {
-        property_id: property.id,
-        url: publicUrl,
-        media_type: 'image',
-        is_primary: i === 0,
-        display_order: i + 1,
-      };
+         const ext = file.name.split('.').pop();
+         const path = `properties/${property.id}/${type}_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
+         
+         const { error: uploadErr } = await supabase.storage
+            .from('property-media')
+            .upload(path, file, { contentType: file.type });
+            
+         if (uploadErr) {
+             console.error('Upload Error:', uploadErr);
+             return null;
+         }
+         
+         const { data: { publicUrl } } = supabase.storage
+            .from('property-media')
+            .getPublicUrl(path);
+
+         const isPhoto = type === 'image';
+         if (isPhoto) photoCount++;
+         else videoCount++;
+
+         return {
+            property_id: property.id,
+            url: publicUrl,
+            media_type: type,
+            is_primary: isPhoto && photoCount === 1,
+            display_order: isPhoto ? photoCount : 100 + videoCount,
+         };
     });
 
-    // Parallel upload for videos
-    const videoUploadPromises = videos.map(async (file, i) => {
-      const ext = file.name.split('.').pop();
-      const path = `properties/${property.id}/video_${i + 1}.${ext}`;
-      
-      console.log('[DEBUG] Uploading video:', path);
-      
-      const { data: upload, error: uploadErr } = await supabase.storage
-        .from('property-media')
-        .upload(path, file, { contentType: file.type });
-        
-      if (uploadErr) {
-        console.error('[DEBUG] Video upload error:', uploadErr);
-        throw uploadErr;
-      }
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('property-media')
-        .getPublicUrl(path);
-
-      return {
-        property_id: property.id,
-        url: publicUrl, // Note: Logic below used upload.path previously but photos used publicUrl. Assuming consistency? 
-               // Actually the original code pushed `upload.path` to `mediaRecords` for video loop, 
-               // but for photos loop it pushed `publicUrl`. 
-               // Wait, let's check original code carefully.
-               // Photos loop: insert `publicUrl` (line 197), push `publicUrl` (line 207).
-               // Videos loop: insert `upload.path` (line 230), push `upload.path` (line 239).
-               // This inconsistency is suspicious. Upload.path is usually internal path. 
-               // UI likely needs publicUrl.
-               // I will standardize on publicUrl if possible, or preserve exact behavior.
-               // Given property_media table usually stores publicUrl for easy access, 
-               // or relative path if using a storage helper. 
-               // But `ListingCard` uses `getPublicUrl` on the stored URL?
-               // Let's check ListingCard.
-               // ListingCard: `supabase.storage.from('property-media').getPublicUrl(property.property_media[0].url)`
-               // This implies the stored URL is a minimal path (e.g. `properties/1/photo.jpg`).
-               // But the `Photos` loop in `create/route.js` was storing `publicUrl` (full URL).
-               // The `Videos` loop was storing `upload.path` (relative path).
-               // This is inconsistent. 
-               // ListingCard tries `getPublicUrl(m.url)` which works if `m.url` is a path. 
-               // If `m.url` is ALREADY a public URL, `getPublicUrl` might double-encode or fail?
-               // Actually, `getPublicUrl` usually handles strings.
-               // Let's look at `app/api/properties/route.js` (GET).
-               // Line 96: `supabase.storage.from('property-media').getPublicUrl(m.url).data.publicUrl`
-               // If `m.url` is a full URL, this is wrong.
-               // So the `Photos` loop inserting `publicUrl` was likely WRONG in the `create/route.js`.
-               // The `Videos` loop was inserting `upload.path`.
-               // I should fix this to store `upload.path` (relative) for BOTH, 
-               // so the GET endpoint works correctly.
-        media_type: 'video',
-        is_primary: false,
-        display_order: 100 + i + 1,
-      };
-    });
-
-    const [photoMediaRecords, videoMediaRecords] = await Promise.all([
-      Promise.all(photoUploadPromises),
-      Promise.all(videoUploadPromises)
-    ]);
-
-    const allMediaRecords = [...photoMediaRecords, ...videoMediaRecords];
-
-    const { error: mediaErr } = await supabase.from('property_media').insert(allMediaRecords);
-      
-    if (mediaErr) {
-      console.error('[DEBUG] Media record error:', mediaErr);
-      throw mediaErr;
+    const results = await Promise.all(uploadPromises);
+    const validMedia = results.filter(Boolean);
+    
+    if (validMedia.length > 0) {
+        const { error: mediaErr } = await supabase.from('property_media').insert(validMedia);
+        if (mediaErr) console.error('Media insert error:', mediaErr);
     }
-
-    console.log('[DEBUG] All media uploaded successfully');
 
     return NextResponse.json({ 
       success: true, 
@@ -279,16 +194,11 @@ export async function POST(req) {
   } catch (err) {
     console.error('[DEBUG] Unexpected error:', err);
     return NextResponse.json({ 
-      error: err.message || 'Failed to create property',
-      debug: {
-        stack: err.stack
-      }
+      error: err.message || 'Server error' 
     }, { status: 500 });
   }
 }
 
 export function GET() {
-  return NextResponse.json({ 
-    error: 'Method not allowed' 
-  }, { status: 405 });
+  return NextResponse.json({ error: 'Method not allowed' }, { status: 405 });
 }

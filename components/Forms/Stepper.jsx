@@ -22,7 +22,7 @@ export default function Stepper({ steps, currentStep, furthestStep, onStepClick 
                   currentStep > step.id
                     ? 'bg-emerald-500 text-white shadow-md'
                     : currentStep === step.id
-                    ? 'bg-cyan-500 text-white shadow-md scale-110'
+                    ? 'bg-terracotta-500 text-white shadow-md scale-110'
                     : isClickable 
                       ? 'bg-white border-2 border-slate-300 text-slate-500 hover:border-slate-400' 
                       : 'bg-slate-100 text-slate-300'

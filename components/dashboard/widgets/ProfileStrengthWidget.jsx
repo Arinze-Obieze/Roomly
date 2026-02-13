@@ -27,8 +27,8 @@ export default function ProfileStrengthWidget() {
     try {
       setData(prev => ({ ...prev, loading: true }));
       const [lifestyleRes, prefsRes] = await Promise.all([
-        supabase.from('user_lifestyles').select('id').eq('user_id', user.id).maybeSingle(),
-        supabase.from('match_preferences').select('id').eq('user_id', user.id).maybeSingle()
+        supabase.from('user_lifestyles').select('user_id').eq('user_id', user.id).maybeSingle(),
+        supabase.from('match_preferences').select('user_id').eq('user_id', user.id).maybeSingle()
       ]);
       
       setData({

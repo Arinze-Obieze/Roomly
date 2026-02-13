@@ -4,8 +4,17 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
-import { MdLocationOn, MdVerified, MdFavorite, MdFavoriteBorder, MdLock, MdCheckCircle, MdGroupAdd } from "react-icons/md";
-// ... imports
+import { 
+  MdLocationOn, 
+  MdVerified, 
+  MdFavorite, 
+  MdFavoriteBorder, 
+  MdLock, 
+  MdCheckCircle, 
+  MdGroupAdd,
+  MdBolt,
+  MdGroup
+} from "react-icons/md";
 
 export const ListingCard = ({ data, onSelect }) => {
   const router = useRouter();
@@ -40,18 +49,6 @@ export const ListingCard = ({ data, onSelect }) => {
 
     setSharing(true);
     try {
-        // 1. Check for active group
-        // We do a quick check via API or assume we fetch messages
-        // Optimised: Try to send. The API checks membership.
-        // But we need groupId.
-        // We can fetch user's group first.
-        const groupRes = await fetch('/api/buddy/join', { method: 'OPTIONS' }); // Hacky? No, let's just fetch active group from a new helper or assume we know it.
-        // Better: Fetch group.
-        // Ideally we have this in Context.
-        // For now, let's do a quick fetch.
-        // Or better: Use global context if available.
-        // I will use a direct supabase query here as I have done elsewhere.
-        // Wait, ListingCard is client component. I can import createClient.
         const { createClient } = require('@/lib/supabase/client');
         const supabase = createClient();
         
@@ -67,7 +64,6 @@ export const ListingCard = ({ data, onSelect }) => {
             return;
         }
 
-        // 2. Send Message
         const res = await fetch('/api/buddy/messages', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -101,7 +97,6 @@ export const ListingCard = ({ data, onSelect }) => {
   };
 
   const handleShowInterest = async (e) => {
-    // ... existing logic
     e.stopPropagation();
     if (!user) {
       openLoginModal('Sign up to show interest in this private listing.');
@@ -130,174 +125,162 @@ export const ListingCard = ({ data, onSelect }) => {
   return (
     <div 
       onClick={() => onSelect?.()}
-      className="group bg-white rounded-[2rem] overflow-hidden cursor-pointer transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 border border-slate-100"
+      className="group bg-white rounded-[1.5rem] overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-navy-100 flex flex-col h-full"
     >
-      <div className="relative aspect-[4/3] w-full overflow-hidden">
+      {/* Image Container */}
+      <div className="relative aspect-[5/4] w-full overflow-hidden bg-navy-50">
         <Image 
-          src={imgSrc || 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image'} 
+          src={imgSrc || 'https://placehold.co/600x400/d9e2ec/102a43?text=No+Image'} 
           alt={data.title}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={`object-cover transition-transform duration-700 ${data.isBlurry ? 'blur-2xl scale-110 grayscale-[0.2]' : 'group-hover:scale-110'}`}
+          className={`object-cover transition-transform duration-700 ${data.isBlurry ? 'blur-2xl scale-110 grayscale-[0.2]' : 'group-hover:scale-105'}`}
           priority={false}
-          onError={() => setImgSrc('https://placehold.co/600x400/e2e8f0/64748b?text=Image+Error')}
+          onError={() => setImgSrc('https://placehold.co/600x400/d9e2ec/102a43?text=Image+Error')}
         />
         
-        {/* Gradient Overlay for better text visibility if needed */}
-        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-black/50 to-transparent opacity-60"></div>
+        {/* Gradients using Navy system */}
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-navy-900/40 to-transparent opacity-80"></div>
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-navy-900/60 via-navy-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-        {/* Actions - Top Right */}
-        <div className="absolute top-4 right-4 flex flex-col gap-3 z-10 transition-opacity duration-300">
-            {!isOwner && !data.isBlurry && (
-            <button 
-                onClick={handleSave}
-                className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-lg hover:bg-slate-50 transition-all active:scale-95"
-            >
-                {isSaved ? (
-                <MdFavorite className="text-terracotta-500 text-xl" />
-                ) : (
-                <MdFavoriteBorder className="text-slate-400 text-xl hover:text-terracotta-500 transition-colors" />
-                )}
-            </button>
-            )}
-
-            {!isOwner && !data.isBlurry && (
-             <button 
-                onClick={handleShare}
-                disabled={sharing}
-                className="w-10 h-10 flex items-center justify-center bg-white rounded-full shadow-lg hover:bg-slate-50 transition-all active:scale-95 text-slate-400 hover:text-navy-950"
-                title="Share to Buddy Group"
-            >
-                {sharing ? (
-                    <div className="w-4 h-4 border-2 border-slate-200 border-t-navy-950 rounded-full animate-spin" />
-                ) : (
-                    <MdGroupAdd className="text-xl" />
-                )}
-            </button>
-            )}
+        {/* Top Badges */}
+        <div className="absolute top-3 left-3 flex flex-wrap gap-2 z-10 max-w-[80%]">
+             {data.isPrivate && (
+                <div className="bg-navy-900/90 text-white px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider border border-white/10">
+                    <MdLock className="text-terracotta-500" /> Private
+                </div>
+             )}
+             
+             {data.verified && !isOwner && (
+                <div className="bg-white/95 text-navy-900 px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm flex items-center gap-1.5 text-xs font-bold border border-navy-100">
+                     <MdVerified className="text-terracotta-500 text-sm" /> Verified
+                </div>
+             )}
         </div>
 
-        {/* Private Badge */}
-        {data.isPrivate && (
-           <div className="absolute top-4 left-4 bg-navy-950 text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 text-xs z-10 font-bold uppercase tracking-wider backdrop-blur-md bg-opacity-90">
-             <MdLock className="text-terracotta-500" /> Private
-           </div>
+        {/* Match Score */}
+        {!isOwner && !data.isBlurry && !data.isPrivate && (
+            <div className="absolute bottom-3 left-3 z-10 transition-transform duration-300 group-hover:-translate-y-1">
+                {user && data.matchScore !== null ? (
+                    <div className="bg-white/95 backdrop-blur-md text-navy-900 pl-2 pr-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold border border-navy-100">
+                        <div className="relative w-4 h-4">
+                             <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+                                <path className="text-navy-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
+                                <path className={`${data.matchScore > 85 ? 'text-teal-500' : data.matchScore > 50 ? 'text-yellow-400' : 'text-terracotta-500'}`} strokeDasharray={`${data.matchScore}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
+                             </svg>
+                        </div>
+                        <span>{data.matchScore}% Match</span>
+                    </div>
+                ) : (
+                    <div 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (!user) openLoginModal('Sign up to see compatibility match.');
+                        }}
+                        className="bg-navy-900/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-bold border border-white/10 hover:bg-navy-800"
+                    >
+                         Sign up to see match
+                    </div>
+                )}
+            </div>
         )}
 
-        {/* Match Score or Profile Prompt - Top Left (if not private) */}
-        {!isOwner && !data.isBlurry && !data.isPrivate && (
-          <div className="absolute top-4 left-4 flex items-center gap-1.5 z-10">
-            {user && data.matchScore !== null ? (
-               <div className="bg-white/95 backdrop-blur-sm text-navy-950 px-3 py-1.5 rounded-full shadow-xl flex items-center gap-2 text-xs font-bold border border-white/20">
-                 <div className={`w-2 h-2 rounded-full ${data.matchScore > 85 ? 'bg-emerald-500' : data.matchScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`}></div>
-                 <span>{data.matchScore}% Match</span>
-               </div>
-            ) : (
-               <div 
-                 onClick={(e) => {
-                   e.stopPropagation();
-                   if (!user) {
-                     openLoginModal('Sign up to see compatibility match.');
-                     return;
-                   }
-                   router.push('/profile?tab=preferences');
-                 }}
-                 className="bg-navy-950/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-xs hover:bg-navy-800 transition-all cursor-pointer border border-white/10"
-               >
-                 <span className="font-bold whitespace-nowrap">{user ? 'See Match Score' : 'Sign up to see match'}</span>
-               </div>
+        {/* Action Buttons */}
+        <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
+            {!isOwner && !data.isBlurry && (
+            <>
+                <button 
+                    onClick={handleSave}
+                    className="w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white text-navy-300 hover:text-terracotta-500 transition-all active:scale-90"
+                >
+                    {isSaved ? <MdFavorite className="text-terracotta-500 text-base" /> : <MdFavoriteBorder className="text-base" />}
+                </button>
+                
+                <button 
+                    onClick={handleShare}
+                    disabled={sharing}
+                    className="w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white text-navy-300 hover:text-navy-900 transition-all active:scale-90"
+                >
+                    {sharing ? <div className="w-3 h-3 border-2 border-navy-200 border-t-navy-900 rounded-full animate-spin" /> : <MdGroupAdd className="text-base" />}
+                </button>
+            </>
             )}
-          </div>
-        )}
+        </div>
       </div>
 
-      <div className="p-6">
-        {/* Price & Title Row */}
-        <div className="flex justify-between items-start mb-2">
-           <div className="flex items-baseline gap-1">
-             <span className="text-2xl font-extrabold text-navy-950">{data.price}</span>
-             <span className="text-sm text-slate-400 font-medium">/{data.period === 'monthly' ? 'mo' : data.period}</span>
+      <div className="p-4 flex flex-col flex-1">
+        {/* Title & Price */}
+        <div className="flex justify-between items-start gap-2 mb-2">
+           <h3 className="font-bold text-navy-900 text-base leading-tight line-clamp-2 group-hover:text-terracotta-600 transition-colors flex-1">
+             {data.title}
+           </h3>
+           <div className="flex flex-col items-end shrink-0">
+             <span className="text-xl font-extrabold text-terracotta-600">€{data.price?.toLocaleString('en-IE')}</span>
+             <span className="text-[10px] text-navy-400 font-medium uppercase tracking-wide">{data.period === 'monthly' ? 'per month' : data.period}</span>
            </div>
-           
-           {/* Verified Badge if applicable (mock logic or prop) */}
-           {data.verified && <MdVerified className="text-terracotta-500 text-xl" title="Verified Listing" />}
-        </div>
-        
-        <h3 className="font-bold text-navy-900 text-lg mb-3 line-clamp-1 group-hover:text-terracotta-600 transition-colors">{data.title}</h3>
-
-        <div className="flex items-center gap-1.5 text-slate-500 text-sm mb-6">
-            <MdLocationOn className="text-terracotta-500 shrink-0" size={16} />
-            <span className="truncate font-medium">{data.location}</span>
         </div>
 
-        {data.isBlurry ? (
-            /* Interest UI for Private Listings */
-            <div className="mt-4">
-                <button
-                    onClick={handleShowInterest}
-                    disabled={interestLoading || data.interestStatus === 'pending'}
-                    className={`w-full py-3 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all active:scale-[0.98] ${
-                        data.interestStatus === 'pending'
-                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100 cursor-default'
-                        : 'bg-navy-950 text-white hover:bg-navy-800 shadow-xl shadow-navy-900/20'
-                    }`}
-                >
-                    {data.interestStatus === 'pending' ? (
-                        <>
-                            <MdCheckCircle className="text-lg" />
-                            Interest Sent
-                        </>
-                    ) : interestLoading ? (
-                        <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    ) : (
-                        'Show Interest'
-                    )}
-                </button>
-            </div>
-        ) : (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-               {/* Amenities/Icons */}
-                <div className="flex gap-4 text-slate-400">
+        {/* Location */}
+        <div className="flex items-center gap-1.5 text-navy-500 text-sm mb-4">
+            <MdLocationOn className="text-terracotta-400 shrink-0" size={16} />
+            <span className="truncate">{data.location}</span>
+        </div>
+
+        {/* Smart Badges - Replaced Emerald/Indigo with Teal/Navy */}
+        <div className="flex flex-wrap gap-2 mb-4 mt-auto">
+            {data.bills_option === 'included' && (
+                <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-600 text-[10px] uppercase tracking-wide px-2 py-1 rounded-md font-bold border border-teal-100">
+                    <MdBolt size={12} /> Bills Inc.
+                </span>
+            )}
+            {data.couples_allowed && (
+                <span className="inline-flex items-center gap-1 bg-navy-50 text-navy-600 text-[10px] uppercase tracking-wide px-2 py-1 rounded-md font-bold border border-navy-100">
+                    <MdGroup size={12} /> Couples
+                </span>
+            )}
+        </div>
+
+        {/* Footer */}
+        {!data.isBlurry && (
+             <div className="pt-3 border-t border-navy-100 flex items-center justify-between text-xs text-navy-400">
+                <div className="flex gap-3">
                     {data.amenities?.slice(0, 3).map((am, i) => {
                         const IconComponent = am.icon; 
                         return (
-                        <div key={i} className="flex items-center gap-1.5 text-xs font-medium" title={am.label}>
-                            {IconComponent && typeof IconComponent !== 'string' && <IconComponent size={16} />} 
-                            <span className="hidden sm:inline">{am.value || ''}</span>
-                        </div>
+                            <div key={i} className="flex items-center gap-1" title={am.label}>
+                                {IconComponent && typeof IconComponent !== 'string' && <IconComponent size={14} />} 
+                                <span className="max-w-[60px] truncate">{am.value}</span>
+                            </div>
                         );
                     })}
                 </div>
+                
+                {data.host?.avatar ? (
+                     <div className="relative w-6 h-6 rounded-full overflow-hidden bg-navy-50 ring-1 ring-navy-100">
+                        <Image src={data.host.avatar} alt="Host" fill className="object-cover" sizes="24px" />
+                     </div>
+                ) : (
+                    <div className="w-6 h-6 rounded-full bg-terracotta-50 text-terracotta-600 flex items-center justify-center text-[10px] font-bold">
+                        {data.host?.name?.[0] || '?'}
+                    </div>
+                )}
+             </div>
+        )}
 
-                {/* Simple Author Avatar */}
-                <div 
-                    className="flex items-center gap-2.5 cursor-pointer hover:bg-slate-50 px-2 py-1 -mr-2 rounded-full transition-colors"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (data.host?.id && !data.isBlurry) {
-                            router.push(`/users/${data.host.id}`);
-                        }
-                    }} 
+        {/* Blur State Action */}
+        {data.isBlurry && (
+            <div className="mt-2">
+                 <button
+                    onClick={handleShowInterest}
+                    disabled={interestLoading || data.interestStatus === 'pending'}
+                    className={`w-full py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all active:scale-[0.98] ${
+                        data.interestStatus === 'pending'
+                        ? 'bg-teal-50 text-teal-600 border border-teal-100 cursor-default'
+                        : 'bg-navy-900 text-white hover:bg-navy-800 shadow-md'
+                    }`}
                 >
-                    {data.host.avatar ? (
-                    <div className="relative w-8 h-8 rounded-full overflow-hidden bg-slate-100 ring-2 ring-white shadow-sm">
-                        <Image 
-                        src={data.host.avatar} 
-                        alt={data.host.name}
-                        fill
-                        sizes="32px"
-                        className="object-cover"
-                        />
-                    </div>
-                    ) : (
-                    <div className="w-8 h-8 rounded-full bg-navy-50 text-navy-700 flex items-center justify-center text-xs font-bold ring-2 ring-white shadow-sm">
-                        {data.host.name?.slice(0, 1).toUpperCase() || '?'}
-                    </div>
-                    )}
-                    <span className="text-xs font-bold text-navy-900 max-w-[80px] truncate hidden sm:block">
-                    {isOwner ? 'You' : data.host.name?.split(' ')[0]}
-                    </span>
-                 </div>
+                    {data.interestStatus === 'pending' ? 'Interest Sent' : 'Show Interest'}
+                </button>
             </div>
         )}
       </div>

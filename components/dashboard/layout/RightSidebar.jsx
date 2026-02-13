@@ -12,7 +12,7 @@ export const RightSidebar = () => {
   return (
     <aside className="hidden 2xl:block fixed right-0 top-[120px] w-80 h-[calc(100vh-120px)] bg-white border-l border-slate-200 p-6 overflow-y-auto">
       {/* Profile Strength Card */}
-      <div className="bg-linear-to-br from-indigo-500 to-cyan-500 rounded-3xl p-6 text-white mb-8 shadow-lg shadow-cyan-200">
+      <div className="bg-linear-to-br from-navy-900 to-navy-800 rounded-3xl p-6 text-white mb-8 shadow-lg shadow-navy-200">
         <div className="flex items-center gap-2 mb-3 opacity-90">
           <MdBolt className="text-yellow-300" />
           <span className="text-xs font-bold uppercase tracking-wider">Update</span>
@@ -56,7 +56,7 @@ export const RightSidebar = () => {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-bold text-slate-900">Community</h3>
-          <MdGroups className="text-cyan-500" />
+          <MdGroups className="text-terracotta-500" />
         </div>
         <div className="space-y-3">
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
@@ -74,10 +74,10 @@ export const RightSidebar = () => {
       <div>
         <h3 className="font-bold text-slate-900 mb-4">Your Applications</h3>
         <div className="space-y-3">
-          <div className="p-3 bg-cyan-50 rounded-xl border border-cyan-100">
+          <div className="p-3 bg-navy-50 rounded-xl border border-navy-100">
             <div className="flex items-center justify-between mb-1">
               <p className="text-sm font-bold">Modern Studio</p>
-              <span className="text-xs bg-cyan-100 text-cyan-700 px-2 py-1 rounded-full">Pending</span>
+              <span className="text-xs bg-navy-100 text-navy-700 px-2 py-1 rounded-full">Pending</span>
             </div>
             <p className="text-xs text-slate-600">Submitted 2 days ago</p>
           </div>

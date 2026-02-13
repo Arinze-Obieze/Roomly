@@ -5,19 +5,19 @@ import { MdOutlineBed, MdBathtub, MdSquareFoot, MdCalendarToday } from 'react-ic
 export default function PropertyStats({ bedrooms, bathrooms, square_meters, available_from }) {
   const stats = [
     {
-      icon: <MdOutlineBed className="text-xl text-slate-400" />,
+      icon: <MdOutlineBed className="text-xl text-terracotta-500" />,
       label: `${bedrooms} Bed`
     },
     {
-      icon: <MdBathtub className="text-xl text-slate-400" />,
+      icon: <MdBathtub className="text-xl text-terracotta-500" />,
       label: `${bathrooms} Bath`
     },
     {
-      icon: <MdSquareFoot className="text-xl text-slate-400" />,
+      icon: <MdSquareFoot className="text-xl text-terracotta-500" />,
       label: `${square_meters} m²`
     },
     {
-      icon: <MdCalendarToday className="text-xl text-slate-400" />,
+      icon: <MdCalendarToday className="text-xl text-terracotta-500" />,
       label: `Available ${new Date(available_from).toLocaleDateString()}`
     }
   ];

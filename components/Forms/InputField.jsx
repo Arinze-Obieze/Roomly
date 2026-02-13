@@ -31,7 +31,7 @@ export default function InputField({
           className={`w-full px-4 py-3.5 rounded-xl border bg-slate-50 text-slate-900 placeholder-slate-400 transition-all duration-200 outline-none focus:ring-2 
             ${error 
               ? 'border-red-300 focus:border-red-500 focus:ring-red-500/20' 
-              : 'border-slate-200 focus:border-cyan-500 focus:ring-cyan-500/20'
+              : 'border-slate-200 focus:border-terracotta-500 focus:ring-terracotta-500/20'
             }`}
           {...props}
         />

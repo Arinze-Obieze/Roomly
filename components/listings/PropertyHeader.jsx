@@ -11,7 +11,7 @@ export default function PropertyHeader({ title, onBack, onShare, onToggleSave, i
       >
         <MdArrowBack className="text-xl text-slate-700" />
       </button>
-      <h1 className="font-semibold text-slate-900 truncate flex-1">{title}</h1>
+      <h1 className="font-semibold text-navy-950 truncate flex-1">{title}</h1>
       
       {/* Action Buttons */}
       <div className="flex items-center gap-2">

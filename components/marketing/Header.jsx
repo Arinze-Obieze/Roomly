@@ -11,10 +11,10 @@ const HEADER_CONFIG = {
     text: 'Roomly'
   },
   navItems: [
-    { label: 'How It Works', href: '#how-it-works' },
-    { label: 'About', href: '#about' },
-    { label: 'Features', href: '#features' },
-    { label: 'Testimonials', href: '#testimonials' },
+    { label: 'How It Works', href: '/#how-it-works' },
+    { label: 'About', href: '/#about' },
+    { label: 'Features', href: '/#features' },
+    { label: 'Testimonials', href: '/#testimonials' },
   ],
   authButtons: {
     login: {

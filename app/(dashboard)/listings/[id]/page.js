@@ -158,7 +158,7 @@ export default function PropertyDetailsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-         <div className="w-8 h-8 border-4 border-slate-200 border-t-cyan-500 rounded-full animate-spin"></div>
+         <div className="w-8 h-8 border-4 border-slate-200 border-t-terracotta-500 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -166,8 +166,8 @@ export default function PropertyDetailsPage() {
   if (!property) {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
-        <h2 className="text-xl font-bold text-slate-900 mb-2">Property Not Found</h2>
-        <button onClick={() => router.back()} className="text-cyan-600 font-medium hover:underline">
+        <h2 className="text-xl font-bold text-navy-950 mb-2">Property Not Found</h2>
+        <button onClick={() => router.back()} className="text-terracotta-600 font-medium hover:underline">
           Go back
         </button>
       </div>
@@ -195,12 +195,12 @@ export default function PropertyDetailsPage() {
                      <div>
                        <h2 className="text-2xl font-bold text-slate-900 mb-2">{property.title}</h2>
                        <div className="flex items-center gap-2 text-slate-500">
-                         <MdLocationOn className="text-cyan-600 text-lg" />
+                         <MdLocationOn className="text-terracotta-600 text-lg" />
                          <span>{property.city}, {property.state}</span>
                        </div>
                      </div>
                      <div className="text-right">
-                       <div className="text-2xl font-bold text-cyan-600">€{property.price_per_month}</div>
+                       <div className="text-2xl font-bold text-terracotta-600">€{property.price_per_month}</div>
                        <div className="text-slate-500 text-sm">per month</div>
                      </div>
                    </div>
@@ -214,18 +214,60 @@ export default function PropertyDetailsPage() {
                 </div>
 
                 <div>
-                   <h3 className="text-lg font-bold text-slate-900 mb-4">Description</h3>
+                   <h3 className="text-lg font-bold text-navy-950 mb-4">Description</h3>
                    <div className="prose prose-slate max-w-none text-slate-600 leading-relaxed whitespace-pre-line">
                      {property.description}
                    </div>
                 </div>
 
+                {/* Rental Details & Preferences */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-4 rounded-xl">
+                        <h4 className="font-bold text-navy-950 mb-2">Rental Details</h4>
+                        <dl className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <dt className="text-slate-500">Deposit</dt>
+                                <dd className="font-medium text-slate-900">€{property.deposit || '0'}</dd>
+                            </div>
+                            <div className="flex justify-between">
+                                <dt className="text-slate-500">Bills</dt>
+                                <dd className="font-medium text-slate-900 capitalize">{property.bills_option}</dd>
+                            </div>
+                             <div className="flex justify-between">
+                                <dt className="text-slate-500">Minimum Stay</dt>
+                                <dd className="font-medium text-slate-900">{property.min_stay_months} months</dd>
+                            </div>
+                        </dl>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-xl">
+                        <h4 className="font-bold text-navy-950 mb-2">Household Preferences</h4>
+                        <dl className="space-y-2 text-sm">
+                            <div className="flex justify-between">
+                                <dt className="text-slate-500">Gender</dt>
+                                <dd className="font-medium text-slate-900 capitalize">{property.gender_preference}</dd>
+                            </div>
+                             <div className="flex justify-between">
+                                <dt className="text-slate-500">Occupation</dt>
+                                <dd className="font-medium text-slate-900 capitalize">{property.occupation_preference}</dd>
+                            </div>
+                            <div className="flex justify-between">
+                                <dt className="text-slate-500">Age Range</dt>
+                                <dd className="font-medium text-slate-900">{property.age_min} - {property.age_max}</dd>
+                            </div>
+                             <div className="flex justify-between">
+                                <dt className="text-slate-500">Couples</dt>
+                                <dd className="font-medium text-slate-900">{property.couples_allowed ? 'Allowed' : 'Not Allowed'}</dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+
                 <div>
-                   <h3 className="text-lg font-bold text-slate-900 mb-4">Amenities</h3>
+                   <h3 className="text-lg font-bold text-navy-950 mb-4">Amenities</h3>
                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                      {property.amenities && property.amenities.map((am, i) => (
                        <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl text-sm font-medium text-slate-700">
-                         <MdVerified className="text-cyan-500" /> {/* Placeholder icon */}
+                         <MdVerified className="text-terracotta-500" /> {/* Placeholder icon */}
                          <span className="capitalize">{am.label || am}</span>
                        </div>
                      ))}
