@@ -21,10 +21,10 @@ export default function Navbar() {
   }, []);
 
   const navLinks = [
-    { label: 'How It Works', href: '#how-it-works' },
+    { label: 'How It Works', href: '/#how-it-works' },
     { label: 'Browse Rooms', href: '/rooms' },
-    { label: 'Why Roomly', href: '#features' }, // Mapped to Features section
-    { label: 'For Landlords', href: '#landlords' },
+    { label: 'Why Roomly', href: '/#features' }, // Mapped to Features section
+    { label: 'For Landlords', href: '/#landlords' },
   ];
 
   return (

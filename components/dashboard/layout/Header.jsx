@@ -21,6 +21,10 @@ import { FaRegEdit } from "react-icons/fa";
 import { HeaderNavItem } from "@/components/dashboard/ui/HeaderNavItem";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useChat } from "@/contexts/ChatContext";
+import { useFilters } from "@/components/dashboard/filters/useFilters";
+
+import { useNotifications } from "@/contexts/NotificationsContext";
+import NotificationList from "../notifications/NotificationList";
 import Link from "next/link";
 
 // ========== EXTRACTED CONSTANTS ==========
@@ -91,10 +95,17 @@ const Logo = () => (
   </div>
 );
 
-const NotificationsButton = ({ isMobile = false }) => (
-  <button className={`relative p-2 hover:bg-slate-100 rounded-lg transition-colors ${isMobile ? "" : ""}`}>
+const NotificationsButton = ({ isMobile = false, onClick, unreadCount }) => (
+  <button 
+    onClick={onClick}
+    className={`relative p-2 hover:bg-slate-100 rounded-lg transition-colors ${isMobile ? "" : ""}`}
+  >
     <MdNotificationsNone size={22} className="text-slate-600" />
-    <span className={`absolute ${isMobile ? "-top-1 -right-1" : "top-1.5 right-1.5"} w-2 h-2 bg-red-500 rounded-full`} />
+    {unreadCount > 0 && (
+        <span className={`absolute ${isMobile ? "-top-1 -right-1" : "top-1.5 right-1.5"} w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-bold border-2 border-white`}>
+            {unreadCount > 9 ? '9+' : unreadCount}
+        </span>
+    )}
   </button>
 );
 
@@ -145,7 +156,7 @@ const DropdownMenu = ({ isOpen, onItemClick, onLogout }) => (
   )
 );
 
-const SearchBar = ({ placeholder = "Search locations..." }) => (
+const SearchBar = ({ placeholder = "Search properties...", value, onChange }) => (
   <div className="relative">
     <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
       <MdSearch className="text-slate-400 text-xl" />
@@ -153,12 +164,14 @@ const SearchBar = ({ placeholder = "Search locations..." }) => (
     <input 
       type="text" 
       placeholder={placeholder} 
+      value={value || ''}
+      onChange={(e) => onChange && onChange(e.target.value)}
       className="w-full pl-11 pr-24 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 transition-all outline-none"
     />
   </div>
 );
 
-const MobileSearchBar = ({ placeholder = "Search locations..." }) => (
+const MobileSearchBar = ({ placeholder = "Search properties...", value, onChange }) => (
   <div className="relative">
     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
       <MdSearch className="text-slate-400 text-xl" />
@@ -166,6 +179,8 @@ const MobileSearchBar = ({ placeholder = "Search locations..." }) => (
     <input 
       type="text" 
       placeholder={placeholder} 
+      value={value || ''}
+      onChange={(e) => onChange && onChange(e.target.value)}
       className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 transition-all outline-none text-sm"
     />
   </div>
@@ -203,9 +218,12 @@ export const Header = ({ showFilters, setShowFilters }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { user, signOut, loading } = useAuthContext(); // Added loading
-  const { unreadCount } = useChat();
+  const { unreadCount: chatUnreadCount } = useChat();
+  const { unreadCount: notifUnreadCount } = useNotifications();
+  const { filters, updateFilters } = useFilters();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
 
   // ... (unchanged code) ...
 
@@ -269,7 +287,19 @@ export const Header = ({ showFilters, setShowFilters }) => {
                   <MdFavoriteBorder size={22} className="text-slate-600 group-hover:text-red-500 transition-colors" />
                 </button>
 
-                <NotificationsButton />
+
+                
+                <div className="relative">
+                    <NotificationsButton 
+                        unreadCount={notifUnreadCount} 
+                        onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                    />
+                    {isNotificationsOpen && (
+                        <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200">
+                            <NotificationList onClose={() => setIsNotificationsOpen(false)} />
+                        </div>
+                    )}
+                </div>
                 <div className="relative">
                   <button 
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -305,14 +335,19 @@ export const Header = ({ showFilters, setShowFilters }) => {
                 icon={item.icon}
                 label={item.label}
                 active={isActive(item.path)}
-                badge={item.badge && unreadCount > 0 ? unreadCount : null}
+                badge={item.badge && chatUnreadCount > 0 ? chatUnreadCount : null}
                 onClick={() => router.push(user ? item.path : '/rooms')}
               />
             ))}
           </nav>
 
           <div className="relative w-96">
-            {showSearchAndFilters && <SearchBar />}
+            {showSearchAndFilters && (
+              <SearchBar 
+                value={filters.searchQuery}
+                onChange={(val) => updateFilters({ searchQuery: val })}
+              />
+            )}
           </div>
 
           <ListPropertyButton onClick={() => router.push('/listings/new')} />
@@ -337,7 +372,20 @@ export const Header = ({ showFilters, setShowFilters }) => {
                   <MdFavoriteBorder size={22} />
                 </button>
 
-                <NotificationsButton isMobile />
+
+
+                <div className="relative">
+                    <NotificationsButton 
+                        isMobile 
+                        unreadCount={notifUnreadCount}
+                        onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                    />
+                     {isNotificationsOpen && (
+                        <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-xl shadow-xl border border-slate-100 overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200">
+                            <NotificationList onClose={() => setIsNotificationsOpen(false)} />
+                        </div>
+                    )}
+                </div>
                 <div className="relative">
                   <button 
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -368,7 +416,10 @@ export const Header = ({ showFilters, setShowFilters }) => {
 
         {showSearchAndFilters && (
           <div className="px-4 pb-4">
-            <MobileSearchBar />
+            <MobileSearchBar 
+              value={filters.searchQuery}
+              onChange={(val) => updateFilters({ searchQuery: val })}
+            />
           </div>
         )}
       </header>

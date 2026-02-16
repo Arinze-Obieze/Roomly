@@ -10,6 +10,7 @@ export const DEFAULT_FILTERS = {
   moveInDate: 'any',
   verifiedOnly: false,
   sortBy: 'recommended',
+  searchQuery: '',
 };
 
 export const FilterContext = createContext();

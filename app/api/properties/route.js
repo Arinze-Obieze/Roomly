@@ -18,6 +18,7 @@ export async function GET(request) {
     const minBedrooms = parseInt(searchParams.get('minBedrooms'));
     const minBathrooms = parseInt(searchParams.get('minBathrooms'));
     const location = searchParams.get('location');
+    const search = searchParams.get('search');
 
     const supabase = await createClient();
 
@@ -70,7 +71,12 @@ export async function GET(request) {
     }
 
     if (location) {
-      query = query.or(`city.ilike.%${location}%,state.ilike.%${location}%,street.ilike.%${location}%`);
+      query = query.or(`city.ilike.*${location}*,state.ilike.*${location}*,street.ilike.*${location}*`);
+    }
+
+    if (search) {
+      // Search across multiple fields
+      query = query.or(`title.ilike.*${search}*,description.ilike.*${search}*,city.ilike.*${search}*,state.ilike.*${search}*,street.ilike.*${search}*`);
     }
 
     if (amenities && amenities.length > 0) {

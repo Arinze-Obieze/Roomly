@@ -13,6 +13,8 @@ import PropertyGallery from '@/components/listings/PropertyGallery';
 import PropertyHeader from '@/components/listings/PropertyHeader';
 import PropertyStats from '@/components/listings/PropertyStats';
 import HostSidebar from '@/components/listings/HostSidebar';
+import ContactHostModal from '@/components/modals/ContactHostModal';
+import VibeMatchCard from '@/components/listings/VibeMatchCard';
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -24,27 +26,38 @@ export default function PropertyDetailsPage() {
   const [contacting, setContacting] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
 
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+
   // Check if current user is the host
   const isOwner = user?.id === property?.host?.id;
 
-  const handleContactHost = async () => {
+  const handleContactHost = () => {
     if (!user) {
         router.push('/login');
         return;
     }
-    
-    setContacting(true);
-    // Start conversation with default message using property context
-    const conversationId = await startConversation(
-        property.id, 
-        property.host.id, 
-        `Hi ${property.host.name}, I'm interested in your property on ${property.street || property.city}. Is it still available?`
-    );
+    setIsContactModalOpen(true);
+  };
 
-    if (conversationId) {
-        router.push('/messages');
+  const handleSendMessage = async (message) => {
+    setContacting(true);
+    try {
+        const conversationId = await startConversation(
+            property.id, 
+            property.host.id, 
+            message
+        );
+
+        if (conversationId) {
+            router.push('/messages');
+            toast.success('Message sent successfully!');
+        }
+    } catch (error) {
+        console.error('Failed to send message:', error);
+        toast.error('Failed to send message');
+    } finally {
+        setContacting(false);
     }
-    setContacting(false);
   };
 
   const supabase = createClient();
@@ -220,6 +233,9 @@ export default function PropertyDetailsPage() {
                    </div>
                 </div>
 
+                {/* Vibe Match Insight */}
+                <VibeMatchCard property={property} />
+
                 {/* Rental Details & Preferences */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="bg-slate-50 p-4 rounded-xl">
@@ -288,6 +304,14 @@ export default function PropertyDetailsPage() {
              </div>
           </div>
        </div>
+
+       <ContactHostModal 
+         isOpen={isContactModalOpen}
+         onClose={() => setIsContactModalOpen(false)}
+         host={property.host}
+         propertyTitle={property.title}
+         onSend={handleSendMessage}
+       />
     </div>
   );
 }

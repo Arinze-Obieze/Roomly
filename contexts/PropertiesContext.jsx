@@ -94,6 +94,9 @@ export const PropertiesProvider = ({ children }) => {
       if (filters.minBathrooms) {
         params.append('minBathrooms', filters.minBathrooms.toString());
       }
+      if (filters.searchQuery) {
+        params.append('search', filters.searchQuery);
+      }
 
       const response = await fetch(`/api/properties?${params.toString()}`, {
         signal: abortControllerRef.current.signal

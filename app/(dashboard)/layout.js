@@ -9,6 +9,8 @@ import {
   BottomNav
 } from "@/components/dashboard";
 
+import { NotificationsProvider } from "@/contexts/NotificationsContext";
+
 export default function DashboardLayout({ children }) {
 
   return (
@@ -16,15 +18,17 @@ export default function DashboardLayout({ children }) {
       <PropertiesProvider>
         <SavedPropertiesProvider>
           <ChatProvider>
-            <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 lg:pb-0">
-            {/* Background Texture - Removed for clean theme */ }
-
-            <Header />
-
-            {children}
-
-            <BottomNav />
-          </div>
+            <NotificationsProvider>
+              <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 lg:pb-0">
+              {/* Background Texture - Removed for clean theme */ }
+  
+              <Header />
+  
+              {children}
+  
+              <BottomNav />
+            </div>
+            </NotificationsProvider>
           </ChatProvider>
         </SavedPropertiesProvider>
       </PropertiesProvider>

@@ -87,7 +87,10 @@ export default function HomeDashboard() {
                 {error && <ErrorState error={error} onRetry={refresh} />}
 
                 {!loading && properties.length === 0 && !error && (
-                    <EmptyState onReset={() => updateFilters({})} />
+                    <EmptyState 
+                        onReset={() => updateFilters({})} 
+                        location={filters.location}
+                    />
                 )}
 
                 <PropertyGrid 
