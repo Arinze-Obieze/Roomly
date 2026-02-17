@@ -12,7 +12,7 @@ export default function Footer() {
       { label: "Home", href: "/" },
       { label: "How It Works", href: "#how-it-works" },
       { label: "Browse Rooms", href: "/rooms" },
-      { label: "Why Roomly", href: "#features" },
+      { label: "Why RoomFind", href: "#features" },
       { label: "For Landlords", href: "#landlords" },
     ],
     legal: [
@@ -36,7 +36,7 @@ export default function Footer() {
           {/* Column 1: Brand */}
           <div className="col-span-2 md:col-span-1 space-y-6">
             <Link href="/" className="inline-block group">
-              <span className="font-sans font-extrabold text-2xl text-navy-950 tracking-tighter">Roomly<span className="text-terracotta-500">.</span></span>
+              <span className="font-sans font-extrabold text-2xl text-navy-950 tracking-tighter">RoomFind<span className="text-terracotta-500">.</span></span>
             </Link>
             <p className="text-slate-600 leading-relaxed font-medium">
               Intelligent roommate matching for harmonious homes in Ireland.

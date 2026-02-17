@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { MdMenu, MdClose } from 'react-icons/md';
+import Image from 'next/image';
 
 export default function Navbar() {
   const { user } = useAuthContext();
@@ -23,7 +24,7 @@ export default function Navbar() {
   const navLinks = [
     { label: 'How It Works', href: '/#how-it-works' },
     { label: 'Browse Rooms', href: '/rooms' },
-    { label: 'Why Roomly', href: '/#features' }, // Mapped to Features section
+    { label: 'Why RoomFind', href: '/#features' }, 
     { label: 'For Landlords', href: '/#landlords' },
   ];
 
@@ -35,7 +36,8 @@ export default function Navbar() {
         
         {/* LOGO */}
         <Link href="/" className="flex items-center gap-2 group">
-          <span className="font-sans font-extrabold text-2xl text-navy-950 tracking-tighter">Roomly<span className="text-terracotta-500">.</span></span>
+          <Image alt='logo' src="/logo/logo_with_text.svg" width={50} height={50}/>
+
         </Link>
 
         {/* NAVIGATION LINKS (Desktop) */}

@@ -65,6 +65,11 @@
   
   --color-yellow-400: var(--color-yellow-400);
 
+  /* Expose mapped colors for easier usage */
+  --color-primary: var(--color-terracotta-500);
+  --color-secondary: var(--color-navy-900);
+  --color-accent: var(--color-yellow-400);
+
   --font-sans: var(--font-inter), ui-sans-serif, system-ui;
   --font-heading: var(--font-space-grotesk), sans-serif;
   

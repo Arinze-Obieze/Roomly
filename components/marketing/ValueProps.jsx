@@ -41,7 +41,7 @@ export default function ValueProps() {
                 <span className="text-terracotta-500">Modern Irish Renter.</span>
             </h2>
             <p className="text-lg md:text-xl text-slate-500 font-light leading-relaxed">
-                We’re moving beyond the transactional. Roomly is about building communities, one shared home at a time.
+                We’re moving beyond the transactional. RoomFind is about building communities, one shared home at a time.
             </p>
         </div>
 

@@ -22,10 +22,10 @@ export default function LandlordSection() {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             
-            {/* LEFT: WHY LOVE ROOMLY */}
+            {/* LEFT: WHY LOVE RoomFind */}
             <div>
                 <h3 className="text-2xl font-bold text-navy-950 mb-8 border-l-4 border-terracotta-500 pl-4">
-                    Why Landlords Love Roomly:
+                    Why Landlords Love RoomFind:
                 </h3>
 
                 <div className="space-y-8">

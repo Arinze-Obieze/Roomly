@@ -126,7 +126,7 @@ export default function MyPropertiesPage() {
           </p>
           <button
             onClick={() => router.push('/listings/new')}
-            className="bg-cyan-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-cyan-600 transition-colors"
+            className="bg-terracotta-500 text-white px-6 py-3 rounded-xl font-semibold hover:bg-terracota-600 transition-colors"
           >
             Create Your First Listing
           </button>

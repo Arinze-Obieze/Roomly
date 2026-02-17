@@ -63,7 +63,7 @@ export default function FeaturesSection() {
                 Everything You Need. Nothing You Don&apos;t.
             </h2>
             <p className="text-lg md:text-xl text-slate-600">
-                Roomly is built for modern renters who value compatibility, safety, and simplicity.
+                RoomFind is built for modern renters who value compatibility, safety, and simplicity.
             </p>
         </div>
 

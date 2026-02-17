@@ -26,6 +26,7 @@ import { useFilters } from "@/components/dashboard/filters/useFilters";
 import { useNotifications } from "@/contexts/NotificationsContext";
 import NotificationList from "../notifications/NotificationList";
 import Link from "next/link";
+import Image from "next/image";
 
 // ========== EXTRACTED CONSTANTS ==========
 const NAV_ITEMS = {
@@ -80,19 +81,13 @@ const DROPDOWN_MENU_ITEMS = [
   }
 ];
 
-const BRAND_CONFIG = {
-  name: "HomeShareIE",
-  logo: {
-    gradient: "from-cyan-500 to-indigo-500",
-    size: "w-8 h-8"
-  }
-};
+
 
 // ========== EXTRACTED COMPONENTS ==========
 const Logo = () => (
-  <div className="flex items-center gap-2 group">
-    <span className="font-sans font-extrabold text-2xl text-navy-950 tracking-tighter">Roomly<span className="text-terracotta-500">.</span></span>
-  </div>
+  <Link href="/dashboard" className="flex items-center gap-2 group cursor-pointer">
+ <Image width={40} height={40} alt="logo" src="/logo/logo.svg"  />
+  </Link>
 );
 
 const NotificationsButton = ({ isMobile = false, onClick, unreadCount }) => (

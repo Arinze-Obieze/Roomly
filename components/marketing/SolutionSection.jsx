@@ -14,7 +14,7 @@ export default function SolutionSection() {
                 Match on What <span className="text-terracotta-500">Actually</span> Matters
             </h2>
             <p className="text-lg md:text-xl text-slate-600">
-                Roomly&apos;s 6-factor compatibility algorithm shows you exactly how well you&apos;ll get along <span className="font-bold">BEFORE</span> you message them.
+                RoomFind&apos;s 6-factor compatibility algorithm shows you exactly how well you&apos;ll get along <span className="font-bold">BEFORE</span> you message them.
             </p>
         </div>
 

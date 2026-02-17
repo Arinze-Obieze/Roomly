@@ -12,7 +12,7 @@ export default function CTASection() {
             Ready to Find Your Perfect Flatmate?
         </h2>
         <p className="text-lg md:text-xl text-white/90 max-w-2xl mx-auto mb-12 font-medium">
-            Join hundreds of Dublin renters who&apos;ve found better matches with Roomly&apos;s compatibility-first approach.
+            Join hundreds of Dublin renters who&apos;ve found better matches with RoomFind&apos;s compatibility-first approach.
         </p>
 
         <div className="grid grid-cols-3 gap-2 md:gap-8 max-w-4xl mx-auto mb-12">

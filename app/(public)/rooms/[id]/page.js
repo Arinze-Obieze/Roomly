@@ -136,7 +136,7 @@ export default function RoomDetailsPage() {
   const handleShare = async () => {
     const shareData = {
       title: property.title,
-      text: `Check out this place in ${property.city} on Roomly!`,
+      text: `Check out this place in ${property.city} on RoomFind!`,
       url: window.location.href,
     };
     if (navigator.share) {

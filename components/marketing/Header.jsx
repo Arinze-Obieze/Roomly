@@ -6,9 +6,9 @@ import { BiUser, BiLogIn } from 'react-icons/bi';
 // Configuration remains the same
 const HEADER_CONFIG = {
   logo: {
-    src: '/logo.jpg', 
-    alt: 'Roomly',
-    text: 'Roomly'
+    src: '/logo.svg', 
+    alt: 'RoomFind',
+    text: 'RoomFind'
   },
   navItems: [
     { label: 'How It Works', href: '/#how-it-works' },

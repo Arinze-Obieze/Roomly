@@ -45,7 +45,7 @@ export default function TestimonialsSection() {
         
         <div className="text-center mb-16">
             <h2 className="text-3xl md:text-5xl font-bold text-navy-950 mb-6">
-                What Roomly Users Are Saying
+                What RoomFind Users Are Saying
             </h2>
         </div>
 

@@ -31,7 +31,7 @@ export default function PublicHeader() {
           <div className="w-8 h-8 rounded-lg bg-navy-950 flex items-center justify-center text-white font-bold text-lg shadow-lg group-hover:scale-105 transition-transform">
             R
           </div>
-          <span className="font-sans font-extrabold text-xl text-navy-950 tracking-tighter">Roomly<span className="text-terracotta-500">.</span></span>
+          <span className="font-sans font-extrabold text-xl text-navy-950 tracking-tighter">RoomFind<span className="text-terracotta-500">.</span></span>
         </Link>
 
         {/* Desktop Nav */}

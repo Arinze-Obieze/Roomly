@@ -1,10 +1,10 @@
-# Roomly Design Principles & Research
+# RoomFind Design Principles & Research
  
-This document outlines the core design philosophies driving Roomly's interface, synthesizing global best practices with our specific "Vibe-First" mission.
+This document outlines the core design philosophies driving RoomFind's interface, synthesizing global best practices with our specific "Vibe-First" mission.
  
 ## 1. Jobs To Be Done (JTBD) Framework
 **Theory**: Users don't "buy products"; they "hire" them to make progress in their lives.
-**Application to Roomly**:
+**Application to RoomFind**:
 - **The Job**: "Help me find a safe home where I feel I belong, quickly and without social anxiety."
 - **Implication**:
     - **Outcome-Based Filters**: Don't just filter by "3 beds". Filter by "Student Friendly" or "Quiet House" (Lifestyle).
@@ -13,7 +13,7 @@ This document outlines the core design philosophies driving Roomly's interface, 
  
 ## 2. Jakob Nielsen’s 10 Usability Heuristics
 **Theory**: Broad rule of thumb for human-computer interaction.
-**Application to Roomly**:
+**Application to RoomFind**:
 - **Visibility of System Status**: Always show active filters. If a search yields 0 results, explain *why* (e.g., "No homes under €500 in D4") and offer a "Clear Filters" action.
 - **Match Between System & Real World**: Use natural language. Instead of "Rent Period: Fixed", use "1 Year Lease". Instead of "Occupancy: 1", use "Private Room".
 - **Consistency and Standards**: Ensure the "Contact" button is in the same place on every page. Use standard icons (Heart for save, Share for... share).
@@ -21,7 +21,7 @@ This document outlines the core design philosophies driving Roomly's interface, 
  
 ## 3. Atomic Design (Brad Frost)
 **Theory**: UI is a hierarchy: Atoms (Labels) -> Molecules (Form Fields) -> Organisms (Forms) -> Templates -> Pages.
-**Application to Roomly**:
+**Application to RoomFind**:
 - **Atoms**: Our specialized "Terracotta" buttons, "Navy" headings, and "Pill" tags.
 - **Molecules**: The `ListingCard` is a molecule made of an Image atom, a Price atom, and a Badge atom.
 - **Organisms**: The `PropertyGrid` and `FilterModal` are organisms.
@@ -29,14 +29,14 @@ This document outlines the core design philosophies driving Roomly's interface, 
  
 ## 4. Material Design (Google) - Motion & Depth
 **Theory**: Use shadows and movement to imply physical surfaces and hierarchy.
-**Application to Roomly**:
+**Application to RoomFind**:
 - **Elevation**: Listing cards should lift (`hover:-translate-y-1`, `shadow-lg`) on interactions to invite clicking.
 - **Motion**: Transitions between "Grid View" and "Map View" should be fluid, not instant cuts.
 - **Touch Targets**: Mobile filters must be at least 48x48px (fingertip size). The "Contact" button must be the easiest element to tap on mobile.
  
 ## 5. Apple Human Interface Guidelines (HIG) - Clarity & Deference
 **Theory**: Content is king. The UI should recede.
-**Application to Roomly**:
+**Application to RoomFind**:
 - **Deference**: The UI chrome (headers, footers) should use `bg-white/80 backdrop-blur` to let the listing images shine through.
 - **Legibility**: Use San Francisco-style font stacks (Inter/Roboto). High contrast text (`Slate-900`) on white backgrounds.
 - **Navigation**: Bottom tabs for Mobile (Search, Saved, Messages, Profile) are superior to Hamburger menus for core navigation.

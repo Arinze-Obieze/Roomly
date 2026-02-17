@@ -8,7 +8,7 @@ export default function FAQSection() {
 
   const faqs = [
     {
-      q: "Is Roomly really free?",
+      q: "Is RoomFind really free?",
       a: "Yes! 100% free for renters and landlords. You can create a profile, browse all listings, see compatibility scores, send unlimited messages, and list unlimited rooms."
     },
     {
@@ -32,7 +32,7 @@ export default function FAQSection() {
       a: "Built-in secure messaging means you don't need to share your phone number publicly. See response rates before messaging and keep all history in one place."
     },
     {
-      q: "What cities does Roomly cover?",
+      q: "What cities does RoomFind cover?",
       a: "Currently focused on Dublin (all areas). Expanding soon to Cork, Galway, and Limerick."
     },
     {

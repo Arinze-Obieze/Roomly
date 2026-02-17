@@ -1,151 +1,373 @@
 'use client';
+
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
-const FloatingNode = ({ delay, duration, x, y, scale = 1 }) => (
-  <motion.div
-    initial={{ opacity: 0, scale: 0 }}
-    animate={{ 
-      opacity: [0.4, 1, 0.4],
-      scale: [scale, scale * 1.2, scale],
-      x: x,
-      y: y,
-    }}
-    transition={{
-      duration: duration,
-      repeat: Infinity,
-      delay: delay,
-      ease: "easeInOut"
-    }}
-    className="absolute w-3 h-3 bg-cyan-400 rounded-full shadow-[0_0_15px_rgba(34,211,238,0.6)]"
-  />
-);
-
-const ConnectionLine = ({ x1, y1, x2, y2, delay }) => (
-  <svg className="absolute inset-0 w-full h-full pointer-events-none overflow-visible">
-    <motion.line
-      x1={x1}
-      y1={y1}
-      x2={x2}
-      y2={y2}
-      stroke="url(#gradient-line)"
-      strokeWidth="2"
-      strokeLinecap="round"
-      initial={{ pathLength: 0, opacity: 0 }}
-      animate={{ pathLength: [0, 1, 1, 0], opacity: [0, 0.5, 0.5, 0] }}
+const FloatingOrb = ({ color, size, delay, duration, initialPos, moveRange }) => {
+  return (
+    <motion.div
+      initial={{ x: initialPos.x, y: initialPos.y, opacity: 0 }}
+      animate={{
+        x: [initialPos.x, initialPos.x + moveRange.x, initialPos.x - moveRange.x, initialPos.x],
+        y: [initialPos.y, initialPos.y - moveRange.y, initialPos.y + moveRange.y, initialPos.y],
+        opacity: [0.2, 0.6, 0.3, 0.2],
+        scale: [1, 1.2, 0.9, 1],
+      }}
       transition={{
-        duration: 4,
+        duration: duration,
         repeat: Infinity,
         delay: delay,
-        ease: "easeInOut",
-        times: [0, 0.4, 0.6, 1]
+        ease: "easeInOut"
+      }}
+      className="absolute rounded-full blur-3xl"
+      style={{
+        width: size,
+        height: size,
+        background: color,
+        boxShadow: `0 0 80px ${color}`,
       }}
     />
-    <defs>
-      <linearGradient id="gradient-line" x1="0%" y1="0%" x2="100%" y2="0%">
-        <stop offset="0%" stopColor="rgba(34, 211, 238, 0)" />
-        <stop offset="50%" stopColor="rgba(34, 211, 238, 0.8)" />
-        <stop offset="100%" stopColor="rgba(129, 140, 248, 0)" />
-      </linearGradient>
-    </defs>
-  </svg>
-);
+  );
+};
 
-const ProfileCard = ({ img, name, role, className, delay }) => (
+const SearchBar = () => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay, duration: 0.8 }}
-    className={`absolute p-4 rounded-2xl bg-white/10 backdrop-blur-xl border border-white/10 shadow-2xl flex items-center gap-4 w-64 ${className}`}
+    initial={{ y: 50, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    transition={{ delay: 0.8, duration: 0.8 }}
+    className="absolute bottom-20 left-1/2 -translate-x-1/2 w-full max-w-2xl px-4"
   >
     <div className="relative">
-      <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-cyan-400">
-        <img src={img} alt={name} className="w-full h-full object-cover" />
-      </div>
-      <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-2 border-slate-900 flex items-center justify-center">
-        <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+      <input
+        type="text"
+        placeholder="Search rooms in Dublin, Cork, Galway..."
+        className="w-full px-8 py-5 bg-white/5 backdrop-blur-xl border border-[#FF6B6B]/20 rounded-2xl text-white placeholder:text-[#627D98] focus:outline-none focus:border-[#FF6B6B] focus:ring-2 focus:ring-[#FF6B6B]/20 transition-all"
+        style={{ fontFamily: 'var(--font-sans)', borderColor: 'rgba(255, 107, 107, 0.2)', color: 'white' }}
+      />
+      <motion.button
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        className="absolute right-3 top-1/2 -translate-y-1/2 bg-[#FF6B6B] text-white px-6 py-2.5 rounded-xl font-semibold flex items-center gap-2"
+        style={{ fontFamily: 'var(--font-heading)', background: 'var(--color-terracotta-500)' }}
+      >
+        <span>Find Room</span>
+        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
-      </div>
-    </div>
-    <div>
-      <h3 className="text-white font-bold text-sm">{name}</h3>
-      <p className="text-cyan-200 text-xs">{role}</p>
+      </motion.button>
     </div>
   </motion.div>
 );
 
-export default function AuthAnimation() {
-  return (
-    <div className="relative w-full h-full bg-slate-900 overflow-hidden flex items-center justify-center">
-      {/* Background Gradient */}
-      <div className="absolute inset-0 bg-linear-to-br from-slate-900 via-indigo-950 to-slate-900" />
-      
-      {/* Animated Mesh Grid */}
-      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
-
-      {/* Floating Network Nodes */}
-      <div className="absolute inset-0">
-        <FloatingNode delay={0} duration={4} x="20%" y="20%" />
-        <FloatingNode delay={1} duration={5} x="80%" y="30%" scale={1.5} />
-        <FloatingNode delay={2} duration={6} x="50%" y="80%" />
-        <FloatingNode delay={0.5} duration={4.5} x="10%" y="60%" scale={0.8} />
-        <FloatingNode delay={1.5} duration={5.5} x="90%" y="70%" />
-        
-        {/* Dynamic Connections */}
-        <ConnectionLine x1="20%" y1="20%" x2="80%" y="30%" delay={0} />
-        <ConnectionLine x1="80%" y1="30%" x2="50%" y="80%" delay={1} />
-        <ConnectionLine x1="50%" y1="80%" x2="10%" y="60%" delay={2} />
-        <ConnectionLine x1="20%" y1="20%" x2="50%" y="50%" delay={0.5} />
+const StatCard = ({ icon, value, label, color, delay }) => (
+  <motion.div
+    initial={{ scale: 0, opacity: 0 }}
+    animate={{ scale: 1, opacity: 1 }}
+    transition={{ delay, type: "spring", stiffness: 260, damping: 20 }}
+    className="backdrop-blur-xl bg-white/5 rounded-2xl p-4 border border-white/10"
+    style={{ boxShadow: `0 10px 30px -10px ${color}` }}
+  >
+    <div className="flex items-center gap-3">
+      <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${color}20` }}>
+        <span className="text-xl">{icon}</span>
       </div>
-
-      {/* Central Content */}
-      <div className="relative z-10 w-full h-full max-w-lg mx-auto flex flex-col justify-center items-center">
-        {/* Main Badge */}
+      <div>
         <motion.div
-           initial={{ scale: 0.8, opacity: 0 }}
-           animate={{ scale: 1, opacity: 1 }}
-           transition={{ duration: 1 }}
-           className="relative mb-20"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: delay + 0.3 }}
+          className="text-2xl font-bold text-white"
+          style={{ fontFamily: 'var(--font-heading)' }}
         >
-           <div className="absolute inset-0 bg-cyan-500 blur-[80px] opacity-20 animate-pulse" />
-           <div className="relative w-32 h-32 rounded-3xl bg-linear-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 transform rotate-3">
-              <span className="text-5xl font-bold text-white">HS</span>
-           </div>
-           {/* Decor elements */}
-           <motion.div 
-             animate={{ rotate: 360 }}
-             transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-             className="absolute -inset-4 border border-dashed border-white/20 rounded-full" 
-           />
+          {value}
+        </motion.div>
+        <div className="text-sm text-[#bcccdc]" style={{ fontFamily: 'var(--font-sans)', color: 'var(--color-navy-200)' }}>{label}</div>
+      </div>
+    </div>
+  </motion.div>
+);
+
+const RoomCard = ({ image, title, price, rating, match, delay, position }) => {
+  return (
+    <motion.div
+      initial={{ x: position.x, y: position.y, opacity: 0, rotate: position.rotate }}
+      animate={{ x: 0, y: 0, opacity: 1, rotate: 0 }}
+      transition={{
+        delay,
+        type: "spring",
+        stiffness: 100,
+        damping: 15,
+        mass: 1
+      }}
+      whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+      className="absolute w-64 bg-[#020617]/80 backdrop-blur-xl rounded-3xl overflow-hidden border border-[#FF6B6B]/20 shadow-2xl"
+      style={{
+        boxShadow: '0 20px 40px -15px var(--color-terracotta-500)',
+        borderColor: 'rgba(255, 107, 107, 0.2)',
+        background: 'rgba(2, 6, 23, 0.8)'
+      }}
+    >
+      <div className="relative h-32 overflow-hidden">
+        <img src={image} alt={title} className="w-full h-full object-cover" />
+        <div className="absolute top-2 right-2 bg-[#FF6B6B] text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1" style={{ background: 'var(--color-terracotta-500)' }}>
+          <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
+          {match}% match
+        </div>
+      </div>
+      <div className="p-4">
+        <h3 className="text-white font-bold text-lg" style={{ fontFamily: 'var(--font-heading)' }}>{title}</h3>
+        <p className="text-[#4ECDC4] text-sm font-semibold" style={{ fontFamily: 'var(--font-sans)', color: 'var(--color-navy-400)' }}>{price}/month</p>
+        <div className="flex items-center gap-1 mt-2">
+          {[...Array(5)].map((_, i) => (
+            <span key={i} className={i < rating ? "text-[#FFE66D]" : "text-[#627D98]"} style={{ color: i < rating ? 'var(--color-yellow-400)' : 'var(--color-navy-600)' }}>★</span>
+          ))}
+          <span className="text-[#bcccdc] text-xs ml-2" style={{ color: 'var(--color-navy-200)' }}>{rating}.0</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
+
+const AnimatedDot = () => (
+  <motion.div
+    animate={{
+      scale: [1, 1.5, 1],
+      opacity: [0.5, 1, 0.5],
+    }}
+    transition={{
+      duration: 2,
+      repeat: Infinity,
+      ease: "easeInOut"
+    }}
+    className="relative"
+  >
+    <div className="w-3 h-3 bg-[#FF6B6B] rounded-full" style={{ background: 'var(--color-terracotta-500)' }} />
+    <motion.div
+      animate={{
+        scale: [1, 2, 1],
+        opacity: [0.5, 0, 0.5],
+      }}
+      transition={{
+        duration: 2,
+        repeat: Infinity,
+        ease: "easeInOut"
+      }}
+      className="absolute inset-0 w-3 h-3 bg-[#FF6B6B] rounded-full"
+      style={{ background: 'var(--color-terracotta-500)' }}
+    />
+  </motion.div>
+);
+
+const FeaturePillar = ({ icon, title, description, color, delay }) => (
+  <motion.div
+    initial={{ y: 50, opacity: 0 }}
+    animate={{ y: 0, opacity: 1 }}
+    transition={{ delay, duration: 0.6 }}
+    className="flex-1 text-center"
+  >
+    <motion.div
+      whileHover={{ scale: 1.1, rotate: 5 }}
+      className="w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center text-3xl"
+      style={{ background: `${color}20`, color: color }}
+    >
+      {icon}
+    </motion.div>
+    <h3 className="text-white font-bold mb-2" style={{ fontFamily: 'var(--font-heading)' }}>{title}</h3>
+    <p className="text-[#bcccdc] text-sm" style={{ fontFamily: 'var(--font-sans)', color: 'var(--color-navy-200)' }}>{description}</p>
+  </motion.div>
+);
+
+export default function RoomFindAnimation() {
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      const { clientX, clientY } = e;
+      const { innerWidth, innerHeight } = window;
+      setMousePosition({
+        x: (clientX - innerWidth / 2) / 50,
+        y: (clientY - innerHeight / 2) / 50,
+      });
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, []);
+
+  return (
+    <div className="relative w-full h-screen bg-[#020617] overflow-hidden">
+      {/* Animated gradient orbs */}
+      <FloatingOrb
+        color="var(--color-terracotta-500)"
+        size="300px"
+        delay={0}
+        duration={20}
+        initialPos={{ x: -100, y: -100 }}
+        moveRange={{ x: 200, y: 150 }}
+      />
+      <FloatingOrb
+        color="var(--color-navy-500)"
+        size="250px"
+        delay={2}
+        duration={18}
+        initialPos={{ x: 1200, y: 400 }}
+        moveRange={{ x: -180, y: -120 }}
+      />
+      <FloatingOrb
+        color="var(--color-yellow-400)"
+        size="200px"
+        delay={4}
+        duration={22}
+        initialPos={{ x: 600, y: 700 }}
+        moveRange={{ x: 150, y: -200 }}
+      />
+
+      {/* Parallax grid */}
+      <motion.div
+        animate={{
+          x: mousePosition.x,
+          y: mousePosition.y,
+        }}
+        transition={{ type: "spring", stiffness: 50, damping: 30 }}
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `radial-gradient(circle at 25px 25px, ${'var(--color-terracotta-500)'} 1px, transparent 1px)`,
+          backgroundSize: '50px 50px',
+          opacity: 0.15,
+        }}
+      />
+
+      {/* Main content */}
+      <div className="relative z-10 w-full h-full flex flex-col items-center justify-center px-4">
+        {/* Logo with animated dot */}
+        <motion.div
+          initial={{ y: -100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 100 }}
+          className="flex items-center gap-2 mb-8"
+        >
+          <h1 className="text-6xl font-bold text-white" style={{ fontFamily: 'var(--font-heading)' }}>
+            ROOM
+          </h1>
+          <h1 className="text-6xl font-bold text-white" style={{ fontFamily: 'var(--font-heading)' }}>
+            FIND
+          </h1>
+          <div className="ml-2">
+            <AnimatedDot />
+          </div>
         </motion.div>
 
-        {/* Floating Profile Cards */}
-        <ProfileCard 
-          img="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80"
-          name="Sarah Jenkins"
-          role="Looking in Dublin 4"
-          className="-translate-x-32 -translate-y-12"
+        {/* Tagline */}
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="text-[#bcccdc] text-xl mb-12 flex items-center gap-2"
+          style={{ fontFamily: 'var(--font-sans)', color: 'var(--color-navy-200)' }}
+        >
+          <span>Search over.</span>
+          <span className="text-[#FF6B6B] font-semibold" style={{ color: 'var(--color-terracotta-500)' }}>You found it.</span>
+          <span className="w-1.5 h-1.5 bg-[#FF6B6B] rounded-full" style={{ background: 'var(--color-terracotta-500)' }} />
+        </motion.p>
+
+        {/* Feature pillars */}
+        <div className="flex gap-8 max-w-3xl w-full mb-16">
+          <FeaturePillar
+            icon="🔍"
+            title="Smart Search"
+            description="AI-powered room matching"
+            color="var(--color-terracotta-500)"
+            delay={0.4}
+          />
+          <FeaturePillar
+            icon="✓"
+            title="Verified"
+            description="All listings are verified"
+            color="var(--color-navy-500)"
+            delay={0.6}
+          />
+          <FeaturePillar
+            icon="⭐"
+            title="Top Rated"
+            description="Real reviews from tenants"
+            color="var(--color-yellow-400)"
+            delay={0.8}
+          />
+        </div>
+
+        {/* Stats cards */}
+        <div className="flex gap-4 mb-20">
+          <StatCard icon="🏠" value="10k+" label="Active rooms" color="var(--color-terracotta-500)" delay={1} />
+          <StatCard icon="👥" value="5k+" label="Happy tenants" color="var(--color-navy-500)" delay={1.2} />
+          <StatCard icon="⭐" value="4.8" label="Average rating" color="var(--color-yellow-400)" delay={1.4} />
+        </div>
+
+        {/* Room cards */}
+        <RoomCard
+          image="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?auto=format&fit=crop&w=300&q=80"
+          title="Modern Studio, Dublin 2"
+          price="€1,450"
+          rating={5}
+          match={98}
           delay={0.5}
+          position={{ x: -400, y: -100, rotate: -15 }}
         />
-        <ProfileCard 
-          img="https://images.unsplash.com/photo-1599566150163-29194dcaad36?auto=format&fit=crop&w=150&q=80"
-          name="Michael Chen"
-          role="Has a room in Cork"
-          className="translate-x-32 translate-y-8"
-          delay={0.8}
+        
+        <RoomCard
+          image="https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?auto=format&fit=crop&w=300&q=80"
+          title="Cozy Room, Cork City"
+          price="€850"
+          rating={4}
+          match={95}
+          delay={0.7}
+          position={{ x: 400, y: 100, rotate: 15 }}
+        />
+        
+        <RoomCard
+          image="https://images.unsplash.com/photo-1554995207-c18c203602cb?auto=format&fit=crop&w=300&q=80"
+          title="Shared Apt, Galway"
+          price="€650"
+          rating={4}
+          match={92}
+          delay={0.9}
+          position={{ x: -350, y: 200, rotate: 10 }}
         />
 
-        <motion.h2 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 1.2 }}
-          className="text-4xl font-bold text-center mt-12 text-white leading-tight"
+        {/* Search bar */}
+        <SearchBar />
+
+        {/* Floating trust badges */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.6 }}
+          className="absolute top-8 right-8 flex gap-2"
         >
-          Find your perfect <br/>
-          <span className="text-transparent bg-clip-text bg-linear-to-r from-cyan-400 to-indigo-300">
-            living match
-          </span>
-        </motion.h2>
+          <div className="bg-[#4ECDC4]/10 backdrop-blur-xl rounded-full px-4 py-2 border border-[#4ECDC4]/30" style={{ background: 'rgba(72, 101, 129, 0.1)', borderColor: 'rgba(72, 101, 129, 0.3)' }}>
+            <span className="text-[#4ECDC4] text-sm font-semibold flex items-center gap-1" style={{ color: 'var(--color-navy-300)' }}>
+              <span>✓</span> Verified by RoomFind
+            </span>
+          </div>
+          <div className="bg-[#FF6B6B]/10 backdrop-blur-xl rounded-full px-4 py-2 border border-[#FF6B6B]/30" style={{ background: 'rgba(255, 107, 107, 0.1)', borderColor: 'rgba(255, 107, 107, 0.3)' }}>
+            <span className="text-[#FF6B6B] text-sm font-semibold flex items-center gap-1" style={{ color: 'var(--color-terracotta-500)' }}>
+              <span>⚡</span> Instant match
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Decorative elements */}
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 30, repeat: Infinity, ease: "linear" }}
+          className="absolute -top-20 -left-20 w-64 h-64 border border-[#FF6B6B]/20 rounded-full"
+          style={{ borderColor: 'rgba(255, 107, 107, 0.2)' }}
+        />
+        <motion.div
+          animate={{ rotate: -360 }}
+          transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+          className="absolute -bottom-32 -right-32 w-96 h-96 border border-[#4ECDC4]/20 rounded-full"
+          style={{ borderColor: 'rgba(72, 101, 129, 0.2)' }}
+        />
       </div>
     </div>
   );

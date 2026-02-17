@@ -223,7 +223,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
         return (
           <div className="space-y-6 animate-fadeIn text-center py-4">
              <div className="mb-8">
-               <h3 className="text-xl font-bold text-slate-900">What brings you to Roomly?</h3>
+               <h3 className="text-xl font-bold text-slate-900">What brings you to RoomFind?</h3>
                <p className="text-slate-500">Select your primary goal to help us personalize your experience.</p>
              </div>
              

@@ -96,7 +96,7 @@ export default function SignUpModal({ isOpen, onClose, message, onLoginClick }) 
              </h4>
              <p className="text-slate-500 text-sm">
                 {mode === 'signup' 
-                    ? 'Join Roomly to access all features.' 
+                    ? 'Join RoomFind to access all features.' 
                     : 'Log in to continue your search.'}
              </p>
           </div>
@@ -127,7 +127,7 @@ export default function SignUpModal({ isOpen, onClose, message, onLoginClick }) 
             <button 
                 type="submit"
                 disabled={isSubmitting || authLoading}
-                className="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 text-white font-bold rounded-xl shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30 active:scale-[0.98] transition-all"
+                className="w-full py-3.5 bg-gradient-to-r from-terracotta-500 to-terracotta-600 text-white font-bold rounded-xl shadow-lg shadow-terracotta-500/20 hover:shadow-terracotta-500/30 active:scale-[0.98] transition-all"
             >
                 {isSubmitting || authLoading 
                     ? (mode === 'signup' ? 'Creating Account...' : 'Logging In...') 
@@ -140,7 +140,7 @@ export default function SignUpModal({ isOpen, onClose, message, onLoginClick }) 
                 {mode === 'signup' ? 'Already have an account?' : 'Don\'t have an account?'}
                 <button 
                     onClick={handleSwitchMode}
-                    className="ml-2 font-bold text-cyan-600 hover:text-cyan-700 hover:underline"
+                    className="ml-2 font-bold text-terracotta-500 hover:text-terracotta-600 hover:underline"
                 >
                     {mode === 'signup' ? 'Log In' : 'Sign Up'}
                 </button>

@@ -14,25 +14,21 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata = {
-  title: "Roomly",
+  title: "RoomFind",
   description: "Find Your Perfect Flatmate in Ireland",
   icons: {
     icon: [
       {
-        url: '/logo.jpg',
-        sizes: 'any',
-      },
-      {
-        url: '/logo.jpg',
-        type: 'image/jpg',
+        url: '/logo/logo_with_bg.png',
+        type: 'image/png',
         sizes: '32x32',
       },
     ],
     apple: [
       {
-        url: '/logo.jpg',
+        url: '/logo/logo_with_bg.png',
         sizes: '180x180',
-        type: 'image/jpg',
+        type: 'image/png',
       },
     ],
   },
