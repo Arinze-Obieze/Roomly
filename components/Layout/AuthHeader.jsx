@@ -1,14 +1,14 @@
 'use client';
 import Image from "next/image";
-
+import Link from "next/link";
 export default function AuthHeader({ title, subtitle, showLogo = true }) {
   return (
     <>
       {showLogo && (
-        <div className="mb-10 lg:mb-12 flex items-center gap-3">
+        <Link href="/" className="mb-10 lg:mb-12 flex items-center gap-3">
           <Image alt="logo" src={'/logo/logo.svg'} width={40} height={40} />
           <span className="text-xl font-bold tracking-tight text-slate-900 pt-2">RoomFind</span>
-        </div>
+        </Link>
       )} 
       
       <div className="mb-10">

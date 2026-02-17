@@ -51,7 +51,7 @@ export default function CTASection() {
                 No credit card • No hidden fees • Unsubscribe anytime
             </p>
             <p className="text-white/60 text-sm">
-                Questions? Email us at <a href="mailto:hello@roomfind.ieie" className="underline hover:text-white">hello@roomfind.ieie</a>
+                Questions? Email us at <a href="mailto:hello@roomfind.ie" className="underline hover:text-white">hello@roomfind.ie</a>
             </p>
         </div>
 

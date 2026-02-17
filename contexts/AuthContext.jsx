@@ -154,13 +154,36 @@ export function AuthProvider({ children }) {
     setShowLoginModal(true);
   };
 
+  const signInWithGoogle = async () => {
+    try {
+      const supabase = createClient();
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          redirectTo: `${location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) throw error;
+      return { data, error: null };
+    } catch (error) {
+      console.error('Error signing in with Google:', error);
+      return { data: null, error };
+    }
+  };
+
   const value = {
     user,
     loading,
     refreshSession,
     updateProfile,
     signOut,
-    openLoginModal
+    openLoginModal,
+    signInWithGoogle
   };
 
   return (

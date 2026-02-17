@@ -150,7 +150,7 @@ export default function RoomDetailsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-         <div className="w-8 h-8 border-4 border-slate-200 border-t-cyan-500 rounded-full animate-spin"></div>
+         <div className="w-8 h-8 border-4 border-slate-200 border-t-terracotta-500 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -159,7 +159,7 @@ export default function RoomDetailsPage() {
     return (
       <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
         <h2 className="text-xl font-bold text-slate-900 mb-2">Property Not Found</h2>
-        <button onClick={() => router.back()} className="text-cyan-600 font-medium hover:underline">
+        <button onClick={() => router.back()} className="text-terracotta-600 font-medium hover:underline">
           Go back
         </button>
       </div>
@@ -189,20 +189,20 @@ export default function RoomDetailsPage() {
                      <div>
                        <h2 className="text-2xl font-bold text-slate-900 mb-2">{property.title}</h2>
                        <div className="flex items-center gap-2 text-slate-500">
-                         <MdLocationOn className="text-cyan-600 text-lg" />
+                         <MdLocationOn className="text-terracotta-600 text-lg" />
                          <span>
                             {property.street ? `${property.street}, ` : ''}
                             {property.city}, {property.state}
                          </span>
                        </div>
                        {property.isBlurry && (
-                          <div className="mt-2 text-xs font-bold text-cyan-600 bg-cyan-50 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-cyan-100">
+                          <div className="mt-2 text-xs font-bold text-navy-600 bg-navy-50 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-navy-100">
                              <MdLock size={14} /> Private Listing &bull; Exact address hidden
                           </div>
                        )}
                      </div>
                      <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm md:text-right">
-                       <div className="text-2xl font-bold text-cyan-600">
+                       <div className="text-2xl font-bold text-terracotta-600">
                         {property.isBlurry ? property.price_range : `€${property.price_per_month}`}
                        </div>
                        <div className="text-slate-500 text-sm">per month</div>
@@ -229,7 +229,7 @@ export default function RoomDetailsPage() {
                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                      {property.amenities && property.amenities.map((am, i) => (
                        <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl text-sm font-medium text-slate-700">
-                         <MdVerified className="text-cyan-500" /> {/* Placeholder icon */}
+                         <MdVerified className="text-navy-500" /> {/* Placeholder icon */}
                          <span className="capitalize">{am.label || am}</span>
                        </div>
                      ))}
@@ -241,7 +241,7 @@ export default function RoomDetailsPage() {
                     <h3 className="text-lg font-bold text-slate-900 mb-4">Compatibility</h3>
                     {user ? (
                         <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-cyan-50 text-cyan-600 flex items-center justify-center font-bold text-xl">
+                            <div className="w-16 h-16 rounded-full bg-terracotta-50 text-terracotta-600 flex items-center justify-center font-bold text-xl">
                                 85%
                             </div>
                             <div>
@@ -254,7 +254,7 @@ export default function RoomDetailsPage() {
                             <p className="text-slate-600 mb-4">Sign up to see how compatible you are with this room and host.</p>
                             <button 
                                 onClick={() => openLoginModal('Sign up to check compatibility.')}
-                                className="text-cyan-600 font-bold hover:underline"
+                                className="text-terracotta-600 font-bold hover:underline"
                             >
                                 Check Compatibility
                             </button>

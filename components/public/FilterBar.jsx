@@ -76,7 +76,7 @@ export default function FilterBar({ filters = {}, onFilterChange, className = ''
                    const listingSection = document.getElementById('listings');
                    if (listingSection) listingSection.scrollIntoView({ behavior: 'smooth' });
                }}
-               className="w-full md:w-auto bg-cyan-500 hover:bg-cyan-600 text-white p-4 rounded-full shadow-lg shadow-cyan-200 transition-all active:scale-95 flex items-center justify-center"
+               className="w-full md:w-auto bg-terracotta-500 hover:bg-terracotta-600 text-white p-4 rounded-full shadow-lg shadow-terracotta-200 transition-all active:scale-95 flex items-center justify-center"
                aria-label="Search"
              >
                <MdSearch size={28} />

@@ -7,7 +7,7 @@ import { useAuthContext } from '@/contexts/AuthContext';
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { refreshSession } = useAuthContext(); // ✅ Call at the top level
+  const { refreshSession, signInWithGoogle } = useAuthContext(); // ✅ Call at the top level
 
   const signup = async (email, password, fullName, phone = null) => {
     setLoading(true);
@@ -185,6 +185,7 @@ export const useAuth = () => {
     logout,
     resetPassword,
     updatePassword,
+    signInWithGoogle,
     loading,
   };
 };

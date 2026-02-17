@@ -1,0 +1,102 @@
+1. Visual Identity
+A. Logo Concept
+The current logotype is a text-based mark that emphasizes stability with a punch of personality.
+
+Logotype Style: Bold, geometric sans-serif (Space Grotesk or similar)
+
+The Dot: The period at the end is crucial. It signifies "Search over. You found it."
+
+Colors:
+
+Dot: Terracotta (#FF6B6B)
+
+Text: Navy 950 (#020617)
+
+Usage:
+
+Light Backgrounds: Navy text, Coral dot
+
+Dark Backgrounds: White text, Coral dot
+
+B. Color Palette
+Our palette is a balance of trust (Navy/Teal) and energy (Coral/Yellow).
+
+Primary Colors
+Terracotta (Coral): The heartbeat of the brand. Used for CTAs, highlights, and the "Dot".
+
+HEX: #FF6B6B
+
+Usage: Primary Buttons, Active States, Key Highlights
+
+Navy: Deep, dark, and professional. Used for text and headings.
+
+HEX: #020617 (Navy 950 - Text)
+
+HEX: #0A1929 (Navy 900 - Backgrounds)
+
+Usage: Headings, Body Text, Footer Backgrounds
+
+Secondary Colors
+Teal: Represents success, matches, and safety.
+
+HEX: #4ECDC4
+
+Usage: "Match" metrics, Success ticks, Trust indicators
+
+Yellow: Optimism and attention.
+
+HEX: #FFE66D
+
+Usage: Stars (Ratings), Subtle accents
+
+Neutrals
+Slate/Navy Grey:
+
+#F0F4F8 (Backgrounds/Cards)
+
+#BCCCDC (Borders)
+
+#627D98 (Secondary Text)
+
+C. Typography
+We use a pairing that balances tech-forward personality with absolute legibility.
+
+Headings: Space Grotesk (or similar "Grotesque" sans)
+
+Characteristics: Geometric, slightly quirky, high x-height
+
+Usage: h1 through h4, CTA titles
+
+Body: Inter (or similar Clean Sans)
+
+Characteristics: Tall x-height, readable, neutral
+
+Usage: Paragraphs, UI labels, Inputs
+
+2. Design Language
+A. Shapes & Corner Radius
+RoomFind is friendly, not corporate. We avoid sharp edges.
+
+Radii:
+
+Heavy use of 24px for cards
+
+40px for hero elements
+
+12px for buttons
+
+Rule: If it's a content container, round the corners significantly.
+
+B. Depth & Effects
+Glassomorphism: Subtle use of backdrop-filter with white opacity to create depth, especially on colored backgrounds.
+
+Shadows: Soft, diffused shadows with low opacity. Avoid harsh, black drop shadows. Use colored shadows (e.g., coral tint) for a premium feel.
+
+Gradients: Subtle gradients (e.g., Terracotta 500 to 600) to add dimension to flat colors.
+
+C. Iconography
+Style: Rounded, Filled, or Thick Stroke (2px+)
+
+Container: Icons often live inside containers with pastel backgrounds (e.g., Teal icon on Teal-50 background)
+
+Library: Material Design Rounded is the current standard

@@ -148,7 +148,7 @@ export default function RoomsPage() {
 
         {hasMore && (
            <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
-             {loading && <div className="w-8 h-8 border-4 border-slate-200 border-t-cyan-500 rounded-full animate-spin"></div>}
+             {loading && <div className="w-8 h-8 border-4 border-slate-200 border-t-terracotta-500 rounded-full animate-spin"></div>}
            </div>
         )}
       </main>

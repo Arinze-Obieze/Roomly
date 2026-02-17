@@ -75,7 +75,7 @@ export default function PropertyTypeFilter({ value, onChange }) {
                }`}
              >
                 Any Type
-                {(!value || value === 'any') && <MdCheck className="text-cyan-600" />}
+                {(!value || value === 'any') && <MdCheck className="text-terracotta-600" />}
              </button>
              {OPTIONS.map((opt) => (
                 <button

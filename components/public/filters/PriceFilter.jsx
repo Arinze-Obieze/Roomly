@@ -84,7 +84,7 @@ export default function PriceFilter({ minPrice, maxPrice, onChange }) {
                  min={MIN}
                  max={range[1]}
                  onChange={(e) => handleInputChange(0, e.target.value)}
-                 className="w-full pt-6 pb-2 pl-7 pr-3 border border-slate-300 rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none font-bold text-slate-900"
+                 className="w-full pt-6 pb-2 pl-7 pr-3 border border-slate-300 rounded-xl focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 outline-none font-bold text-slate-900"
                />
             </div>
             <div className="flex items-center text-slate-400">-</div>
@@ -97,7 +97,7 @@ export default function PriceFilter({ minPrice, maxPrice, onChange }) {
                  min={range[0]}
                  max={MAX}
                  onChange={(e) => handleInputChange(1, e.target.value)}
-                 className="w-full pt-6 pb-2 pl-7 pr-3 border border-slate-300 rounded-xl focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 outline-none font-bold text-slate-900"
+                 className="w-full pt-6 pb-2 pl-7 pr-3 border border-slate-300 rounded-xl focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 outline-none font-bold text-slate-900"
                />
             </div>
           </div>
