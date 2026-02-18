@@ -2,13 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
-import PasswordField from '../Forms/PasswordField';
+import { createClient } from '@/core/utils/supabase/client';
+import PasswordField from '../forms/PasswordField';
 
-import SubmitButton from '../Forms/SubmitButton';
+import SubmitButton from '../forms/SubmitButton';
 import toast from 'react-hot-toast';
-import { useAuth } from '@/hooks/useAuth';
-import AuthHeader from '../Layout/AuthHeader';
+import { useAuth } from '@/core/hooks/useAuth';
+import AuthHeader from '../layout/AuthHeader';
 
 export default function ResetPasswordPage() {
   const router = useRouter();

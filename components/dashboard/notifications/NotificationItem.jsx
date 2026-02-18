@@ -1,6 +1,6 @@
 "use client";
 
-import { useNotifications } from "@/contexts/NotificationsContext";
+import { useNotifications } from "@/core/contexts/NotificationsContext";
 import { useRouter } from "next/navigation";
 import { formatDistanceToNow } from "date-fns";
 import { 

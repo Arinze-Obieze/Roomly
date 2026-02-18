@@ -1,7 +1,7 @@
 'use client';
 
-import { useChat } from '@/contexts/ChatContext';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useChat } from '@/core/contexts/ChatContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdInbox, MdSend, MdImage } from 'react-icons/md';
 import { formatDistanceToNow } from 'date-fns';
 

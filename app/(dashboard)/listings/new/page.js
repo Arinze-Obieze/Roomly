@@ -1,6 +1,6 @@
 'use client';
 
-import CreateListingForm from '@/components/CreateListingForm';
+import CreateListingForm from '@/components/listings/CreateListingForm';
 import { useRouter } from 'next/navigation';
 
 export default function NewListingPage() {

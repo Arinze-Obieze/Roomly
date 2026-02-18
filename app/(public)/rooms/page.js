@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { usePropertiesWithFilters } from "@/hooks/usePropertiesWithFilters";
+import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters";
 
 // New Components
 import Navbar from "@/components/marketing/Navbar";

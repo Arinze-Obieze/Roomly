@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { MdAdd, MdFilterList, MdSearch } from 'react-icons/md';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import PostCard from './PostCard';
 import CreatePostModal from './CreatePostModal';
 import toast from 'react-hot-toast';

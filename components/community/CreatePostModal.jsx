@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { MdClose, MdImage } from 'react-icons/md';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/core/utils/supabase/client';
 import toast from 'react-hot-toast';
 
 const CATEGORIES = [

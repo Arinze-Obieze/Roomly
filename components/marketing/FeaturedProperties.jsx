@@ -1,6 +1,6 @@
 'use client';
 
-import { usePropertiesWithFilters } from "@/hooks/usePropertiesWithFilters";
+import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters";
 import { ListingCard } from "@/components/dashboard/ui/ListingCard";
 import Link from "next/link";
 import { MdArrowForward } from "react-icons/md";

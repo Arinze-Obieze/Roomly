@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
 

@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef } from "react";
-import { useProperties } from "@/contexts/PropertiesContext";
+import { useProperties } from "@/core/contexts/PropertiesContext";
 import { useFilters } from "@/components/dashboard/filters/useFilters";
 
 // Simple debounce function outside component to avoid recreation issues

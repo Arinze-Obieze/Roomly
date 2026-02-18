@@ -7,7 +7,7 @@ import {
   MdStorefront,
   MdGroups
 } from "react-icons/md";
-import { useChat } from "@/contexts/ChatContext";
+import { useChat } from "@/core/contexts/ChatContext";
 
 import { BottomNavItem } from "../ui/BottomNavItem";
 import { FaRegEdit } from "react-icons/fa";

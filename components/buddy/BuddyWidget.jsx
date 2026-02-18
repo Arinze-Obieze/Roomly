@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { createClient } from '@/core/utils/supabase/client';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import BuddyInviteCard from '@/components/dashboard/widgets/BuddyInviteCard';
 import CreateGroupModal from './CreateGroupModal';
 import { MdGroup, MdChatBubble, MdAdd } from 'react-icons/md';

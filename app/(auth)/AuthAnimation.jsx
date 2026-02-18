@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { useEffect, useState } from 'react';
 
 const FloatingOrb = ({ color, size, delay, duration, initialPos, moveRange }) => {
@@ -108,7 +109,13 @@ const RoomCard = ({ image, title, price, rating, match, delay, position }) => {
       }}
     >
       <div className="relative h-32 overflow-hidden">
-        <img src={image} alt={title} className="w-full h-full object-cover" />
+        <Image 
+          src={image} 
+          alt={title} 
+          fill
+          className="object-cover"
+          sizes="(max-width: 768px) 100vw, 256px"
+        />
         <div className="absolute top-2 right-2 bg-[#FF6B6B] text-white px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1" style={{ background: 'var(--color-terracotta-500)' }}>
           <span className="w-1.5 h-1.5 bg-white rounded-full"></span>
           {match}% match

@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { createClient } from '@/core/utils/supabase/client';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { ListingCard } from '@/components/dashboard/ui/ListingCard';
 import { useRouter } from 'next/navigation';
 import { MdFavoriteBorder } from 'react-icons/md';

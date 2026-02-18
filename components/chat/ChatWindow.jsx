@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { useChat } from '@/contexts/ChatContext';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useChat } from '@/core/contexts/ChatContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdSend, MdMoreVert, MdImage, MdArrowBack } from 'react-icons/md';
 import { format } from 'date-fns';
 

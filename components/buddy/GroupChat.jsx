@@ -2,8 +2,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { createClient } from '@/core/utils/supabase/client';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdSend, MdAttachFile } from 'react-icons/md';
 import { toast } from 'react-hot-toast';
 import dayjs from 'dayjs';

@@ -1,9 +1,9 @@
 'use client';
 
-import { FilterProvider } from "@/contexts/FilterContext";
-import { PropertiesProvider } from "@/contexts/PropertiesContext";
-import { SavedPropertiesProvider } from "@/contexts/SavedPropertiesContext";
-import { ChatProvider } from "@/contexts/ChatContext";
+import { FilterProvider } from "@/core/contexts/FilterContext";
+import { PropertiesProvider } from "@/core/contexts/PropertiesContext";
+import { SavedPropertiesProvider } from "@/core/contexts/SavedPropertiesContext";
+import { ChatProvider } from "@/core/contexts/ChatContext";
 
 export default function PublicLayout({ children }) {
   return (

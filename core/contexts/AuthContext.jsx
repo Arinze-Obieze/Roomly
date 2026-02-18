@@ -2,7 +2,7 @@
 
 import { useContext, useEffect, useState, useCallback } from 'react';
 import AuthContext from './auth-context';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/core/utils/supabase/client';
 
 export const useAuthContext = () => {
   const context = useContext(AuthContext);

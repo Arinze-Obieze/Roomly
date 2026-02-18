@@ -1,8 +1,8 @@
-// @/hooks/useAuth.js
+// @/core/hooks/useAuth.js
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);

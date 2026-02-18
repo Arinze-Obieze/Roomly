@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/core/utils/supabase/client';
 import { MdSave, MdFilterList, MdAttachMoney, MdEdit, MdCheck, MdLocationOn, MdWork, MdCalendarToday, MdClose } from 'react-icons/md';
 import { CITIES_TOWNS } from '@/data/locations';
 import toast from 'react-hot-toast';

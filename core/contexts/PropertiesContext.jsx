@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/core/utils/supabase/client";
 import { FaWifi, FaPaw, FaCar, FaShower, FaTree } from 'react-icons/fa';
 
 const PropertiesContext = createContext();

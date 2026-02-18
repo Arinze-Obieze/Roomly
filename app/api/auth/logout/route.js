@@ -1,13 +1,9 @@
-// app/api/auth/logout/route.js
-import { createClient } from '@/lib/supabase/server';
+import { AuthService } from '@/core/services/auth.service';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const supabase = await createClient();
-
-    // Sign out from Supabase (automatically clears cookies)
-    const { error } = await supabase.auth.signOut();
+    const { error } = await AuthService.logout();
 
     if (error) {
       console.error('Logout error:', error);

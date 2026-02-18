@@ -2,11 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import InputField from '../Forms/InputField';
-import AuthHeader from '../Layout/AuthHeader';
-import SubmitButton from '../Forms/SubmitButton';
+import InputField from '../forms/InputField';
+import AuthHeader from '../layout/AuthHeader';
+import SubmitButton from '../forms/SubmitButton';
 import toast from 'react-hot-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/core/hooks/useAuth';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();

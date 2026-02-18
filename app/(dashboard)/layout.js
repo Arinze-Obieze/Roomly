@@ -1,15 +1,15 @@
 "use client";
 
-import { FilterProvider } from "@/contexts/FilterContext";
-import { PropertiesProvider } from "@/contexts/PropertiesContext";
-import { SavedPropertiesProvider } from "@/contexts/SavedPropertiesContext";
-import { ChatProvider } from "@/contexts/ChatContext";
+import { FilterProvider } from "@/core/contexts/FilterContext";
+import { PropertiesProvider } from "@/core/contexts/PropertiesContext";
+import { SavedPropertiesProvider } from "@/core/contexts/SavedPropertiesContext";
+import { ChatProvider } from "@/core/contexts/ChatContext";
 import { 
   Header, 
   BottomNav
 } from "@/components/dashboard";
 
-import { NotificationsProvider } from "@/contexts/NotificationsContext";
+import { NotificationsProvider } from "@/core/contexts/NotificationsContext";
 
 export default function DashboardLayout({ children }) {
 

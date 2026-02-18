@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/core/utils/supabase/client';
 import PremiumSlider from '@/components/ui/PremiumSlider';
 import { MdSchedule, MdCleaningServices, MdPets, MdMusicNote, MdLocalBar, MdSmokeFree, MdCheck, MdArrowForward, MdArrowBack, MdEdit } from 'react-icons/md';
 import { FaCannabis } from 'react-icons/fa';

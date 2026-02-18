@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdEdit, MdCalendarToday } from 'react-icons/md';
 
 import Image from 'next/image';

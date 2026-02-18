@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { MdArrowForward } from 'react-icons/md';
 
 export default function CTABanner() {
@@ -9,8 +10,14 @@ export default function CTABanner() {
         {/* Social Proof Avatars */}
         <div className="flex justify-center -space-x-3 mb-8">
           {[1,2,3,4,5].map(i => (
-            <div key={i} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-4 border-white overflow-hidden bg-slate-100 shadow-xl">
-              <img src={`https://i.pravatar.cc/150?u=${i}`} alt="user" className="w-full h-full object-cover" />
+            <div key={i} className="w-10 h-10 md:w-12 md:h-12 rounded-full border-4 border-white overflow-hidden bg-slate-100 shadow-xl relative">
+              <Image 
+                src={`https://i.pravatar.cc/150?u=${i}`} 
+                alt="user" 
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 40px, 48px"
+              />
             </div>
           ))}
           <div className="w-10 h-10 md:w-12 md:h-12 rounded-full border-4 border-white bg-terracotta-500 flex items-center justify-center text-white text-[10px] md:text-xs font-bold shadow-xl">

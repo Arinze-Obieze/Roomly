@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from './AuthContext';
 import { toast } from 'react-hot-toast';
 

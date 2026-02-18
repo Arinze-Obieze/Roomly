@@ -10,10 +10,10 @@ import {
 } from "@/components/dashboard";
 import BuddyWidget from "@/components/buddy/BuddyWidget";
 import ProfileStrengthWidget from "@/components/dashboard/widgets/ProfileStrengthWidget";
-import { usePropertiesWithFilters } from "@/hooks/usePropertiesWithFilters";
+import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
-import { useAuthContext } from "@/contexts/AuthContext";
+import { useAuthContext } from "@/core/contexts/AuthContext";
 
 export default function HomeDashboard() {
   const router = useRouter();

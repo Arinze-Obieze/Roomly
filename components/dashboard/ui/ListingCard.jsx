@@ -1,5 +1,5 @@
-import { useAuthContext } from "@/contexts/AuthContext";
-import { useSavedProperties } from "@/contexts/SavedPropertiesContext";
+import { useAuthContext } from "@/core/contexts/AuthContext";
+import { useSavedProperties } from "@/core/contexts/SavedPropertiesContext";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -49,7 +49,7 @@ export const ListingCard = ({ data, onSelect }) => {
 
     setSharing(true);
     try {
-        const { createClient } = require('@/lib/supabase/client');
+        const { createClient } = require('@/core/utils/supabase/client');
         const supabase = createClient();
         
         const { data: member } = await supabase

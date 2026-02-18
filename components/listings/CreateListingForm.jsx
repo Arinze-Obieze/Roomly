@@ -1,8 +1,8 @@
 
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/core/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { 
   MdHome, 
@@ -18,18 +18,18 @@ import {
   MdCalendarToday
 } from 'react-icons/md';
 
-import Stepper from './Forms/Stepper';
-import FooterNav from './Forms/FooterNav';
+import Stepper from '../forms/Stepper';
+import FooterNav from '../forms/FooterNav';
 
 // Sub-forms
-import BasicsForm from './Forms/Listing/BasicsForm';
-import PropertyForm from './Forms/Listing/PropertyForm';
-import LocationForm from './Forms/Listing/LocationForm';
-import FinancialsForm from './Forms/Listing/FinancialsForm';
-import AmenitiesForm from './Forms/Listing/AmenitiesForm';
-import PreferencesForm from './Forms/Listing/PreferencesForm';
-import AvailabilityForm from './Forms/Listing/AvailabilityForm';
-import MediaUpload from './Forms/MediaUpload'; // Reuse existing if possible, or refactor
+import BasicsForm from '../forms/Listing/BasicsForm';
+import PropertyForm from '../forms/Listing/PropertyForm';
+import LocationForm from '../forms/Listing/LocationForm';
+import FinancialsForm from '../forms/Listing/FinancialsForm';
+import AmenitiesForm from '../forms/Listing/AmenitiesForm';
+import PreferencesForm from '../forms/Listing/PreferencesForm';
+import AvailabilityForm from '../forms/Listing/AvailabilityForm';
+import MediaUpload from '../forms/MediaUpload'; // Reuse existing if possible, or refactor
 // Note: We might need to split Photos from Availability or combine them.
 // The reference flow had "Photos" likely mixed in or as a separate step.
 // The plan said 7 steps: Basics, Property, Location, Financials, Amenities, Preferences, Availability.

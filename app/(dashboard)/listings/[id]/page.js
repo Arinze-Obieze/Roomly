@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/core/utils/supabase/client';
 import { MdLocationOn, MdVerified } from 'react-icons/md';
-import { useChat } from '@/contexts/ChatContext';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useChat } from '@/core/contexts/ChatContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import toast from 'react-hot-toast';
 
 // Components

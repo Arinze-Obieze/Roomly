@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { MdKeyboardArrowUp, MdKeyboardArrowDown, MdChatBubbleOutline, MdShare, MdReport, MdDelete } from 'react-icons/md';
 import { formatDistanceToNow } from 'date-fns';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import CommentSection from './CommentSection';
 import toast from 'react-hot-toast';
 

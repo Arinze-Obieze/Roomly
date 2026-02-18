@@ -19,11 +19,11 @@ import {
 } from "react-icons/md";
 import { FaRegEdit } from "react-icons/fa";
 import { HeaderNavItem } from "@/components/dashboard/ui/HeaderNavItem";
-import { useAuthContext } from "@/contexts/AuthContext";
-import { useChat } from "@/contexts/ChatContext";
+import { useAuthContext } from "@/core/contexts/AuthContext";
+import { useChat } from "@/core/contexts/ChatContext";
 import { useFilters } from "@/components/dashboard/filters/useFilters";
 
-import { useNotifications } from "@/contexts/NotificationsContext";
+import { useNotifications } from "@/core/contexts/NotificationsContext";
 import NotificationList from "../notifications/NotificationList";
 import Link from "next/link";
 import Image from "next/image";

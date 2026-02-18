@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/core/utils/supabase/client';
 import { MdVerified, MdPerson, MdLocationOn, MdCalendarToday, MdArrowBack } from 'react-icons/md';
 import { ListingCard } from '@/components/dashboard/ui/ListingCard';
 import toast from 'react-hot-toast';

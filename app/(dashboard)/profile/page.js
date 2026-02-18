@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { createClient } from '@/lib/supabase/client';
+import { useAuthContext } from '@/core/contexts/AuthContext';
+import { createClient } from '@/core/utils/supabase/client';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import ProfileView from '@/components/profile/ProfileView';
 import ProfileForm from '@/components/profile/ProfileForm';

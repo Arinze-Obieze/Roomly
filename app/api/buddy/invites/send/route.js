@@ -1,7 +1,7 @@
 
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
-import { sendBuddyInvite } from '@/lib/email';
+import { sendBuddyInvite } from '@/core/utils/email';
 import crypto from 'crypto';
 
 export async function POST(request) {

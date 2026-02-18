@@ -1,6 +1,6 @@
 'use client';
 
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdEmail, MdPhone, MdPerson, MdCalendarToday } from 'react-icons/md';
 
 export default function ProfileView() {

@@ -5,12 +5,12 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useRouter } from 'next/navigation';
-import InputField from '../Forms/InputField';
-import PasswordField from '../Forms/PasswordField';
-import AuthHeader from '../Layout/AuthHeader';
-import SubmitButton from '../Forms/SubmitButton';
+import InputField from '../forms/InputField';
+import PasswordField from '../forms/PasswordField';
+import AuthHeader from '../layout/AuthHeader';
+import SubmitButton from '../forms/SubmitButton';
 import toast from 'react-hot-toast';
-import { useAuth } from '@/hooks/useAuth';
+import { useAuth } from '@/core/hooks/useAuth';
 
 // Zod Schema
 const loginSchema = z.object({

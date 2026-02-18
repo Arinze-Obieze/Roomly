@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ChatList } from '@/components/chat/ChatList';
 import { ChatWindow } from '@/components/chat/ChatWindow';
-import { useChat } from '@/contexts/ChatContext';
+import { useChat } from '@/core/contexts/ChatContext';
 
 export default function MessagesPage() {
     // Basic state for the page - actual chat state is in Context

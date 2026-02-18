@@ -1,6 +1,11 @@
 'use client';
 
-import AuthAnimation from './AuthAnimation';
+import dynamic from 'next/dynamic';
+
+const AuthAnimation = dynamic(() => import('./AuthAnimation'), {
+  ssr: false,
+  loading: () => <div className="w-full h-full bg-gray-900" />,
+});
 
 export default function AuthLayout({ children, side = 'left' }) {
   return (

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import { MdMenu, MdClose } from 'react-icons/md';
 import Image from 'next/image';

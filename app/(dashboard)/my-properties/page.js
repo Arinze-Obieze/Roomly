@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { createClient } from '@/lib/supabase/client';
+import { useAuthContext } from '@/core/contexts/AuthContext';
+import { createClient } from '@/core/utils/supabase/client';
 import MyListingCard from '@/components/dashboard/MyListingCard';
-import CreateListingForm from '@/components/CreateListingForm';
+import CreateListingForm from '@/components/listings/CreateListingForm';
 import { MdAddCircleOutline, MdSentimentDissatisfied } from 'react-icons/md';
 
 export default function MyPropertiesPage() {

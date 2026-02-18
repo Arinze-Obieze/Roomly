@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/core/utils/supabase/client';
 import { MdCheckCircle, MdCancel, MdInfo, MdWarning } from 'react-icons/md';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 
 export default function VibeMatchCard({ property }) {
   const { user } = useAuthContext();

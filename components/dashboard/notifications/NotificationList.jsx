@@ -1,6 +1,6 @@
 "use client";
 
-import { useNotifications } from "@/contexts/NotificationsContext";
+import { useNotifications } from "@/core/contexts/NotificationsContext";
 import NotificationItem from "./NotificationItem";
 import { MdDoneAll, MdNotificationsNone } from "react-icons/md";
 

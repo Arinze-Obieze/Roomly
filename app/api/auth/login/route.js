@@ -1,26 +1,23 @@
-// app/api/auth/login/route.js
-import { createClient } from '@/lib/supabase/server';
+import { AuthService } from '@/core/services/auth.service';
+import { loginSchema } from '@/core/validations/auth.schema';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
   try {
-    const { email, password } = await request.json();
-
-    if (!email || !password) {
+    const body = await request.json();
+    
+    // Validate input
+    const validation = loginSchema.safeParse(body);
+    if (!validation.success) {
       return NextResponse.json(
-        { error: 'Email and password are required' },
+        { error: validation.error.errors[0].message },
         { status: 400 }
       );
     }
 
-    // Use the SSR createClient helper that handles cookies automatically
-    const supabase = await createClient();
+    const { email, password } = validation.data;
 
-    // Sign in with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { data, error } = await AuthService.login(email, password);
 
     if (error) {
       console.error('Supabase login error:', error);
@@ -30,8 +27,6 @@ export async function POST(request) {
       );
     }
 
-    // The SSR client automatically sets the cookies
-    // Just return the user data
     return NextResponse.json({
       user: {
         id: data.user.id,

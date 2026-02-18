@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdSave, MdCameraAlt } from 'react-icons/md';
-import { createClient } from '@/lib/supabase/client';
+import { createClient } from '@/core/utils/supabase/client';
 import toast from 'react-hot-toast';
 
 export default function ProfileForm({ onCancel }) {

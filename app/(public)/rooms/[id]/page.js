@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MdLocationOn, MdVerified } from 'react-icons/md';
-import { useChat } from '@/contexts/ChatContext';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { useSavedProperties } from '@/contexts/SavedPropertiesContext';
+import { useChat } from '@/core/contexts/ChatContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
+import { useSavedProperties } from '@/core/contexts/SavedPropertiesContext';
 import toast from 'react-hot-toast';
 
 // Components
