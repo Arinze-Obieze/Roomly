@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { MdClose, MdImage } from 'react-icons/md';
+import { motion } from 'framer-motion';
+import { MdClose, MdImage, MdAddPhotoAlternate } from 'react-icons/md';
 import { createClient } from '@/core/utils/supabase/client';
 import toast from 'react-hot-toast';
 
@@ -41,20 +42,17 @@ export default function CreatePostModal({ onClose, onCreated }) {
       let image_url = null;
       const supabase = createClient();
       
-      // Upload Image if present
       if (formData.image) {
         const fileName = `community/${Date.now()}-${Math.random().toString(36).substring(7)}`;
         const { error: uploadError } = await supabase.storage
-          .from('property-media') // Reusing existing bucket or create 'community-media'
+          .from('property-media')
           .upload(fileName, formData.image);
 
         if (uploadError) throw uploadError;
         
-        // Get public URL
         image_url = supabase.storage.from('property-media').getPublicUrl(fileName).data.publicUrl;
       }
 
-      // Create Post
       const res = await fetch('/api/community/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,39 +80,60 @@ export default function CreatePostModal({ onClose, onCreated }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl w-full max-w-lg shadow-xl overflow-hidden animate-in zoom-in-95">
-        <div className="flex items-center justify-between p-4 border-b border-slate-100">
-          <h2 className="text-lg font-bold text-slate-900">Create New Post</h2>
-          <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full text-slate-500 transition-colors">
+    <motion.div 
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-navy-950/50 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      <motion.div 
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+        className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden border border-navy-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-navy-100">
+          <h2 className="text-lg font-heading font-bold text-navy-950">Create New Post</h2>
+          
+          <motion.button 
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={onClose} 
+            className="p-2 hover:bg-navy-50 rounded-full text-navy-500 transition-colors"
+          >
             <MdClose size={20} />
-          </button>
+          </motion.button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+            <label className="block text-sm font-heading font-bold text-navy-950 mb-1">Category</label>
             <div className="grid grid-cols-2 gap-2">
               {CATEGORIES.map(cat => (
-                <button
+                <motion.button
                   key={cat.value}
                   type="button"
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   onClick={() => setFormData(prev => ({ ...prev, category: cat.value }))}
                   className={`p-3 rounded-xl border text-left text-sm transition-all flex items-center gap-2 ${
                     formData.category === cat.value
-                      ? 'border-cyan-500 bg-cyan-50 text-cyan-700 ring-1 ring-cyan-500'
-                      : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                      ? 'border-terracotta-500 bg-terracotta-50 text-terracotta-700 ring-1 ring-terracotta-500'
+                      : 'border-navy-200 hover:border-navy-300 text-navy-600'
                   }`}
                 >
                   <span>{cat.icon}</span>
-                  <span className="font-medium">{cat.label}</span>
-                </button>
+                  <span className="font-heading font-medium">{cat.label}</span>
+                </motion.button>
               ))}
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Title</label>
+            <label className="block text-sm font-heading font-bold text-navy-950 mb-1">Title</label>
             <input
               type="text"
               name="title"
@@ -122,12 +141,12 @@ export default function CreatePostModal({ onClose, onCreated }) {
               placeholder="Give your post a catchy title"
               value={formData.title}
               onChange={handleChange}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500"
+              className="w-full px-4 py-2 rounded-xl border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500 font-sans placeholder-navy-400"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">City</label>
+            <label className="block text-sm font-heading font-bold text-navy-950 mb-1">City</label>
             <input
               type="text"
               name="city"
@@ -135,12 +154,12 @@ export default function CreatePostModal({ onClose, onCreated }) {
               placeholder="e.g. Dublin, Cork"
               value={formData.city}
               onChange={handleChange}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500"
+              className="w-full px-4 py-2 rounded-xl border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500 font-sans placeholder-navy-400"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Content</label>
+            <label className="block text-sm font-heading font-bold text-navy-950 mb-1">Content</label>
             <textarea
               name="content"
               required
@@ -148,30 +167,48 @@ export default function CreatePostModal({ onClose, onCreated }) {
               placeholder="Share your thoughts, tips, or event details..."
               value={formData.content}
               onChange={handleChange}
-              className="w-full px-4 py-2 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500 resize-none"
+              className="w-full px-4 py-2 rounded-xl border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500 resize-none font-sans placeholder-navy-400"
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Image (Optional)</label>
-            <div className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-colors ${formData.image ? 'border-cyan-500 bg-cyan-50' : 'border-slate-200 hover:border-cyan-300'}`} onClick={() => document.getElementById('post-image').click()}>
+            <label className="block text-sm font-heading font-bold text-navy-950 mb-1">Image (Optional)</label>
+            <motion.div 
+              whileHover={{ scale: 1.01 }}
+              className={`border-2 border-dashed rounded-xl p-4 text-center cursor-pointer transition-all ${
+                formData.image ? 'border-terracotta-500 bg-terracotta-50' : 'border-navy-200 hover:border-terracotta-300'
+              }`} 
+              onClick={() => document.getElementById('post-image').click()}
+            >
               <input type="file" id="post-image" accept="image/*" className="hidden" onChange={handleImageChange} />
-              <div className="flex flex-col items-center gap-1 text-sm text-slate-500">
-                <MdImage size={24} className={formData.image ? 'text-cyan-600' : 'text-slate-400'} />
-                <span>{formData.image ? formData.image.name : 'Click to upload image'}</span>
+              <div className="flex flex-col items-center gap-1 text-sm text-navy-500">
+                {formData.image ? (
+                  <>
+                    <MdAddPhotoAlternate size={24} className="text-terracotta-500" />
+                    <span className="font-heading text-terracotta-600">{formData.image.name}</span>
+                  </>
+                ) : (
+                  <>
+                    <MdImage size={24} className="text-navy-400" />
+                    <span className="font-sans">Click to upload image</span>
+                    <span className="text-xs text-navy-400">PNG, JPG up to 5MB</span>
+                  </>
+                )}
               </div>
-            </div>
+            </motion.div>
           </div>
 
-          <button
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-slate-900 text-white rounded-xl font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50"
+            className="w-full py-3 bg-terracotta-500 text-white rounded-xl font-heading font-semibold hover:bg-terracotta-600 transition-all shadow-lg shadow-terracotta-500/20 disabled:opacity-50"
           >
             {loading ? 'Posting...' : 'Create Post'}
-          </button>
+          </motion.button>
         </form>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }

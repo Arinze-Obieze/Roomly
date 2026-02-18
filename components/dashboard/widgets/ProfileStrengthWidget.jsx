@@ -1,11 +1,11 @@
-
 'use client';
 
 import { useState, useEffect } from 'react';
 import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { MdCheckCircle, MdArrowForward, MdBolt } from 'react-icons/md';
+import { MdCheckCircle, MdArrowForward, MdBolt, MdPerson, MdStyle, MdTune } from 'react-icons/md';
+import { motion } from 'framer-motion';
 
 export default function ProfileStrengthWidget() {
   const { user } = useAuthContext();
@@ -42,101 +42,148 @@ export default function ProfileStrengthWidget() {
     }
   };
 
-  if (!user || data.loading) return null; // Or skeleton
+  if (!user || data.loading) return null;
 
   // Calculate Score
   const hasAvatar = user?.profile_picture || user?.avatar_url || user?.user_metadata?.avatar_url;
   const hasBio = user?.bio || user?.user_metadata?.bio;
   
-  // Basic Profile (33%)
-  let score = 15; // Base for Email Verified
+  let score = 15;
   if (hasAvatar) score += 10;
   if (hasBio) score += 8;
-
-  // Lifestyle (33%)
   if (data.lifestyle) score += 33;
-  
-  // Preferences (34%)
   if (data.preferences) score += 34;
 
-  const isComplete = score >= 99; // 99 or 100 handles rounding
+  const isComplete = score >= 99;
+
+  const getScoreColor = () => {
+    if (score < 40) return 'bg-terracotta-500';
+    if (score < 70) return 'bg-yellow-400';
+    return 'bg-teal-500';
+  };
+
+  const getScoreText = () => {
+    if (score < 40) return 'Needs work';
+    if (score < 70) return 'Getting there';
+    if (score < 99) return 'Almost done';
+    return 'Complete!';
+  };
+
+  const missingItems = [];
+  if (!hasAvatar) missingItems.push('photo');
+  if (!hasBio) missingItems.push('bio');
+  if (!data.lifestyle) missingItems.push('lifestyle');
+  if (!data.preferences) missingItems.push('preferences');
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
-        <div className="flex items-center justify-between mb-4">
-            <h3 className="font-bold text-slate-900 flex items-center gap-2">
-                <MdBolt className="text-yellow-500" />
-                Profile Strength
-            </h3>
-            <div className="flex items-center gap-2">
-               <button onClick={fetchData} className="p-1 hover:bg-slate-100 rounded-full transition-colors" title="Refresh Score">
-                  <svg className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-               </button>
-               <span className={`text-sm font-bold ${isComplete ? 'text-green-500' : 'text-slate-900'}`}>{score}%</span>
-            </div>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white rounded-3xl border border-navy-100 p-5 shadow-sm"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className="p-1.5 bg-terracotta-50 rounded-lg">
+            <MdBolt className="text-terracotta-500" size={16} />
+          </div>
+          <h3 className="font-heading font-bold text-navy-950">Profile Strength</h3>
         </div>
-
-        {/* Progress Bar */}
-        <div className="w-full h-2 bg-slate-100 rounded-full mb-6 overflow-hidden">
-            <div 
-                className={`h-full rounded-full transition-all duration-1000 ease-out ${
-                    score < 40 ? 'bg-red-400' : score < 80 ? 'bg-yellow-400' : 'bg-green-500'
-                }`}
-                style={{ width: `${score}%` }}
-            />
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-medium text-navy-500">{getScoreText()}</span>
+          <span className={`text-sm font-heading font-bold ${isComplete ? 'text-teal-600' : 'text-navy-950'}`}>{score}%</span>
         </div>
+      </div>
 
-        {isComplete ? (
-            <div className="bg-green-50 text-green-700 p-4 rounded-2xl flex items-center gap-3 text-sm font-medium">
-                <MdCheckCircle className="text-xl shrink-0" />
-                You're all set! Your profile is optimised.
-            </div>
-        ) : (
-            <div className="space-y-3">
-                {(!hasAvatar || !hasBio) && (
-                     <button 
-                        onClick={() => router.push('/profile')}
-                        className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-slate-400 hover:bg-slate-50 group transition-all text-left"
-                    >
-                        <div>
-                            <div className="text-sm font-bold text-slate-900 group-hover:text-slate-800">Complete Basic Info</div>
-                            <div className="text-xs text-slate-500">
-                                {(!hasAvatar && !hasBio) ? 'Add Photo & Bio' : !hasAvatar ? 'Add Profile Photo' : 'Add Bio'} (+18%)
-                            </div>
-                        </div>
-                        <MdArrowForward className="text-slate-300 group-hover:text-slate-500" />
-                    </button>
-                )}
+      {/* Progress Bar */}
+      <div className="w-full h-2 bg-navy-100 rounded-full mb-5 overflow-hidden">
+        <motion.div 
+          initial={{ width: 0 }}
+          animate={{ width: `${score}%` }}
+          transition={{ duration: 1, ease: "easeOut" }}
+          className={`h-full rounded-full ${getScoreColor()}`}
+        />
+      </div>
 
-                {!data.lifestyle && (
-                    <button 
-                        onClick={() => router.push('/profile?tab=lifestyle')}
-                        className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-cyan-500 hover:bg-cyan-50/50 group transition-all text-left"
-                    >
-                        <div>
-                            <div className="text-sm font-bold text-slate-900 group-hover:text-cyan-700">Complete Lifestyle Quiz</div>
-                            <div className="text-xs text-slate-500">+33% match accuracy</div>
-                        </div>
-                        <MdArrowForward className="text-slate-300 group-hover:text-cyan-500" />
-                    </button>
-                )}
+      {isComplete ? (
+        <div className="bg-teal-50 text-teal-700 p-4 rounded-xl flex items-center gap-3 text-sm font-medium border border-teal-100">
+          <MdCheckCircle className="text-xl shrink-0 text-teal-600" />
+          <span className="font-sans">Your profile is optimised! You'll get more responses.</span>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {!hasAvatar && (
+            <button 
+              onClick={() => router.push('/profile')}
+              className="w-full flex items-center justify-between p-3 rounded-xl border border-navy-200 hover:border-terracotta-200 hover:bg-terracotta-50/50 group transition-all text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-navy-100 rounded-lg group-hover:bg-white transition-colors">
+                  <MdPerson className="text-navy-500 group-hover:text-terracotta-500" size={16} />
+                </div>
+                <div>
+                  <div className="text-sm font-heading font-bold text-navy-950">Add profile photo</div>
+                  <div className="text-xs text-navy-500">+10% match accuracy</div>
+                </div>
+              </div>
+              <MdArrowForward className="text-navy-300 group-hover:text-terracotta-500" />
+            </button>
+          )}
 
-                {!data.preferences && (
-                     <button 
-                        onClick={() => router.push('/profile?tab=preferences')}
-                        className="w-full flex items-center justify-between p-3 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 group transition-all text-left"
-                    >
-                        <div>
-                            <div className="text-sm font-bold text-slate-900 group-hover:text-indigo-700">Set Ideal Roommate</div>
-                            <div className="text-xs text-slate-500">+34% match accuracy</div>
-                        </div>
-                        <MdArrowForward className="text-slate-300 group-hover:text-indigo-500" />
-                    </button>
-                )}
-            </div>
-        )}
-    </div>
+          {!hasBio && (
+            <button 
+              onClick={() => router.push('/profile')}
+              className="w-full flex items-center justify-between p-3 rounded-xl border border-navy-200 hover:border-terracotta-200 hover:bg-terracotta-50/50 group transition-all text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-navy-100 rounded-lg group-hover:bg-white transition-colors">
+                  <MdPerson className="text-navy-500 group-hover:text-terracotta-500" size={16} />
+                </div>
+                <div>
+                  <div className="text-sm font-heading font-bold text-navy-950">Add bio</div>
+                  <div className="text-xs text-navy-500">+8% match accuracy</div>
+                </div>
+              </div>
+              <MdArrowForward className="text-navy-300 group-hover:text-terracotta-500" />
+            </button>
+          )}
+
+          {!data.lifestyle && (
+            <button 
+              onClick={() => router.push('/profile?tab=lifestyle')}
+              className="w-full flex items-center justify-between p-3 rounded-xl border border-navy-200 hover:border-terracotta-200 hover:bg-terracotta-50/50 group transition-all text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-navy-100 rounded-lg group-hover:bg-white transition-colors">
+                  <MdStyle className="text-navy-500 group-hover:text-terracotta-500" size={16} />
+                </div>
+                <div>
+                  <div className="text-sm font-heading font-bold text-navy-950">Complete lifestyle quiz</div>
+                  <div className="text-xs text-navy-500">+33% match accuracy</div>
+                </div>
+              </div>
+              <MdArrowForward className="text-navy-300 group-hover:text-terracotta-500" />
+            </button>
+          )}
+
+          {!data.preferences && (
+            <button 
+              onClick={() => router.push('/profile?tab=preferences')}
+              className="w-full flex items-center justify-between p-3 rounded-xl border border-navy-200 hover:border-terracotta-200 hover:bg-terracotta-50/50 group transition-all text-left"
+            >
+              <div className="flex items-center gap-3">
+                <div className="p-1.5 bg-navy-100 rounded-lg group-hover:bg-white transition-colors">
+                  <MdTune className="text-navy-500 group-hover:text-terracotta-500" size={16} />
+                </div>
+                <div>
+                  <div className="text-sm font-heading font-bold text-navy-950">Set roommate preferences</div>
+                  <div className="text-xs text-navy-500">+34% match accuracy</div>
+                </div>
+              </div>
+              <MdArrowForward className="text-navy-300 group-hover:text-terracotta-500" />
+            </button>
+          )}
+        </div>
+      )}
+    </motion.div>
   );
 }

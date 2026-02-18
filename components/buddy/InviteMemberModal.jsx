@@ -39,7 +39,7 @@ export default function InviteMemberModal({ isOpen, onClose, groupId }) {
       <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-            <span className="p-2 bg-cyan-50 rounded-full text-cyan-600">
+            <span className="p-2 bg-terracotta-50 rounded-full text-terracotta-600">
               <MdMail />
             </span>
             Invite Friend
@@ -58,7 +58,7 @@ export default function InviteMemberModal({ isOpen, onClose, groupId }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="friend@example.com"
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 outline-none font-medium"
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none font-medium"
               required
             />
           </div>
@@ -74,7 +74,7 @@ export default function InviteMemberModal({ isOpen, onClose, groupId }) {
             <button 
               type="submit" 
               disabled={loading}
-              className="flex-1 bg-cyan-600 text-white font-bold py-3 rounded-xl hover:bg-cyan-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 bg-terracotta-600 text-white font-bold py-3 rounded-xl hover:bg-terracotta-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {loading ? 'Sending...' : 'Send Invite'}
             </button>

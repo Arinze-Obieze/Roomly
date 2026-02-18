@@ -1,4 +1,3 @@
-import { MdCheck, MdClose } from 'react-icons/md';
 import SelectionCard from '../SelectionCard';
 import { OCCUPATION_PREFERENCES, GENDER_PREFERENCES, LIFESTYLE_PRIORITIES, DEAL_BREAKERS } from '@/data/listingOptions';
 
@@ -15,7 +14,7 @@ export default function PreferencesForm({ formData, handleChange }) {
       
       {/* Occupation */}
       <div>
-        <label className="block text-sm font-semibold text-navy-950 mb-3">Ideally, who are you looking for?</label>
+        <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Ideally, who are you looking for?</label>
         <div className="grid grid-cols-3 gap-3">
             {OCCUPATION_PREFERENCES.map(pref => (
                  <SelectionCard
@@ -24,8 +23,10 @@ export default function PreferencesForm({ formData, handleChange }) {
                     onClick={() => handleChange('occupation_preference', pref.value)}
                     className="flex flex-col items-center gap-2 text-center"
                 >
-                    <pref.icon className={formData.occupation_preference === pref.value ? 'text-terracotta-600' : 'text-slate-400'} size={24} />
-                    <span className={`text-sm font-bold ${formData.occupation_preference === pref.value ? 'text-terracotta-900' : 'text-slate-700'}`}>{pref.label}</span>
+                    <pref.icon className={formData.occupation_preference === pref.value ? 'text-terracotta-600' : 'text-navy-400'} size={24} />
+                    <span className={`text-sm font-heading font-bold ${
+                      formData.occupation_preference === pref.value ? 'text-terracotta-900' : 'text-navy-700'
+                    }`}>{pref.label}</span>
                  </SelectionCard>
             ))}
         </div>
@@ -34,17 +35,17 @@ export default function PreferencesForm({ formData, handleChange }) {
       {/* Age & Gender */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
          <div>
-            <label className="block text-sm font-semibold text-slate-900 mb-3">Gender Preference</label>
-            <div className="flex bg-slate-100 p-1 rounded-xl">
+            <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Gender Preference</label>
+            <div className="flex bg-navy-100 p-1 rounded-xl">
                  {GENDER_PREFERENCES.map(g => (
                      <button
                         key={g.value}
                         type="button"
                         onClick={() => handleChange('gender_preference', g.value)}
-                        className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${
+                        className={`flex-1 py-2 text-sm font-heading font-medium rounded-lg transition-all ${
                             formData.gender_preference === g.value
-                            ? 'bg-white text-slate-900 shadow-sm'
-                            : 'text-slate-500 hover:text-slate-700'
+                            ? 'bg-white text-navy-950 shadow-sm'
+                            : 'text-navy-500 hover:text-navy-700'
                         }`}
                      >
                         {g.label}
@@ -53,29 +54,28 @@ export default function PreferencesForm({ formData, handleChange }) {
             </div>
          </div>
          <div>
-             <label className="block text-sm font-semibold text-slate-900 mb-3">Age Range</label>
-             <div className="bg-white border boundary-slate-200 rounded-xl px-4 py-3 flex items-center justify-between">
-                <span className="text-slate-500 text-sm">Min: 18</span>
-                <span className="font-bold text-slate-900">
+             <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Age Range</label>
+             <div className="bg-white border border-navy-200 rounded-xl px-4 py-3 flex items-center justify-between">
+                <span className="text-navy-500 text-sm font-sans">Min: 18</span>
+                <span className="font-heading font-bold text-navy-950">
                     {(formData.age_min || 18)} - {(formData.age_max || 99)}+
                 </span>
-                <span className="text-slate-500 text-sm">Max: 99</span>
+                <span className="text-navy-500 text-sm font-sans">Max: 99</span>
              </div>
-             {/* Note: Dual range slider needs a complex component, simplifying with dual inputs or just a display for now */}
               <div className="grid grid-cols-2 gap-2 mt-2">
                  <input 
                     type="number" 
                     placeholder="Min"
                     value={formData.age_min || ''}
                     onChange={(e) => handleChange('age_min', e.target.value)}
-                    className="px-3 py-2 border rounded-lg text-sm"
+                    className="px-3 py-2 border border-navy-200 rounded-lg text-sm font-sans focus:ring-2 focus:ring-terracotta-500 outline-none placeholder-navy-400"
                  />
                  <input 
                     type="number" 
                     placeholder="Max"
                     value={formData.age_max || ''}
                     onChange={(e) => handleChange('age_max', e.target.value)}
-                    className="px-3 py-2 border rounded-lg text-sm"
+                    className="px-3 py-2 border border-navy-200 rounded-lg text-sm font-sans focus:ring-2 focus:ring-terracotta-500 outline-none placeholder-navy-400"
                  />
               </div>
          </div>
@@ -83,8 +83,8 @@ export default function PreferencesForm({ formData, handleChange }) {
 
       {/* Deal Breakers */}
       <div>
-         <label className="block text-sm font-semibold text-slate-900 mb-3">Deal-breakers</label>
-         <p className="text-sm text-slate-500 mb-3">Select any absolute no-go factors</p>
+         <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Deal-breakers</label>
+         <p className="text-sm text-navy-500 mb-3 font-sans">Select any absolute no-go factors</p>
          <div className="flex flex-wrap gap-3">
             {DEAL_BREAKERS.map(breaker => {
                 const isSelected = (formData.deal_breakers || []).includes(breaker.id);
@@ -99,10 +99,10 @@ export default function PreferencesForm({ formData, handleChange }) {
                                 : [...current, breaker.id];
                             handleChange('deal_breakers', updated);
                         }}
-                        className={`px-4 py-2 rounded-xl border transition-all text-sm font-medium ${
+                        className={`px-4 py-2 rounded-xl border transition-all text-sm font-heading font-medium ${
                             isSelected
-                            ? 'bg-rose-50 border-rose-200 text-rose-700'
-                            : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                            ? 'bg-terracotta-50 border-terracotta-200 text-terracotta-700'
+                            : 'bg-white border-navy-200 text-navy-500 hover:border-navy-300'
                         }`}
                     >
                         {breaker.label}
@@ -114,11 +114,11 @@ export default function PreferencesForm({ formData, handleChange }) {
 
       {/* Lifestyle Priorities */}
       <div>
-         <label className="block text-sm font-semibold text-slate-900 mb-4">Lifestyle Matching</label>
+         <label className="block text-sm font-heading font-bold text-navy-950 mb-4">Lifestyle Matching</label>
          <div className="space-y-4">
             {LIFESTYLE_PRIORITIES.map(factor => (
-                <div key={factor.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-50 last:border-0">
-                    <span className="font-medium text-slate-700">{factor.label}</span>
+                <div key={factor.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-navy-100 last:border-0">
+                    <span className="font-heading font-medium text-navy-700">{factor.label}</span>
                     <div className="flex gap-2">
                         {['must_match', 'nice_to_have', 'not_important'].map(opt => {
                              const current = (formData.lifestyle_priorities || {})[factor.id] || 'not_important';
@@ -128,12 +128,12 @@ export default function PreferencesForm({ formData, handleChange }) {
                                     key={opt}
                                     type="button"
                                     onClick={() => updateLifestylePriority(factor.id, opt)}
-                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-heading font-medium border transition-all ${
                                         isSelected 
-                                        ? opt === 'must_match' ? 'bg-rose-50 border-rose-200 text-rose-700' 
-                                          : opt === 'nice_to_have' ? 'bg-blue-50 border-blue-200 text-blue-700'
-                                          : 'bg-slate-100 border-slate-200 text-slate-600'
-                                        : 'bg-white border-slate-100 text-slate-400 hover:border-slate-200'
+                                        ? opt === 'must_match' ? 'bg-terracotta-50 border-terracotta-200 text-terracotta-700' 
+                                          : opt === 'nice_to_have' ? 'bg-teal-50 border-teal-200 text-teal-700'
+                                          : 'bg-navy-100 border-navy-200 text-navy-600'
+                                        : 'bg-white border-navy-200 text-navy-400 hover:border-navy-300'
                                     }`}
                                 >
                                     {opt === 'must_match' ? 'Must Match' : opt === 'nice_to_have' ? 'Nice to have' : 'Not important'}
@@ -148,13 +148,13 @@ export default function PreferencesForm({ formData, handleChange }) {
 
       {/* Flatmate Description */}
       <div>
-        <label className="block text-sm font-semibold text-slate-900 mb-2">Ideal Flatmate Description</label>
+        <label className="block text-sm font-heading font-bold text-navy-950 mb-2">Ideal Flatmate Description</label>
         <textarea
             value={formData.partner_description || ''}
             onChange={(e) => handleChange('partner_description', e.target.value)}
             placeholder="Describe the perfect person for this room..."
             rows={4}
-            className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none resize-none"
+            className="w-full px-4 py-3 rounded-xl border border-navy-200 focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none resize-none font-sans placeholder-navy-400"
         />
       </div>
 

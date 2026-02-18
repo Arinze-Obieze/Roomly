@@ -54,9 +54,6 @@ export default function BuddyDashboard({ group }) {
             .order('created_at', { ascending: false });
         
        if (data) {
-           // Dedup properties by ID if shared multiple times? 
-           // For now, let's show all shares (chronological). 
-           // actually, unique might be better.
            const unique = [];
            const seen = new Set();
            data.forEach(msg => {
@@ -69,53 +66,58 @@ export default function BuddyDashboard({ group }) {
        }
   };
 
-  if (!group) return <div>Loading group...</div>;
+  if (!group) return <div className="p-8 text-center text-navy-400 font-medium">Loading group...</div>;
 
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="bg-white rounded-3xl border border-slate-100 p-6 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-            <div className="flex items-center gap-3 mb-1">
-                <h1 className="text-3xl font-bold text-slate-900">{group.name}</h1>
-                <span className="bg-red-50 text-red-500 text-xs font-bold px-3 py-1 rounded-full border border-red-100">
-                    {members.length} Members
-                </span>
-            </div>
-            <p className="text-slate-500 text-sm">Created {dayjs(group.created_at).format('MMM D, YYYY')}</p>
-        </div>
+      <div className="relative overflow-hidden bg-gradient-to-br from-navy-900 to-navy-950 rounded-[2.5rem] shadow-xl p-8 mb-8 text-white">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-terracotta-500/20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-navy-700/30 rounded-full blur-2xl transform -translate-x-1/4 translate-y-1/4"></div>
         
-        <div className="flex items-center gap-2">
-            <div className="flex -space-x-3 mr-4">
-                {members.map(m => (
-                    <div key={m.user.id} className="w-10 h-10 rounded-full border-2 border-white bg-slate-200 overflow-hidden" title={m.user.full_name}>
-                        {m.user.profile_picture ? (
-                            <img src={m.user.profile_picture} className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="w-full h-full flex items-center justify-center font-bold text-slate-500 text-xs">
-                                {m.user.full_name[0]}
-                            </div>
-                        )}
-                    </div>
-                ))}
+        <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <div className="flex items-center gap-3 mb-2">
+                    <h1 className="font-heading text-3xl md:text-4xl font-bold tracking-tight">{group.name}</h1>
+                    <span className="bg-white/10 backdrop-blur-md text-white border border-white/20 text-xs font-bold px-3 py-1 rounded-full">
+                        {members.length} Members
+                    </span>
+                </div>
+                <p className="text-navy-200 text-sm font-medium opacity-80">Created {dayjs(group.created_at).format('MMMM D, YYYY')}</p>
             </div>
-            <button 
-                onClick={() => setIsInviteOpen(true)}
-                className="bg-slate-900 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-900/10"
-            >
-                <MdPersonAdd size={20} />
-                Invite
-            </button>
+            
+            <div className="flex items-center gap-4">
+                <div className="flex -space-x-3">
+                    {members.map(m => (
+                        <div key={m.user.id} className="w-10 h-10 rounded-full border-2 border-navy-900 bg-navy-800 overflow-hidden" title={m.user.full_name}>
+                            {m.user.profile_picture ? (
+                                <img src={m.user.profile_picture} className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center font-bold text-white text-xs bg-gradient-to-br from-terracotta-500 to-terracotta-600">
+                                    {m.user.full_name[0]}
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+                <button 
+                    onClick={() => setIsInviteOpen(true)}
+                    className="bg-white text-navy-900 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-navy-50 transition-all shadow-lg active:scale-95"
+                >
+                    <MdPersonAdd size={20} className="text-terracotta-600" />
+                    Invite
+                </button>
+            </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Mobile Tabs (Horizontal Scroll) */}
-        <div className="lg:hidden col-span-1 bg-white rounded-2xl border border-slate-100 p-2 mb-4 overflow-x-auto flex gap-2 no-scrollbar">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Mobile Tabs */}
+        <div className="lg:hidden col-span-1 bg-white rounded-2xl border border-navy-100 p-2 mb-4 overflow-x-auto flex gap-2 no-scrollbar shadow-sm">
              <button 
                 onClick={() => setActiveTab('chat')}
                 className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
-                    activeTab === 'chat' ? 'bg-red-50 text-red-500 border border-red-100' : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                    activeTab === 'chat' ? 'bg-navy-900 text-white shadow-md' : 'text-navy-600 hover:bg-navy-50'
                 }`}
             >
                 <MdChat size={18} />
@@ -124,7 +126,7 @@ export default function BuddyDashboard({ group }) {
             <button 
                 onClick={() => setActiveTab('properties')}
                 className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
-                    activeTab === 'properties' ? 'bg-cyan-50 text-cyan-600 border border-cyan-100' : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                    activeTab === 'properties' ? 'bg-navy-900 text-white shadow-md' : 'text-navy-600 hover:bg-navy-50'
                 }`}
             >
                 <MdHomeWork size={18} />
@@ -133,79 +135,81 @@ export default function BuddyDashboard({ group }) {
             <button 
                 onClick={() => setActiveTab('members')}
                 className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
-                    activeTab === 'members' ? 'bg-indigo-50 text-indigo-600 border border-indigo-100' : 'text-slate-600 hover:bg-slate-50 border border-transparent'
+                    activeTab === 'members' ? 'bg-navy-900 text-white shadow-md' : 'text-navy-600 hover:bg-navy-50'
                 }`}
             >
                 <MdPerson size={18} />
                 Members
             </button>
-             <button 
-                onClick={() => alert('Settings coming soon')}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap text-slate-400 hover:text-slate-600`}
-            >
-                <MdSettings size={18} />
-                Settings
-            </button>
         </div>
 
         {/* Desktop Sidebar / Tabs */}
-        <div className="hidden lg:block lg:col-span-1 space-y-4">
-            <div className="bg-white rounded-3xl border border-slate-100 p-2 shadow-sm">
+        <div className="hidden lg:block lg:col-span-1 space-y-6">
+            <div className="bg-white rounded-[2rem] border border-navy-100 p-3 shadow-sm">
                 <button 
                     onClick={() => setActiveTab('chat')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${
-                        activeTab === 'chat' ? 'bg-red-50 text-red-500' : 'text-slate-600 hover:bg-slate-50'
+                    className={`w-full flex items-center gap-3 px-5 py-4 rounded-3xl font-bold transition-all ${
+                        activeTab === 'chat' 
+                            ? 'bg-navy-50 text-navy-900 border border-navy-100 shadow-sm' 
+                            : 'text-navy-500 hover:bg-navy-50 hover:text-navy-700'
                     }`}
                 >
-                    <MdChat size={22} />
+                    <MdChat size={22} className={activeTab === 'chat' ? 'text-terracotta-500' : ''} />
                     Group Chat
                 </button>
                 <button 
                     onClick={() => setActiveTab('properties')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${
-                        activeTab === 'properties' ? 'bg-cyan-50 text-cyan-600' : 'text-slate-600 hover:bg-slate-50'
+                    className={`w-full flex items-center gap-3 px-5 py-4 rounded-3xl font-bold transition-all ${
+                        activeTab === 'properties' 
+                            ? 'bg-navy-50 text-navy-900 border border-navy-100 shadow-sm' 
+                            : 'text-navy-500 hover:bg-navy-50 hover:text-navy-700'
                     }`}
                 >
-                    <MdHomeWork size={22} />
+                    <MdHomeWork size={22} className={activeTab === 'properties' ? 'text-terracotta-500' : ''} />
                     Saved Properties
                 </button>
                 <button 
                     onClick={() => setActiveTab('members')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all ${
-                        activeTab === 'members' ? 'bg-indigo-50 text-indigo-600' : 'text-slate-600 hover:bg-slate-50'
+                    className={`w-full flex items-center gap-3 px-5 py-4 rounded-3xl font-bold transition-all ${
+                        activeTab === 'members' 
+                            ? 'bg-navy-50 text-navy-900 border border-navy-100 shadow-sm' 
+                            : 'text-navy-500 hover:bg-navy-50 hover:text-navy-700'
                     }`}
                 >
-                    <MdPerson size={22} />
+                    <MdPerson size={22} className={activeTab === 'members' ? 'text-terracotta-500' : ''} />
                     Members
                 </button>
                  <button 
                     onClick={() => alert('Settings coming soon')}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-2xl font-bold transition-all text-slate-400 hover:text-slate-600 hover:bg-slate-50`}
+                    className={`w-full flex items-center gap-3 px-5 py-4 rounded-3xl font-bold transition-all text-navy-400 hover:text-navy-600 hover:bg-navy-50`}
                 >
                     <MdSettings size={22} />
                     Settings
                 </button>
             </div>
 
-            {/* Members List (Sidebar specific) */}
-             <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
-                <h3 className="font-bold text-slate-900 mb-4">Members</h3>
-                <div className="space-y-3">
+            {/* Members List (Sidebar Summary) */}
+             <div className="bg-white rounded-[2rem] border border-navy-100 p-6 shadow-sm">
+                <h3 className="font-heading font-bold text-navy-900 mb-4 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-terracotta-500"></span>
+                    Members
+                </h3>
+                <div className="space-y-4">
                     {members.map(m => (
-                        <div key={m.user.id} className="flex items-center justify-between">
+                        <div key={m.user.id} className="flex items-center justify-between group">
                             <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-slate-100 overflow-hidden">
+                                <div className="w-10 h-10 rounded-full bg-navy-50 border border-navy-100 overflow-hidden">
                                      {m.user.profile_picture ? (
                                         <img src={m.user.profile_picture} className="w-full h-full object-cover" />
                                     ) : (
-                                        <div className="w-full h-full flex items-center justify-center font-bold text-slate-500 text-xs">
+                                        <div className="w-full h-full flex items-center justify-center font-bold text-navy-400 text-xs">
                                             {m.user.full_name[0]}
                                         </div>
                                     )}
                                 </div>
                                 <div>
-                                    <div className="text-sm font-bold text-slate-900">{m.user.full_name}</div>
-                                    <div className="text-xs text-slate-400 capitalize">{m.role}</div>
+                                    <div className="text-sm font-bold text-navy-900 group-hover:text-terracotta-600 transition-colors">{m.user.full_name}</div>
+                                    <div className="text-[10px] font-bold text-navy-400 uppercase tracking-wider">{m.role}</div>
                                 </div>
                             </div>
                         </div>
@@ -216,36 +220,40 @@ export default function BuddyDashboard({ group }) {
 
         {/* Main Content */}
         <div className="lg:col-span-2">
-             {activeTab === 'chat' && <GroupChat groupId={group.id} />}
+             {activeTab === 'chat' && (
+                <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm overflow-hidden">
+                    <GroupChat groupId={group.id} />
+                </div>
+             )}
              
              {activeTab === 'properties' && (
                 sharedProperties.length > 0 ? (
-                    <div className="bg-white rounded-3xl border border-slate-100 p-6 min-h-[500px]">
-                        <h3 className="font-bold text-slate-900 mb-6">Shared Properties ({sharedProperties.length})</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-white rounded-[2rem] border border-navy-100 p-6 min-h-[500px]">
+                        <h3 className="font-heading font-bold text-navy-900 mb-6 text-xl">Shared Properties</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             {sharedProperties.map((prop, i) => (
                                 <a 
                                     key={`${prop.id}-${i}`} 
                                     href={`/rooms/${prop.id}`}
-                                    className="block group border border-slate-100 rounded-2xl overflow-hidden hover:shadow-lg transition-all"
+                                    className="block group border border-navy-100 rounded-3xl overflow-hidden hover:shadow-xl hover:shadow-navy-900/5 transition-all bg-white"
                                 >
-                                    <div className="aspect-[4/3] bg-slate-100 relative overflow-hidden">
-                                        <img src={prop.image} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                                        <div className="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold shadow-sm">
-                                            Shared {dayjs(prop.shared_at).fromNow()}
+                                    <div className="aspect-[4/3] bg-navy-50 relative overflow-hidden">
+                                        <img src={prop.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                        <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-terracotta-500"></span>
+                                            {dayjs(prop.shared_at).fromNow()}
                                         </div>
                                     </div>
-                                    <div className="p-4">
-                                        <div className="flex justify-between items-start mb-1">
-                                            <h4 className="font-bold text-slate-900 line-clamp-1">{prop.title}</h4>
+                                    <div className="p-5">
+                                        <h4 className="font-bold text-navy-900 text-base line-clamp-1 group-hover:text-terracotta-600 transition-colors">{prop.title}</h4>
+                                        <div className="text-navy-500 text-sm mt-1 mb-4 flex items-center gap-1.5">
+                                             <MdHomeWork size={16} className="text-navy-300" /> 
+                                             <span className="truncate">{prop.location}</span>
                                         </div>
-                                        <div className="text-slate-500 text-sm mb-3 flex items-center gap-1">
-                                             <MdHomeWork size={14} /> {prop.location}
-                                        </div>
-                                        <div className="flex items-center justify-between mt-2">
-                                            <span className="font-extrabold text-slate-900">{prop.price}</span>
-                                            <span className="text-xs font-bold text-cyan-600 bg-cyan-50 px-2 py-1 rounded-full group-hover:bg-cyan-600 group-hover:text-white transition-colors">
-                                                View
+                                        <div className="flex items-center justify-between pt-3 border-t border-navy-50">
+                                            <span className="font-heading font-extrabold text-navy-900">{prop.price}</span>
+                                            <span className="text-xs font-bold text-navy-400 group-hover:text-terracotta-600 transition-colors">
+                                                View Details
                                             </span>
                                         </div>
                                     </div>
@@ -254,12 +262,12 @@ export default function BuddyDashboard({ group }) {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-3xl border border-slate-100 p-12 text-center h-[500px] flex flex-col items-center justify-center">
-                        <div className="w-20 h-20 bg-slate-50 rounded-full flex items-center justify-center mb-4">
-                            <MdHomeWork className="text-slate-300 text-4xl" />
+                    <div className="bg-white rounded-[2rem] border border-navy-100 p-12 text-center h-[500px] flex flex-col items-center justify-center">
+                        <div className="w-24 h-24 bg-navy-50 rounded-full flex items-center justify-center mb-6">
+                            <MdHomeWork className="text-navy-200 text-5xl" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-900">No properties yet</h3>
-                        <p className="text-slate-500 max-w-xs mx-auto mt-2">
+                        <h3 className="text-2xl font-bold text-navy-900 mb-2">No properties yet</h3>
+                        <p className="text-navy-500 max-w-xs mx-auto">
                             Share properties from the dashboard to discuss them with your group.
                         </p>
                     </div>
@@ -267,28 +275,28 @@ export default function BuddyDashboard({ group }) {
              )}
 
              {activeTab === 'members' && (
-                  <div className="bg-white rounded-3xl border border-slate-100 p-6">
-                    <h3 className="font-bold text-slate-900 mb-6">Manage Members</h3>
+                  <div className="bg-white rounded-[2rem] border border-navy-100 p-8">
+                    <h3 className="font-heading font-bold text-navy-900 mb-8 text-xl">Manage Members</h3>
                     <div className="space-y-4">
                         {members.map(m => (
-                            <div key={m.user.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 rounded-full bg-slate-200 overflow-hidden">
+                            <div key={m.user.id} className="flex items-center justify-between p-5 bg-navy-50 rounded-3xl border border-navy-100/50">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 rounded-full bg-white border-2 border-white shadow-sm overflow-hidden text-xl">
                                          {m.user.profile_picture ? (
                                             <img src={m.user.profile_picture} className="w-full h-full object-cover" />
                                         ) : (
-                                            <div className="w-full h-full flex items-center justify-center font-bold text-slate-500 text-sm">
+                                            <div className="w-full h-full flex items-center justify-center font-bold text-navy-300">
                                                 {m.user.full_name[0]}
                                             </div>
                                         )}
                                     </div>
                                     <div>
-                                        <div className="font-bold text-slate-900">{m.user.full_name}</div>
-                                        <div className="text-sm text-slate-500">Joined {dayjs(m.joined_at).format('MMM D')}</div>
+                                        <div className="font-bold text-lg text-navy-900">{m.user.full_name}</div>
+                                        <div className="text-sm text-navy-500 font-medium">Joined {dayjs(m.joined_at).format('MMMM D, YYYY')}</div>
                                     </div>
                                 </div>
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                    m.role === 'admin' ? 'bg-purple-100 text-purple-600' : 'bg-slate-200 text-slate-600'
+                                <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                    m.role === 'admin' ? 'bg-terracotta-100 text-terracotta-700' : 'bg-navy-200 text-navy-600'
                                 }`}>
                                     {m.role}
                                 </span>

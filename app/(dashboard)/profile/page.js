@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { createClient } from '@/core/utils/supabase/client';
 import ProfileHeader from '@/components/profile/ProfileHeader';
@@ -65,7 +66,7 @@ export default function ProfilePage() {
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-4 border-navy-200 border-t-terracotta-500 rounded-full animate-spin" />
       </div>
     );
   }
@@ -74,25 +75,25 @@ export default function ProfilePage() {
     { 
       id: 'profile', 
       label: 'My Profile', 
-      icon: <MdPerson />,
-      completed: true // Basic profile is always "there" if they are logged in, effectively
+      icon: MdPerson,
+      completed: true
     },
     { 
       id: 'lifestyle', 
       label: 'My Lifestyle', 
-      icon: <MdStyle />,
+      icon: MdStyle,
       completed: !!data.lifestyle
     },
     { 
       id: 'preferences', 
       label: 'Ideal Roommate', 
-      icon: <MdTune />,
+      icon: MdTune,
       completed: !!data.preferences
     }
   ];
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="container max-w-5xl mx-auto px-4 py-8">
       {/* Header Area */}
       <ProfileHeader 
         isEditing={isEditing} 
@@ -101,66 +102,82 @@ export default function ProfilePage() {
       />
 
       {/* Tabs */}
-      <div className="flex items-center gap-2 mb-8 border-b border-slate-200 overflow-x-auto scrollbar-hide">
+      <div className="flex items-center gap-2 mb-8 border-b border-navy-200 overflow-x-auto scrollbar-hide">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-6 py-4 font-medium text-sm transition-all whitespace-nowrap relative group ${
+            className={`flex items-center gap-2 px-6 py-4 font-heading font-medium text-sm transition-all whitespace-nowrap relative group ${
               activeTab === tab.id 
-                ? 'text-slate-900' 
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'text-navy-950' 
+                : 'text-navy-500 hover:text-navy-700'
             }`}
           >
-            <span className={`text-xl ${activeTab === tab.id ? 'text-slate-900' : 'text-slate-400 group-hover:text-slate-600'}`}>
-              {tab.icon}
-            </span>
+            <tab.icon 
+              size={20} 
+              className={`transition-colors ${
+                activeTab === tab.id ? 'text-terracotta-500' : 'text-navy-400 group-hover:text-navy-600'
+              }`} 
+            />
             {tab.label}
             {tab.completed && (
-              <span className="ml-1 text-green-500 text-lg" title="Completed">
-                <MdCheckCircle />
-              </span>
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="ml-1 text-teal-500"
+              >
+                <MdCheckCircle size={16} />
+              </motion.span>
             )}
             {activeTab === tab.id && (
-              <div className="absolute bottom-0 left-0 w-full h-0.5 bg-slate-900 rounded-t-full" />
+              <motion.div
+                layoutId="activeTabIndicator"
+                className="absolute bottom-0 left-0 w-full h-0.5 bg-terracotta-500 rounded-t-full"
+                transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              />
             )}
           </button>
         ))}
       </div>
       
       {/* Content Area */}
-      <div className="transition-all duration-300 ease-in-out min-h-[400px]">
-        {activeTab === 'profile' && (
-          <div className="animate-fadeIn">
-            {isEditing ? (
-              <ProfileForm onCancel={() => setIsEditing(false)} />
-            ) : (
-              <ProfileView />
-            )}
-          </div>
-        )}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.3 }}
+          className="min-h-[400px]"
+        >
+          {activeTab === 'profile' && (
+            <div>
+              {isEditing ? (
+                <ProfileForm onCancel={() => setIsEditing(false)} />
+              ) : (
+                <ProfileView />
+              )}
+            </div>
+          )}
 
-        {activeTab === 'lifestyle' && (
-          <div className="animate-fadeIn">
+          {activeTab === 'lifestyle' && (
             <LifestyleWizard 
               user={user} 
               initialData={data.lifestyle} 
               onComplete={refreshData}
             />
-          </div>
-        )}
+          )}
 
-        {activeTab === 'preferences' && (
-          <div className="animate-fadeIn">
+          {activeTab === 'preferences' && (
             <MatchPreferencesForm 
               user={user} 
               initialData={data.preferences} 
               role={data.lifestyle?.primary_role}
               onComplete={refreshData}
             />
-          </div>
-        )}
-      </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 }

@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
-import { MdSend, MdMoreVert, MdImage, MdArrowBack } from 'react-icons/md';
+import { MdSend, MdMoreVert, MdArrowBack, MdCheckCircle, MdDoneAll } from 'react-icons/md';
 import { format } from 'date-fns';
 
 export const ChatWindow = () => {
@@ -24,7 +25,6 @@ export const ChatWindow = () => {
     const scrollContainerRef = useRef(null);
     const [prevScrollHeight, setPrevScrollHeight] = useState(null);
 
-    // Find full conversation object to get details
     const conversation = conversations.find(c => c.id === activeConversation);
     const otherParty = conversation ? (conversation.tenant_id === user?.id ? conversation.host : conversation.tenant) : null;
     const isMe = (msg) => msg.sender_id === user.id;
@@ -33,35 +33,12 @@ export const ChatWindow = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
 
-    // Auto-scroll on new message (only if at bottom or first load - simplified for now)
     useEffect(() => {
-        // If we are loading *previous* messages, DONT scroll to bottom. 
-        // We handle that in useLayoutEffect below.
-        // This effect should strictly be for "New Incoming Message" or "Initial Load"
-        
         if (messages.length > 0) {
-             const lastMsg = messages[messages.length - 1];
-             
-             // Initial load (approx check)
-             if (messages.length <= 50 && !prevScrollHeight) { 
-                 scrollToBottom();
-                 return;
-             }
-
-             // If new message is mine, always scroll
-             if (isMe(lastMsg)) {
-                 scrollToBottom();
-             }
-             // If new message is from others, only scroll if we were already close to bottom?
-             // For now, simpler: Scroll if we didn't just load previous pages.
-             else if (!prevScrollHeight) {
-                 // Optional: check scrollTop vs scrollHeight
-                 scrollToBottom();
-             }
+            scrollToBottom();
         }
-    }, [messages.length, prevScrollHeight]);
+    }, [messages.length]);
 
-    // Scroll Position Maintenance for Pagination
     useEffect(() => {
         if (prevScrollHeight && scrollContainerRef.current) {
             const newScrollHeight = scrollContainerRef.current.scrollHeight;
@@ -71,7 +48,7 @@ export const ChatWindow = () => {
             }
             setPrevScrollHeight(null);
         }
-    }, [messages, prevScrollHeight]);
+    }, [messages]);
 
     const handleLoadMore = async () => {
         if (scrollContainerRef.current) {
@@ -84,129 +61,181 @@ export const ChatWindow = () => {
         e.preventDefault();
         if (!newMessage.trim() || sending) return;
 
+        const content = newMessage;
+        setNewMessage('');
         setSending(true);
-        const success = await sendMessage(activeConversation, newMessage);
-        if (success) {
-            setNewMessage('');
+        try {
+            await sendMessage(activeConversation, content);
+        } catch {
+            setNewMessage(content);
+        } finally {
+            setSending(false);
         }
-        setSending(false);
     };
 
-    if (!activeConversation) {
-        return (
-            <div className="flex-1 flex items-center justify-center bg-slate-50 text-slate-400">
-                <p>Select a conversation to start messaging</p>
-            </div>
-        );
-    }
-
     return (
-        <div className="flex-1 flex flex-col h-full bg-slate-50">
-            {/* Header */}
-            <div className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-6 shrink-0">
-                <div className="flex items-center gap-3">
-                    <button 
+        <div className="flex-1 flex flex-col min-h-0 bg-navy-50">
+            {/* Fixed Header */}
+            <motion.div 
+                initial={{ y: -20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                className="h-16 bg-white border-b border-navy-200 flex items-center justify-between px-4 md:px-6 shrink-0 shadow-sm"
+            >
+                <div className="flex items-center gap-3 min-w-0">
+                    <motion.button 
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
                         onClick={() => setActiveConversation(null)}
-                        className="md:hidden p-2 -ml-2 text-slate-600 hover:bg-slate-50 rounded-full transition-colors"
+                        className="md:hidden p-2 -ml-2 text-navy-500 hover:bg-navy-50 rounded-full transition-colors shrink-0"
                     >
                         <MdArrowBack size={24} />
-                    </button>
+                    </motion.button>
                     
-                    {otherParty?.profile_picture ? (
-                        <img 
-                            src={otherParty.profile_picture} 
-                            alt={otherParty.full_name}
-                            className="w-10 h-10 rounded-full object-cover border border-slate-200"
-                        />
-                    ) : (
-                        <div className="w-10 h-10 rounded-full bg-linear-to-br from-cyan-100 to-indigo-100 text-cyan-700 flex items-center justify-center font-bold border border-slate-200">
-                            {otherParty?.full_name?.[0] || '?'}
+                    <div className="flex items-center gap-3 min-w-0">
+                        {otherParty?.profile_picture ? (
+                            <img 
+                                src={otherParty.profile_picture} 
+                                alt={otherParty.full_name}
+                                className="w-10 h-10 rounded-full object-cover border-2 border-white ring-2 ring-terracotta-500/20 shrink-0"
+                            />
+                        ) : (
+                            <div className="w-10 h-10 rounded-full bg-terracotta-50 text-terracotta-600 flex items-center justify-center font-heading font-bold border-2 border-white ring-2 ring-terracotta-500/20 shrink-0">
+                                {otherParty?.full_name?.[0] || '?'}
+                            </div>
+                        )}
+                        
+                        <div className="min-w-0">
+                            <h2 className="font-heading font-bold text-navy-950 truncate">{otherParty?.full_name || 'Unknown User'}</h2>
+                            <p className="text-xs font-sans text-navy-500 truncate">{conversation?.property?.title || 'Property Chat'}</p>
                         </div>
-                    )}
-                    <div>
-                        <h2 className="font-semibold text-slate-900">{otherParty?.full_name || 'Unknown User'}</h2>
-                        <p className="text-xs text-slate-500">{conversation?.property?.title || 'Property Chat'}</p>
                     </div>
                 </div>
-                <button className="p-2 hover:bg-slate-100 rounded-full text-slate-600 transition-colors">
+                
+                <motion.button 
+                    whileHover={{ scale: 1.1 }}
+                    whileTap={{ scale: 0.9 }}
+                    className="p-2 hover:bg-navy-50 rounded-full text-navy-500 transition-colors shrink-0"
+                >
                     <MdMoreVert size={24} />
-                </button>
-            </div>
+                </motion.button>
+            </motion.div>
 
-            {/* Messages Area */}
+            {/* Scrollable Messages Area */}
             <div 
                 ref={scrollContainerRef}
-                className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4"
+                className="flex-1 overflow-y-auto px-4 md:px-6 py-4"
             >
-                {hasNextPage && (
-                    <button 
-                        onClick={handleLoadMore}
-                        disabled={isFetchingNextPage}
-                        className="mx-auto block text-xs font-medium text-slate-500 hover:text-cyan-600 bg-slate-100 px-3 py-1 rounded-full mb-4"
-                    >
-                        {isFetchingNextPage ? 'Loading...' : 'Load Previous Messages'}
-                    </button>
-                )}
-                {messages.map((msg, i) => {
-                    const isMyMsg = isMe(msg);
-                    const showTime = i === 0 || new Date(msg.created_at) - new Date(messages[i-1].created_at) > 5 * 60 * 1000;
-
-                    return (
-                        <div key={msg.id} className={`flex flex-col ${isMyMsg ? 'items-end' : 'items-start'}`}>
-                            {showTime && (
-                                <span className="text-xs text-slate-400 my-2 self-center">
-                                    {format(new Date(msg.created_at), 'MMM d, h:mm a')}
-                                </span>
-                            )}
-                            <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-sm ${
-                                isMyMsg 
-                                    ? 'bg-cyan-600 text-white rounded-tr-none' 
-                                    : 'bg-white border border-slate-200 text-slate-800 rounded-tl-none'
-                            }`}>
-                                {msg.content}
-                            </div>
-                            {isMyMsg && (
-                                <span className="text-[10px] text-slate-400 mt-1 mr-1">
-                                    {msg.is_read ? 'Read' : 'Delivered'}
-                                </span>
-                            )}
+                <div className="max-w-3xl mx-auto space-y-4">
+                    {hasNextPage && (
+                        <div className="flex justify-center">
+                            <motion.button 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={handleLoadMore}
+                                disabled={isFetchingNextPage}
+                                className="text-xs font-heading font-medium text-navy-500 hover:text-terracotta-500 bg-white px-3 py-1 rounded-full border border-navy-200 shadow-sm"
+                            >
+                                {isFetchingNextPage ? 'Loading...' : 'Load Previous Messages'}
+                            </motion.button>
                         </div>
-                    );
-                })}
-                <div ref={messagesEndRef} />
+                    )}
+                    
+                    <AnimatePresence initial={false}>
+                        {messages.map((msg, i) => {
+                            const isMyMsg = isMe(msg);
+                            const showTime = i === 0 || new Date(msg.created_at) - new Date(messages[i-1].created_at) > 5 * 60 * 1000;
+
+                            return (
+                                <motion.div 
+                                    key={msg.id}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.2 }}
+                                    className={`flex flex-col ${isMyMsg ? 'items-end' : 'items-start'}`}
+                                >
+                                    {showTime && (
+                                        <span className="text-xs font-sans text-navy-400 my-2 self-center bg-white px-2 py-1 rounded-full border border-navy-100">
+                                            {format(new Date(msg.created_at), 'MMM d, h:mm a')}
+                                        </span>
+                                    )}
+                                    
+                                    <div className={`max-w-[70%] rounded-2xl px-4 py-2.5 shadow-sm text-sm font-sans break-words ${
+                                        isMyMsg 
+                                            ? 'bg-terracotta-500 text-white rounded-tr-none shadow-lg shadow-terracotta-500/20' 
+                                            : 'bg-white border border-navy-200 text-navy-800 rounded-tl-none'
+                                    }`}>
+                                        {msg.content}
+                                    </div>
+                                    
+                                    {isMyMsg && (
+                                        <span className="text-[10px] font-sans text-navy-400 mt-1 mr-1 flex items-center gap-1">
+                                            {msg.is_read ? (
+                                                <>
+                                                    <MdDoneAll className="text-teal-500" size={12} />
+                                                    Read
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <MdCheckCircle className="text-navy-400" size={12} />
+                                                    Delivered
+                                                </>
+                                            )}
+                                        </span>
+                                    )}
+                                </motion.div>
+                            );
+                        })}
+                    </AnimatePresence>
+                    
+                    <div ref={messagesEndRef} />
+                </div>
             </div>
 
-            {/* Input Area */}
-            <form onSubmit={handleSend} className="p-4 bg-white border-t border-slate-200 shrink-0">
-                <div className="flex items-end gap-2 max-w-4xl mx-auto">
-                    {/* <button type="button" className="p-2 text-slate-400 hover:text-cyan-600 hover:bg-slate-50 rounded-full transition-colors">
-                        <MdImage size={24} />
-                    </button> */}
-                    <div className="flex-1 relative">
-                        <textarea
-                            value={newMessage}
-                            onChange={(e) => setNewMessage(e.target.value)}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleSend(e);
-                                }
-                            }}
-                            placeholder="Type a message..."
-                            className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3 pr-12 text-sm focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 max-h-32 resize-none"
-                            rows={1}
-                            style={{ minHeight: '44px' }}
-                        />
-                        <button 
-                            type="submit" 
-                            disabled={!newMessage.trim() || sending}
-                            className="absolute right-2 bottom-2 p-2 bg-cyan-600 text-white rounded-xl hover:bg-cyan-700 disabled:opacity-50 disabled:hover:bg-cyan-600 transition-colors shadow-sm"
-                        >
-                            <MdSend size={18} />
-                        </button>
+            {/* Fixed Input Area */}
+            <motion.form 
+                initial={{ y: 20, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                onSubmit={handleSend} 
+                className="p-4 bg-white border-t border-navy-200 shrink-0"
+            >
+                <div className="max-w-3xl mx-auto">
+                    <div className="flex items-end gap-2">
+                        <div className="flex-1 relative">
+                            <textarea
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleSend(e);
+                                    }
+                                }}
+                                placeholder="Type a message..."
+                                className="w-full bg-navy-50 border border-navy-200 rounded-2xl px-4 py-3 pr-12 text-sm font-sans focus:outline-none focus:border-terracotta-500 focus:ring-2 focus:ring-terracotta-500/20 max-h-32 resize-none placeholder-navy-400"
+                                rows={1}
+                                style={{ minHeight: '44px' }}
+                            />
+                            
+                            <motion.button 
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                type="submit" 
+                                disabled={!newMessage.trim() || sending}
+                                className="absolute right-2 bottom-2 p-2 bg-terracotta-500 text-white rounded-xl hover:bg-terracotta-600 disabled:opacity-50 disabled:hover:bg-terracotta-500 transition-all shadow-lg shadow-terracotta-500/20"
+                            >
+                                {sending ? (
+                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                ) : (
+                                    <MdSend size={18} />
+                                )}
+                            </motion.button>
+                        </div>
                     </div>
                 </div>
-            </form>
+            </motion.form>
         </div>
     );
 };

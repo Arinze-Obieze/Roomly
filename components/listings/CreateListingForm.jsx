@@ -1,3 +1,4 @@
+'use client';
 
 import { createClient } from '@/core/utils/supabase/client';
 import { useRouter } from 'next/navigation';
@@ -15,7 +16,8 @@ import {
   MdAttachMoney,
   MdPool,
   MdFavorite,
-  MdCalendarToday
+  MdCalendarToday,
+  MdBolt
 } from 'react-icons/md';
 
 import Stepper from '../forms/Stepper';
@@ -29,29 +31,7 @@ import FinancialsForm from '../forms/Listing/FinancialsForm';
 import AmenitiesForm from '../forms/Listing/AmenitiesForm';
 import PreferencesForm from '../forms/Listing/PreferencesForm';
 import AvailabilityForm from '../forms/Listing/AvailabilityForm';
-import MediaUpload from '../forms/MediaUpload'; // Reuse existing if possible, or refactor
-// Note: We might need to split Photos from Availability or combine them.
-// The reference flow had "Photos" likely mixed in or as a separate step.
-// The plan said 7 steps: Basics, Property, Location, Financials, Amenities, Preferences, Availability.
-// What about Photos? The original had 5 steps including Photos.
-// Let's check the reference again via task.md?
-// Task md said: Basics, Property, Location, Financials, Amenities, Preferences, Availability.
-// "Photos" is typically key. I'll add a Photos step or Integrate it.
-// Reference analysis didn't explicitly mention a separate "Photos" step in the list of 7, but Step 7 had "Virtual Tour".
-// "Upload Photos" is crucial. I will add it as Step 8 or combined.
-// Actually the sidebar in reference screenshot likely had "Photos" somewhere.
-// I will add a Photos step before Review/Publish, making it 8 steps or merge with Property?
-// Let's stick to 7 steps as per plan, but where do photos go?
-// Wait, the plan step 7 was "Availability".
-// I'll assume Photos should be its own step or part of Property.
-// Let's add "Photos" as Step 4 (after Location) or Step 8.
-// I'll make it Step 4.5 -> But I should stick to the plan.
-// Let's put Photos in "Property Details" or a new Step. 
-// Actually, standard flows usually have Photos.
-// I will add "Media" as Step 4, pushing others down to 8 steps total?
-// Or maybe "Basics" includes photos? No.
-// I will create an 8-step flow to ensure photos are included, as they are mandatory.
-// Steps: Basics, Property, Location, Media, Financials, Amenities, Preferences, Availability.
+import MediaUpload from '../forms/MediaUpload';
 
 const STEPS = [
   { id: 1, title: 'Basics', icon: MdPerson },
@@ -80,7 +60,6 @@ export default function CreateListingForm({ onClose, initialData = null }) {
         ...initialData,
         photos: initialData.property_media?.map(m => m.url) || [],
         videos: [], 
-        // Enrich with new fields if missing
         lifestyle_priorities: initialData.lifestyle_priorities || {},
         deal_breakers: initialData.deal_breakers || [],
         amenities: initialData.amenities || [],
@@ -235,11 +214,9 @@ export default function CreateListingForm({ onClose, initialData = null }) {
     try {
         const payload = new FormData();
         
-        // Append all simple fields
         Object.entries(formData).forEach(([key, value]) => {
-            if (key === 'photos' || key === 'videos') return; // Handle separately
+            if (key === 'photos' || key === 'videos') return;
             
-            // Handle date fields - ensure empty strings become null
             if (key === 'available_from' && value === '') {
                 return; 
             }
@@ -251,7 +228,6 @@ export default function CreateListingForm({ onClose, initialData = null }) {
             }
         });
 
-        // Handle Media
         formData.photos.forEach(photo => {
              if (photo instanceof File) payload.append('new_photos[]', photo);
              else payload.append('existing_photos[]', photo);
@@ -284,18 +260,19 @@ export default function CreateListingForm({ onClose, initialData = null }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
+    <div className="min-h-screen bg-navy-50 flex flex-col">
       {/* Header */}
-      <div className="sticky top-0 z-20 bg-white border-b border-slate-200">
-        <div className="max-w-5xl mx-auto px-4 lg:px-8 py-4">
+      <div className="sticky top-0 z-20 bg-white border-b border-navy-200">
+        <div className="container max-w-5xl mx-auto px-4 lg:px-8 py-4">
           <div className="flex items-center justify-between mb-4">
             <button
               onClick={onClose || (() => router.back())}
-              className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-navy-50 rounded-xl transition-colors"
+              aria-label="Close"
             >
-              <MdClose size={24} className="text-slate-600" />
+              <MdClose size={24} className="text-navy-500" />
             </button>
-            <h1 className="text-lg font-bold text-navy-950">
+            <h1 className="text-lg font-heading font-bold text-navy-950">
               {isEditing ? 'Edit Listing' : 'Create Your Listing'}
             </h1>
             <div className="w-10" />
@@ -312,14 +289,14 @@ export default function CreateListingForm({ onClose, initialData = null }) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto pb-32">
-        <div className="max-w-3xl mx-auto px-4 lg:px-8 py-8">
+        <div className="container max-w-3xl mx-auto px-4 lg:px-8 py-8">
             
             {profileIncomplete && (
-                <div className="bg-navy-50 border-navy-200 rounded-xl p-4 mb-8 flex gap-3">
-                    <MdWarning className="text-navy-500 shrink-0" size={24} />
+                <div className="bg-terracotta-50 border border-terracotta-200 rounded-2xl p-4 mb-8 flex gap-3">
+                    <MdWarning className="text-terracotta-500 shrink-0" size={24} />
                     <div>
-                        <h3 className="font-bold text-navy-900">Complete your profile</h3>
-                        <p className="text-sm text-navy-700 mt-1">
+                        <h3 className="font-heading font-bold text-navy-950">Complete your profile</h3>
+                        <p className="text-sm text-navy-700 mt-1 font-sans">
                             Better profiles get 3x more inquiries. Add your lifestyle preferences properly.
                         </p>
                     </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { MdAdd, MdFilterList, MdSearch } from 'react-icons/md';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import PostCard from './PostCard';
@@ -24,30 +25,26 @@ export default function CommunityFeed() {
   const [page, setPage] = useState(1);
   const [showCreateModal, setShowCreateModal] = useState(false);
   
-  // Filters
   const [category, setCategory] = useState('all');
   const [cityFilter, setCityFilter] = useState('');
   const [debouncedCity, setDebouncedCity] = useState('');
 
   const observer = useRef();
 
-  // Debounce City Search
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedCity(cityFilter);
-      setPage(1); // Reset page on filter change
-      setPosts([]); // Clear posts on filter change
+      setPage(1);
+      setPosts([]);
     }, 500);
     return () => clearTimeout(timer);
   }, [cityFilter]);
 
-  // Reset on category change
   useEffect(() => {
     setPage(1);
     setPosts([]);
   }, [category]);
 
-  // Fetch Posts
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
@@ -57,7 +54,6 @@ export default function CommunityFeed() {
       const data = await res.json();
       
       setPosts(prev => {
-        // If page 1, replace. Else append.
         return page === 1 ? data.posts : [...prev, ...data.posts];
       });
       setHasMore(data.hasMore);
@@ -73,7 +69,6 @@ export default function CommunityFeed() {
     fetchPosts();
   }, [fetchPosts]);
 
-  // Infinite Scroll
   const lastPostRef = useCallback(node => {
     if (loading) return;
     if (observer.current) observer.current.disconnect();
@@ -87,15 +82,7 @@ export default function CommunityFeed() {
     if (node) observer.current.observe(node);
   }, [loading, hasMore]);
 
-  // Actions
   const handleVote = async (postId, voteType) => {
-    // API Call handled by PostCard optimistic update, 
-    // but we need to update local state logic if we want perfect consistency.
-    // Actually PostCard manages its own "currentVote" state, 
-    // so we just provide the API endpoint trigger here if needed 
-    // OR PostCard can call API directly. 
-    // Let's let PostCard call API directly, but we pass a wrapper to handle global errors if any.
-    
     await fetch(`/api/community/posts/${postId}/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -119,96 +106,142 @@ export default function CommunityFeed() {
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header & Controls */}
-      <div className="mb-8 space-y-4">
+      <motion.div 
+        initial={{ y: -20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="mb-8 space-y-4"
+      >
         <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-slate-900">Community Forum</h1>
-            <button 
-                onClick={() => {
-                    if (!user) toast.error('Please login to post');
-                    else setShowCreateModal(true);
-                }}
-                className="flex items-center gap-2 px-4 py-2 bg-slate-900 text-white rounded-xl font-medium hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200"
-            >
-                <MdAdd size={20} />
-                <span>New Post</span>
-            </button>
+          <h1 className="text-2xl font-heading font-bold text-navy-950">Community Forum</h1>
+          
+          <motion.button 
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => {
+              if (!user) toast.error('Please login to post');
+              else setShowCreateModal(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-terracotta-500 text-white rounded-xl font-heading font-medium hover:bg-terracotta-600 transition-all shadow-lg shadow-terracotta-500/20"
+          >
+            <MdAdd size={20} />
+            <span>New Post</span>
+          </motion.button>
         </div>
 
         {/* Filters */}
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 space-y-4 shadow-sm">
-            <div className="relative">
-                <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                <input 
-                    type="text" 
-                    placeholder="Filter by City (e.g. Dublin)" 
-                    value={cityFilter}
-                    onChange={(e) => setCityFilter(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-cyan-500/20 focus:border-cyan-500"
-                />
-            </div>
-            
-            <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
-                {FILTERS.map(f => (
-                    <button
-                        key={f.value}
-                        onClick={() => setCategory(f.value)}
-                        className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                            category === f.value 
-                                ? 'bg-cyan-100 text-cyan-700 border border-cyan-200' 
-                                : 'bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100'
-                        }`}
-                    >
-                        {f.label}
-                    </button>
-                ))}
-            </div>
+        <div className="bg-white p-4 rounded-2xl border border-navy-200 space-y-4 shadow-xl shadow-navy-950/5">
+          <div className="relative">
+            <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-400" size={20} />
+            <input 
+              type="text" 
+              placeholder="Filter by City (e.g. Dublin)" 
+              value={cityFilter}
+              onChange={(e) => setCityFilter(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-navy-50 border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500 font-sans placeholder-navy-400"
+            />
+          </div>
+          
+          <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">
+            {FILTERS.map(f => (
+              <motion.button
+                key={f.value}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setCategory(f.value)}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-sm font-heading font-medium transition-all whitespace-nowrap ${
+                  category === f.value 
+                    ? 'bg-terracotta-500 text-white shadow-lg shadow-terracotta-500/20' 
+                    : 'bg-navy-50 text-navy-600 border border-navy-200 hover:bg-navy-100'
+                }`}
+              >
+                {f.label}
+              </motion.button>
+            ))}
+          </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Feed */}
       <div className="space-y-4">
-        {posts.map((post, index) => {
+        <AnimatePresence mode="popLayout">
+          {posts.map((post, index) => {
             if (posts.length === index + 1) {
-                return (
-                    <div ref={lastPostRef} key={post.id}>
-                        <PostCard post={post} onVote={handleVote} onDelete={handleDelete} />
-                    </div>
-                );
+              return (
+                <motion.div 
+                  ref={lastPostRef} 
+                  key={post.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                >
+                  <PostCard post={post} onVote={handleVote} onDelete={handleDelete} />
+                </motion.div>
+              );
             } else {
-                return <PostCard key={post.id} post={post} onVote={handleVote} onDelete={handleDelete} />;
+              return (
+                <motion.div 
+                  key={post.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3, delay: index * 0.05 }}
+                >
+                  <PostCard post={post} onVote={handleVote} onDelete={handleDelete} />
+                </motion.div>
+              );
             }
-        })}
+          })}
+        </AnimatePresence>
 
         {loading && (
-            <div className="flex justify-center py-8">
-                <div className="w-8 h-8 border-2 border-cyan-200 border-t-cyan-600 rounded-full animate-spin"></div>
-            </div>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex justify-center py-8"
+          >
+            <div className="w-8 h-8 border-2 border-navy-200 border-t-terracotta-500 rounded-full animate-spin"></div>
+          </motion.div>
         )}
 
         {!loading && posts.length === 0 && (
-            <div className="text-center py-12 bg-slate-50 rounded-2xl border border-slate-200 border-dashed">
-                <p className="text-slate-500 font-medium">No posts found.</p>
-                <p className="text-xs text-slate-400 mt-1">Be the first to post something happening in {debouncedCity || 'your city'}!</p>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="text-center py-12 bg-white rounded-2xl border border-navy-200 border-dashed shadow-xl shadow-navy-950/5"
+          >
+            <div className="w-16 h-16 bg-terracotta-50 rounded-full flex items-center justify-center mx-auto mb-4">
+              <MdSearch className="text-terracotta-500" size={32} />
             </div>
+            <p className="text-navy-950 font-heading font-bold mb-1">No posts found.</p>
+            <p className="text-xs text-navy-500 font-sans">Be the first to post something happening in {debouncedCity || 'your city'}!</p>
+          </motion.div>
         )}
         
         {!hasMore && posts.length > 0 && (
-            <div className="text-center py-8 text-xs text-slate-400">
-                You've reached the end of the feed.
-            </div>
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="text-center py-8 text-xs text-navy-400 font-sans"
+          >
+            You've reached the end of the feed.
+          </motion.div>
         )}
       </div>
 
       {/* Modals */}
-      {showCreateModal && (
-        <CreatePostModal 
+      <AnimatePresence>
+        {showCreateModal && (
+          <CreatePostModal 
             onClose={() => setShowCreateModal(false)} 
             onCreated={() => {
-                setPage(1);
-                fetchPosts(); // Refresh feed
+              setPage(1);
+              fetchPosts();
             }} 
-        />
-      )}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

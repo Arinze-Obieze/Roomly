@@ -1,0 +1,235 @@
+
+# RoomFind Design System – AI Implementation Guide (v2)
+
+**You MUST follow this design system exactly when generating any UI, layout, component, animation, or interaction. No deviations.**
+
+This system integrates:
+
+* Jobs To Be Done (JTBD) Framework
+* Material Design (Google): Motion & Depth
+* Apple Human Interface Guidelines (HIG): Clarity & Deference
+* Atomic Design (Brad Frost)
+* Jakob Nielsen’s 10 Usability Heuristics
+
+All outputs must follow **RoomFind brand principles, visuals, motion rules, and UX heuristics**.
+
+---
+
+## 1. Product Philosophy (JTBD + UX Principles)
+
+Always design around **Jobs To Be Done (JTBD)**:
+
+Users hire RoomFind to:
+
+* Quickly find the *right* living space or roommate
+* Feel safe, confident, and emotionally reassured
+* Reduce search stress, uncertainty, and wasted time
+
+**Every UI element must:**
+
+* Reduce cognitive load
+* Increase clarity
+* Move users closer to successful match completion
+
+Apply:
+
+* **Material Motion**: Purposeful animations, spatial awareness, feedback
+* **Apple HIG**: Clarity, deference, and depth
+* **Nielsen Heuristics**: Visibility, consistency, error prevention, recognition over recall
+
+---
+
+## 2. Brand Identity
+
+**Brand Personality:**
+Trustworthy · Energetic · Precise · Friendly · Modern
+
+**Tagline:**
+**Search over. You found it.**
+
+**Core Brand Symbol:**
+The **Signature Dot** → `terracotta-500`
+
+This dot:
+
+* Signals completion
+* Marks active states
+* Reinforces brand identity
+* Appears in navigation, indicators, and highlights
+
+---
+
+## 3. Visual Design System
+
+### Colors (Tailwind Only)
+
+| Name             | Class          | Usage                            |
+| ---------------- | -------------- | -------------------------------- |
+| Terracotta       | terracotta-500 | Primary CTAs, dot, active states |
+| Terracotta Hover | terracotta-600 | Hover states                     |
+| Soft Terracotta  | terracotta-50  | Light active backgrounds         |
+| Navy Dark        | navy-950       | Primary text, headings           |
+| Navy Medium      | navy-900       | Depth layers                     |
+| Navy Light       | navy-50        | Backgrounds, cards               |
+| Navy Border      | navy-200       | Borders, dividers                |
+| Navy Muted       | navy-500       | Secondary text                   |
+| Teal             | teal-500       | Trust indicators, success        |
+| Yellow           | yellow-400     | Ratings, optimistic highlights   |
+
+**Accessibility:** Must pass WCAG AA contrast.
+
+---
+
+## 4. Typography
+
+| Type     | Font          | Class        | Usage                 |
+| -------- | ------------- | ------------ | --------------------- |
+| Headings | Space Grotesk | font-heading | Logos, headings, CTAs |
+| Body     | Inter         | font-sans    | UI labels, content    |
+
+---
+
+## 5. Shapes & Layout Rules
+
+* **No sharp corners**
+* Cards → `rounded-3xl`
+* Hero sections → `rounded-[40px]`
+* Buttons & Inputs → `rounded-xl`
+* Small elements → `rounded-full`
+
+### Spacing System
+
+* 8px grid
+* Base padding → `p-4`
+* Containers → `max-w-7xl mx-auto`
+
+---
+
+## 6. Depth & Effects
+
+### Glassmorphism
+
+```
+bg-white/80 backdrop-blur-xl
+```
+
+### Shadows
+
+* Buttons → `shadow-lg shadow-terracotta-500/20`
+* Cards → `shadow-xl shadow-navy-950/5`
+
+**Never use black shadows. Always tinted.**
+
+---
+
+## 7. Buttons
+
+### Primary
+
+```
+bg-terracotta-500 text-white px-5 py-2.5 rounded-xl
+shadow-lg shadow-terracotta-500/20
+hover:bg-terracotta-600 active:scale-95
+```
+
+### Secondary
+
+```
+border border-navy-200 text-navy-950 hover:bg-navy-50
+```
+
+---
+
+## 8. Navigation Rules
+
+### Active Navigation
+
+* Terracotta dot above icon
+* Icon + label in terracotta
+
+```
+<div class="absolute -top-1 w-1.5 h-1.5 bg-terracotta-500 rounded-full"></div>
+```
+
+### Mobile Bottom Nav
+
+* Glass background
+* Central primary CTA elevated
+
+---
+
+## 9. Motion & Interaction (Material + Apple HIG)
+
+### Framer Motion Settings
+
+```
+type: "spring",
+stiffness: 500,
+damping: 30
+```
+
+### Rules
+
+* Subtle
+* Purpose-driven
+* No decorative-only animations
+* Use micro-interactions for:
+
+  * dot entry
+  * hover
+  * modal open
+  * list loading
+  * success confirmation
+
+### Loading States
+
+* Skeleton screens only
+* Never spinner-only loaders
+
+---
+
+## 10. Usability (Jakob Nielsen Applied)
+
+You MUST satisfy:
+
+* Visibility of system status
+* Error prevention
+* Recognition over recall
+* Minimalism
+* Consistency
+* Clear exits & undo paths
+
+---
+
+## 11. Atomic Design Structure
+
+Always design using:
+
+**Atoms → Molecules → Organisms → Templates → Pages**
+
+Components must be modular, reusable, and composable.
+
+---
+
+## 12. Iconography
+
+* Material Design Rounded icons
+* Use: `react-icons/md`
+* Stroke ≥ 2px
+* Pastel icon containers:
+  `bg-teal-50 text-teal-500 rounded-xl`
+
+---
+
+## 13. AI Enforcement Rules
+
+When generating UI:
+
+* Always use Tailwind utility classes (if needed from global.css)
+* Never hardcode hex colors
+* Always apply rounded corners
+* Always apply motion
+* Always consider JTBD
+* Always reinforce **the dot philosophy**
+
+

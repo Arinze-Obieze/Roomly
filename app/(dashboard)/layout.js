@@ -19,7 +19,7 @@ export default function DashboardLayout({ children }) {
         <SavedPropertiesProvider>
           <ChatProvider>
             <NotificationsProvider>
-              <div className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-24 lg:pb-0">
+              <div className="min-h-screen bg-navy-50 font-sans text-navy-950 pb-24 lg:pb-0">
               {/* Background Texture - Removed for clean theme */ }
   
               <Header />

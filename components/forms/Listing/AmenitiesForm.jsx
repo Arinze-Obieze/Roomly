@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { MdCheckCircle, MdAdd, MdClose } from 'react-icons/md';
 import { AMENITY_GROUPS } from '@/data/listingOptions';
@@ -44,7 +43,7 @@ export default function AmenitiesForm({ formData, handleChange }) {
       
       {AMENITY_GROUPS.map((group) => (
         <div key={group.title}>
-            <h3 className="text-lg font-bold text-navy-950 mb-4">{group.title}</h3>
+            <h3 className="text-lg font-heading font-bold text-navy-950 mb-4">{group.title}</h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {group.items.map((item) => (
                     <button
@@ -54,22 +53,24 @@ export default function AmenitiesForm({ formData, handleChange }) {
                         className={`flex items-center gap-3 p-4 rounded-xl border-2 transition-all text-left group ${
                             (formData.amenities || []).includes(item.id)
                             ? 'border-terracotta-500 bg-terracotta-50 shadow-sm'
-                            : 'border-slate-200 bg-white hover:border-slate-300'
+                            : 'border-navy-200 bg-white hover:border-navy-300'
                         }`}
                     >
                         <item.icon 
                             size={22}
                             className={`transition-colors ${
-                                (formData.amenities || []).includes(item.id) ? 'text-terracotta-600' : 'text-slate-400 group-hover:text-slate-500'
+                                (formData.amenities || []).includes(item.id) ? 'text-terracotta-600' : 'text-navy-400 group-hover:text-navy-500'
                             }`}
                         />
-                        <span className={`font-medium ${(formData.amenities || []).includes(item.id) ? 'text-terracotta-900' : 'text-slate-700'}`}>
+                        <span className={`font-heading font-medium ${
+                          (formData.amenities || []).includes(item.id) ? 'text-terracotta-900' : 'text-navy-700'
+                        }`}>
                             {item.label}
                         </span>
                         {(formData.amenities || []).includes(item.id) ? (
-                            <MdCheckCircle className="ml-auto text-terracotta-600" size={20} />
+                            <MdCheckCircle className="ml-auto text-terracotta-500" size={20} />
                         ) : (
-                            <MdAdd className="ml-auto text-slate-300 group-hover:text-slate-400" size={20} />
+                            <MdAdd className="ml-auto text-navy-300 group-hover:text-navy-400" size={20} />
                         )}
                     </button>
                 ))}
@@ -79,8 +80,8 @@ export default function AmenitiesForm({ formData, handleChange }) {
 
       {/* Custom Amenities */}
       <div>
-        <h3 className="text-lg font-bold text-navy-950 mb-4">Other Amenities</h3>
-        <div className="p-4 rounded-xl border border-slate-200 bg-white">
+        <h3 className="text-lg font-heading font-bold text-navy-950 mb-4">Other Amenities</h3>
+        <div className="p-4 rounded-xl border border-navy-200 bg-white">
             <div className="flex gap-2 mb-4">
                 <input
                     type="text"
@@ -88,13 +89,13 @@ export default function AmenitiesForm({ formData, handleChange }) {
                     onChange={(e) => setCustomInput(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddCustom(e)}
                     placeholder="e.g. Gym, Concierge, Cinema Room..."
-                    className="flex-1 px-4 py-2.5 bg-slate-50 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500"
+                    className="flex-1 px-4 py-2.5 bg-navy-50 rounded-lg border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500 font-sans placeholder-navy-400"
                 />
                 <button
                     onClick={handleAddCustom}
                     type="button"
                     disabled={!customInput.trim()}
-                    className="px-6 py-2 bg-navy-950 text-white rounded-lg font-medium hover:bg-navy-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-6 py-2 bg-navy-950 text-white rounded-lg font-heading font-medium hover:bg-navy-900 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     Add
                 </button>
@@ -103,8 +104,8 @@ export default function AmenitiesForm({ formData, handleChange }) {
             {customAmenities.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                     {customAmenities.map((amenity, idx) => (
-                        <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-terracotta-50 text-terracotta-900 rounded-lg border border-terracotta-100">
-                            <span className="font-medium text-sm">{amenity}</span>
+                        <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-terracotta-50 text-terracotta-900 rounded-lg border border-terracotta-200">
+                            <span className="font-heading font-medium text-sm">{amenity}</span>
                             <button 
                                 onClick={() => removeCustom(amenity)}
                                 type="button"
@@ -116,7 +117,7 @@ export default function AmenitiesForm({ formData, handleChange }) {
                     ))}
                 </div>
             ) : (
-                <p className="text-sm text-slate-500 italic">
+                <p className="text-sm text-navy-500 italic font-sans">
                     Add any other special features your property offers.
                 </p>
             )}

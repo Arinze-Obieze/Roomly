@@ -1,73 +1,90 @@
-import { useRouter, usePathname } from "next/navigation";
+'use client';
+
+import { useRouter, usePathname } from 'next/navigation';
+import { motion } from 'framer-motion';
 import { 
   MdHome, 
-  MdFavoriteBorder, 
   MdChatBubbleOutline,
   MdPersonOutline,
-  MdStorefront,
   MdGroups
-} from "react-icons/md";
-import { useChat } from "@/core/contexts/ChatContext";
-
-import { BottomNavItem } from "../ui/BottomNavItem";
-import { FaRegEdit } from "react-icons/fa";
+} from 'react-icons/md';
+import { FaRegEdit } from 'react-icons/fa';
+import { useChat } from '@/core/contexts/ChatContext';
+import { BottomNavItem } from '../ui/BottomNavItem';
 
 export const BottomNav = () => {
   const router = useRouter();
   const pathname = usePathname();
   const { unreadCount } = useChat();
 
-  // Helper to determine active state
   const isActive = (path) => pathname === path;
+  const isBuddyActive = pathname?.startsWith('/dashboard/buddy');
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/90 backdrop-blur-lg border-t border-slate-200 py-3 px-2 shadow-lg-up safe-area-bottom">
-      <div className="flex justify-around items-end">
-        <BottomNavItem
-          icon={MdHome}
-          label="Discover"
-          active={isActive('/dashboard')}
-          onClick={() => router.push('/dashboard')}
-        />
-        <BottomNavItem
-          icon={MdGroups}
-          label="Buddy-Up"
-          active={pathname?.startsWith('/dashboard/buddy')}
-          onClick={() => router.push('/dashboard/buddy')}
-        />
-        
-        {/* Middle Highlighted Tab: Manage Listings */}
-         <button
-          onClick={() => router.push('/my-properties')}
-          className="relative -top-6 group"
-        >
-          <div className={`flex flex-col items-center justify-center w-14 h-14 rounded-full shadow-lg border-4 border-white transition-all active:scale-95 ${
-            isActive('/my-properties') 
-              ? 'bg-slate-900 text-white' 
-              : 'bg-terracotta-500 text-white hover:bg-terracotta-600'
-          }`}>
-            <FaRegEdit size={20} />
-          </div>
-          <span className={`absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-bold whitespace-nowrap ${
-            isActive('/my-properties') ? 'text-slate-900' : 'text-slate-500'
-          }`}>
-            Listings
-          </span>
-        </button>
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30">
+      {/* Glass container with brand border and rounded top */}
+      <div className="backdrop-blur-xl bg-white/80 border-t border-[#BCCCDC] rounded-t-3xl px-3 py-2 shadow-soft safe-area-bottom">
+        <div className="flex items-end justify-around">
+          {/* Discover */}
+          <BottomNavItem
+            icon={MdHome}
+            label="Discover"
+            active={isActive('/dashboard')}
+            onClick={() => router.push('/dashboard')}
+          />
 
-        <BottomNavItem
-          icon={MdChatBubbleOutline}
-          label="Messages"
-          badge={unreadCount > 0 ? unreadCount : null}
-          active={isActive('/messages')}
-          onClick={() => router.push('/messages')}
-        />
-        <BottomNavItem
-          icon={MdPersonOutline}
-          label="Profile"
-          active={isActive('/profile')}
-          onClick={() => router.push('/profile')}
-        />
+          {/* Buddy‑Up */}
+          <BottomNavItem
+            icon={MdGroups}
+            label="Buddy‑Up"
+            active={isBuddyActive}
+            onClick={() => router.push('/dashboard/buddy')}
+          />
+
+          {/* Middle – Listings (primary action, elevated) */}
+          <div className="relative -top-5">
+            <motion.button
+              onClick={() => router.push('/my-properties')}
+              className="flex flex-col items-center"
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.96 }}
+            >
+              <div
+                className={`w-14 h-14 rounded-2xl flex items-center justify-center border-4 border-white transition-all shadow-[0_10px_25px_-5px_rgba(255,107,107,0.4)] ${
+                  isActive('/my-properties')
+                    ? 'bg-[#020617] text-white'        // active navy
+                    : 'bg-[#FF6B6B] text-white hover:bg-[#e05a5a]' // brand coral
+                }`}
+              >
+                <FaRegEdit size={22} />
+              </div>
+              <span
+                className={`text-[11px] mt-1 font-medium ${
+                  isActive('/my-properties') ? 'text-[#020617]' : 'text-[#627D98]'
+                }`}
+              >
+                Listings
+              </span>
+            </motion.button>
+          </div>
+
+          {/* Messages – with teal badge */}
+          <BottomNavItem
+            icon={MdChatBubbleOutline}
+            label="Messages"
+            active={isActive('/messages')}
+            badge={unreadCount > 0 ? unreadCount : null}
+            onClick={() => router.push('/messages')}
+          />
+
+          {/* Profile */}
+          <BottomNavItem
+            icon={MdPersonOutline}
+            label="Profile"
+            active={isActive('/profile')}
+            onClick={() => router.push('/profile')}
+          />
+        </div>
       </div>
     </nav>
   );

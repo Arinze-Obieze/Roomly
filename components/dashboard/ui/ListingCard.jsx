@@ -1,3 +1,5 @@
+'use client';
+
 import { useAuthContext } from "@/core/contexts/AuthContext";
 import { useSavedProperties } from "@/core/contexts/SavedPropertiesContext";
 import { useRouter } from "next/navigation";
@@ -125,18 +127,18 @@ export const ListingCard = ({ data, onSelect }) => {
   return (
     <div 
       onClick={() => onSelect?.()}
-      className="group bg-white rounded-[1.5rem] overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1 border border-navy-100 flex flex-col h-full"
+      className="group bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-navy-950/5 hover:-translate-y-1 border border-navy-200 flex flex-col h-full"
     >
       {/* Image Container */}
-      <div className="relative aspect-[5/4] w-full overflow-hidden bg-navy-50">
+      <div className="relative aspect-[5/4] w-full overflow-hidden bg-navy-100">
         <Image 
-          src={imgSrc || 'https://placehold.co/600x400/d9e2ec/102a43?text=No+Image'} 
+          src={imgSrc || 'https://placehold.co/600x400/navy-100/navy-500?text=No+Image'} 
           alt={data.title}
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className={`object-cover transition-transform duration-700 ${data.isBlurry ? 'blur-2xl scale-110 grayscale-[0.2]' : 'group-hover:scale-105'}`}
           priority={false}
-          onError={() => setImgSrc('https://placehold.co/600x400/d9e2ec/102a43?text=Image+Error')}
+          onError={() => setImgSrc('https://placehold.co/600x400/navy-100/navy-500?text=Image+Error')}
         />
         
         {/* Gradients using Navy system */}
@@ -152,7 +154,7 @@ export const ListingCard = ({ data, onSelect }) => {
              )}
              
              {data.verified && !isOwner && (
-                <div className="bg-white/95 text-navy-900 px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm flex items-center gap-1.5 text-xs font-bold border border-navy-100">
+                <div className="bg-white/95 text-navy-900 px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm flex items-center gap-1.5 text-xs font-bold border border-navy-200">
                      <MdVerified className="text-terracotta-500 text-sm" /> Verified
                 </div>
              )}
@@ -162,10 +164,10 @@ export const ListingCard = ({ data, onSelect }) => {
         {!isOwner && !data.isBlurry && !data.isPrivate && (
             <div className="absolute bottom-3 left-3 z-10 transition-transform duration-300 group-hover:-translate-y-1">
                 {user && data.matchScore !== null ? (
-                    <div className="bg-white/95 backdrop-blur-md text-navy-900 pl-2 pr-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold border border-navy-100">
+                    <div className="bg-white/95 backdrop-blur-md text-navy-900 pl-2 pr-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold border border-navy-200">
                         <div className="relative w-4 h-4">
                              <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                                <path className="text-navy-100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
+                                <path className="text-navy-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
                                 <path className={`${data.matchScore > 85 ? 'text-teal-500' : data.matchScore > 50 ? 'text-yellow-400' : 'text-terracotta-500'}`} strokeDasharray={`${data.matchScore}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
                              </svg>
                         </div>
@@ -177,7 +179,7 @@ export const ListingCard = ({ data, onSelect }) => {
                             e.stopPropagation();
                             if (!user) openLoginModal('Sign up to see compatibility match.');
                         }}
-                        className="bg-navy-900/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-bold border border-white/10 hover:bg-navy-800"
+                        className="bg-navy-950/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-bold border border-white/10 hover:bg-navy-900 transition-colors"
                     >
                          Sign up to see match
                     </div>
@@ -191,7 +193,7 @@ export const ListingCard = ({ data, onSelect }) => {
             <>
                 <button 
                     onClick={handleSave}
-                    className="w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white text-navy-300 hover:text-terracotta-500 transition-all active:scale-90"
+                    className="w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white text-navy-400 hover:text-terracotta-500 transition-all active:scale-90"
                 >
                     {isSaved ? <MdFavorite className="text-terracotta-500 text-base" /> : <MdFavoriteBorder className="text-base" />}
                 </button>
@@ -199,7 +201,7 @@ export const ListingCard = ({ data, onSelect }) => {
                 <button 
                     onClick={handleShare}
                     disabled={sharing}
-                    className="w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white text-navy-300 hover:text-navy-900 transition-all active:scale-90"
+                    className="w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white text-navy-400 hover:text-navy-950 transition-all active:scale-90"
                 >
                     {sharing ? <div className="w-3 h-3 border-2 border-navy-200 border-t-navy-900 rounded-full animate-spin" /> : <MdGroupAdd className="text-base" />}
                 </button>
@@ -211,12 +213,12 @@ export const ListingCard = ({ data, onSelect }) => {
       <div className="p-4 flex flex-col flex-1">
         {/* Title & Price */}
         <div className="flex justify-between items-start gap-2 mb-2">
-           <h3 className="font-bold text-navy-900 text-base leading-tight line-clamp-2 group-hover:text-terracotta-600 transition-colors flex-1">
+           <h3 className="font-heading font-bold text-navy-950 text-base leading-tight line-clamp-2 group-hover:text-terracotta-600 transition-colors flex-1">
              {data.title}
            </h3>
            <div className="flex flex-col items-end shrink-0">
              <span className="text-xl font-extrabold text-terracotta-600">€{data.price?.toLocaleString('en-IE')}</span>
-             <span className="text-[10px] text-navy-400 font-medium uppercase tracking-wide">{data.period === 'monthly' ? 'per month' : data.period}</span>
+             <span className="text-[10px] text-navy-500 font-medium uppercase tracking-wide">{data.period === 'monthly' ? 'per month' : data.period}</span>
            </div>
         </div>
 
@@ -226,7 +228,7 @@ export const ListingCard = ({ data, onSelect }) => {
             <span className="truncate">{data.location}</span>
         </div>
 
-        {/* Smart Badges - Replaced Emerald/Indigo with Teal/Navy */}
+        {/* Smart Badges */}
         <div className="flex flex-wrap gap-2 mb-4 mt-auto">
             {data.bills_option === 'included' && (
                 <span className="inline-flex items-center gap-1 bg-teal-50 text-teal-600 text-[10px] uppercase tracking-wide px-2 py-1 rounded-md font-bold border border-teal-100">
@@ -234,7 +236,7 @@ export const ListingCard = ({ data, onSelect }) => {
                 </span>
             )}
             {data.couples_allowed && (
-                <span className="inline-flex items-center gap-1 bg-navy-50 text-navy-600 text-[10px] uppercase tracking-wide px-2 py-1 rounded-md font-bold border border-navy-100">
+                <span className="inline-flex items-center gap-1 bg-navy-50 text-navy-700 text-[10px] uppercase tracking-wide px-2 py-1 rounded-md font-bold border border-navy-200">
                     <MdGroup size={12} /> Couples
                 </span>
             )}
@@ -242,13 +244,13 @@ export const ListingCard = ({ data, onSelect }) => {
 
         {/* Footer */}
         {!data.isBlurry && (
-             <div className="pt-3 border-t border-navy-100 flex items-center justify-between text-xs text-navy-400">
+             <div className="pt-3 border-t border-navy-200 flex items-center justify-between text-xs text-navy-500">
                 <div className="flex gap-3">
                     {data.amenities?.slice(0, 3).map((am, i) => {
                         const IconComponent = am.icon; 
                         return (
                             <div key={i} className="flex items-center gap-1" title={am.label}>
-                                {IconComponent && typeof IconComponent !== 'string' && <IconComponent size={14} />} 
+                                {IconComponent && typeof IconComponent !== 'string' && <IconComponent size={14} className="text-navy-500" />} 
                                 <span className="max-w-[60px] truncate">{am.value}</span>
                             </div>
                         );
@@ -256,11 +258,11 @@ export const ListingCard = ({ data, onSelect }) => {
                 </div>
                 
                 {data.host?.avatar ? (
-                     <div className="relative w-6 h-6 rounded-full overflow-hidden bg-navy-50 ring-1 ring-navy-100">
+                     <div className="relative w-6 h-6 rounded-full overflow-hidden bg-navy-100 ring-1 ring-navy-200">
                         <Image src={data.host.avatar} alt="Host" fill className="object-cover" sizes="24px" />
                      </div>
                 ) : (
-                    <div className="w-6 h-6 rounded-full bg-terracotta-50 text-terracotta-600 flex items-center justify-center text-[10px] font-bold">
+                    <div className="w-6 h-6 rounded-full bg-terracotta-50 text-terracotta-600 flex items-center justify-center text-[10px] font-bold ring-1 ring-terracotta-100">
                         {data.host?.name?.[0] || '?'}
                     </div>
                 )}
@@ -276,10 +278,17 @@ export const ListingCard = ({ data, onSelect }) => {
                     className={`w-full py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all active:scale-[0.98] ${
                         data.interestStatus === 'pending'
                         ? 'bg-teal-50 text-teal-600 border border-teal-100 cursor-default'
-                        : 'bg-navy-900 text-white hover:bg-navy-800 shadow-md'
+                        : 'bg-navy-950 text-white hover:bg-navy-900 shadow-lg shadow-navy-950/20'
                     }`}
                 >
-                    {data.interestStatus === 'pending' ? 'Interest Sent' : 'Show Interest'}
+                    {data.interestStatus === 'pending' ? (
+                        <>
+                            <MdCheckCircle className="text-teal-500" size={16} />
+                            Interest Sent
+                        </>
+                    ) : (
+                        'Show Interest'
+                    )}
                 </button>
             </div>
         )}

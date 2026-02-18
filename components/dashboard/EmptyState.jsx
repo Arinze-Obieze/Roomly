@@ -28,7 +28,7 @@ export default function EmptyState({ onReset, location }) {
         {location ? `No homes found in ${location}` : 'No matches found'}
       </h3>
       
-      <p className="text-slate-500 text-base mb-8 max-w-sm mx-auto leading-relaxed">
+      <p className="text-navy-500 text-base mb-8 max-w-sm mx-auto leading-relaxed">
         We couldn't find a perfect match yet, but don't give up! 
         <br />New rooms are added daily.
       </p>

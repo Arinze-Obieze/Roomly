@@ -57,13 +57,6 @@ export default function GroupChat({ groupId }) {
   };
 
   const fetchNewMessage = async (id) => {
-    // Fetch the single new message to get the sender relation expanded
-    // Optimisation: We could just push payload if we had sender info, 
-    // but payload doesn't have joined tables.
-    // For now, let's just re-fetch or fetch single.
-    // Efficient way: Fetch just that one message with sender.
-    // But since our API returns list, let's just re-fetch list for simplicity or append if we can match sender locally.
-    // Re-fetching essential for now.
     fetchMessages();
   };
 
@@ -89,7 +82,6 @@ export default function GroupChat({ groupId }) {
       });
       if (!res.ok) throw new Error('Failed to send');
       
-      // Manual fetch to ensure UI updates even if subscription is slow/fails
       fetchMessages();
       
     } catch (error) {
@@ -99,88 +91,70 @@ export default function GroupChat({ groupId }) {
     }
   };
 
-  if (loading) return <div className="h-64 flex items-center justify-center">Loading chat...</div>;
+  if (loading) return <div className="h-64 flex items-center justify-center text-navy-400 font-medium text-sm">Loading chat...</div>;
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-220px)] md:h-[600px] bg-slate-50 rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
+    <div className="flex flex-col h-[calc(100dvh-220px)] md:h-[600px] bg-white relative">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-navy-100">
         {messages.map((msg) => {
-            const isMe = msg.sender_id === user?.id; // Fixed: Use top-level sender_id as msg.sender does not contain id
-            // Our API expansion: sender: { full_name, profile_picture }
-            // Wait, msg.sender_id is the ID column. msg.sender is the object.
-            // We need to check authentication user id vs msg.sender_id (not expanded obj) usually,
-            // but the API response has `sender` object. We need `sender_id` column too.
-            // Let's check API response structure. 
-            // It selects: id, content... sender:sender_id(...)
-            // It typically DOES NOT include sender_id as a primitive unless explicitly asked.
-            // But we know who we are. 
-            // Actually, we should ask for sender_id in the select query to be sure.
-            // Let's assume for now we look at msg.sender_id (Supabase usually returns the FK column too if asked or by default?)
-            // If not, we rely on msg.sender (which is an object).
-            // Let's update API to include sender_id explicitly if needed, or check if supabase includes it. 
-            // Standard supabase-js: returns `sender: { ... }`. Original `sender_id` column might be hidden if there's a conflict or just present.
-            // Let's rely on `user.id` comparison.
-            // Actually, for `isMe`, we need `sender_id`.
-            // I'll assume we can pass `user.id` context.
-            // Is `msg.sender_id` available? The query `select(..., sender:sender_id(...))` *replaces* sender_id with the object if not careful? No, usually it adds `sender`.
-            // Let's check API. `sender:sender_id(...)`. This usually creates a `sender` property. `sender_id` column remains if selecting `*` but we selected specific fields.
-            // We did NOT select `sender_id` in the API. I should fix the API or just use msg.sender.full_name as check (bad).
-            // I will fix the API to include `sender_id` or just verify here.
-            
-            // For now, let's assume isMe calculation might be tricky without sender_id.
-            // I will optimistically update the client API call logic or backend.
-            // Better: update backend to return `sender_id`.
+            const isMe = msg.sender_id === user?.id;
             
             return (
-                <div key={msg.id} className={`flex gap-3 ${isMe ? 'flex-row-reverse' : ''}`}>
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-slate-200 overflow-hidden">
+                <div key={msg.id} className={`flex gap-4 ${isMe ? 'flex-row-reverse' : ''} group`}>
+                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-navy-50 border border-navy-100 overflow-hidden mt-1 shadow-sm">
                         {msg.sender?.profile_picture ? (
                             <img src={msg.sender.profile_picture} className="w-full h-full object-cover" />
                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs font-bold text-slate-500">
+                            <div className="w-full h-full flex items-center justify-center text-[10px] font-bold text-navy-400">
                                 {msg.sender?.full_name?.[0]}
                             </div>
                         )}
                     </div>
-                    <div className={`max-w-[70%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
+                    <div className={`max-w-[75%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
+                        <div className="flex items-center gap-2 mb-1 px-1">
+                             {!isMe && <span className="text-[10px] font-bold text-navy-500">{msg.sender?.full_name?.split(' ')[0]}</span>}
+                             <span className="text-[10px] text-navy-300">
+                                {dayjs(msg.created_at).format('h:mm A')}
+                            </span>
+                        </div>
+                        
                         {msg.attachment_type === 'property' && msg.attachment_data ? (
-                             <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-200 mb-1 max-w-xs cursor-pointer hover:shadow-md transition-shadow">
-                                <div className="aspect-video relative bg-slate-100">
+                             <div className={`bg-white rounded-3xl p-2 shadow-md border ${isMe ? 'border-terracotta-100 rounded-tr-none' : 'border-navy-100 rounded-tl-none'} mb-1 max-w-xs cursor-pointer hover:shadow-lg transition-all group-hover:border-terracotta-200`}>
+                                <div className="aspect-video relative bg-navy-50 rounded-2xl overflow-hidden mb-2">
                                     <img 
                                         src={msg.attachment_data.image} 
                                         className="w-full h-full object-cover" 
                                         alt={msg.attachment_data.title}
                                     />
-                                    <div className="absolute bottom-2 left-2 bg-slate-900/80 backdrop-blur-sm text-white text-xs font-bold px-2 py-1 rounded-lg">
+                                    <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-sm text-navy-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                                         {msg.attachment_data.price}
                                     </div>
                                 </div>
-                                <div className="p-3">
-                                    <h4 className="font-bold text-slate-900 text-sm line-clamp-1">{msg.attachment_data.title}</h4>
-                                    <div className="flex items-center gap-1 text-xs text-slate-500 mt-1 mb-2">
+                                <div className="px-2 pb-2">
+                                    <h4 className="font-bold text-navy-900 text-sm line-clamp-1 mb-0.5">{msg.attachment_data.title}</h4>
+                                    <div className="flex items-center gap-1 text-[10px] text-navy-500 mb-3">
                                         <span className="truncate">{msg.attachment_data.location}</span>
                                     </div>
                                     <a 
                                         href={`/rooms/${msg.attachment_data.id}`} 
                                         target="_blank" 
                                         rel="noreferrer"
-                                        className="block text-center w-full py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-900 text-xs font-bold rounded-lg transition-colors"
+                                        className="block text-center w-full py-2 bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold rounded-xl transition-colors"
                                     >
-                                        View Details
+                                        View Property
                                     </a>
                                 </div>
                              </div>
                         ) : (
-                            <div className={`px-4 py-2 rounded-2xl text-sm ${
-                                isMe ? 'bg-red-400 text-white rounded-tr-none' : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none'
+                            <div className={`px-5 py-3 rounded-3xl text-sm font-medium shadow-sm transition-all ${
+                                isMe 
+                                    ? 'bg-gradient-to-br from-terracotta-500 to-terracotta-600 text-white rounded-tr-none shadow-terracotta-500/20' 
+                                    : 'bg-navy-50 text-navy-800 rounded-tl-none border border-navy-100/50'
                             }`}>
                                 {msg.content}
                             </div>
                         )}
-                        <span className="text-[10px] text-slate-400 mt-1 px-1">
-                            {dayjs(msg.created_at).fromNow()}
-                        </span>
                     </div>
                 </div>
             );
@@ -189,23 +163,23 @@ export default function GroupChat({ groupId }) {
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSend} className="p-3 bg-white border-t border-slate-200 flex gap-2">
-        <button type="button" className="p-2 text-slate-400 hover:text-slate-600 transition-colors">
-            <MdAttachFile size={20} />
+      <form onSubmit={handleSend} className="p-4 bg-white border-t border-navy-50 flex items-center gap-3">
+        <button type="button" className="p-2.5 text-navy-400 hover:text-navy-600 hover:bg-navy-50 rounded-xl transition-colors">
+            <MdAttachFile size={22} />
         </button>
         <input 
             type="text" 
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-400 focus:bg-white transition-all"
+            placeholder="Type your message..."
+            className="flex-1 bg-navy-50 border border-transparent hover:border-navy-200 focus:border-terracotta-500/50 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:bg-white transition-all text-navy-900 placeholder:text-navy-400 font-medium"
         />
         <button 
             type="submit" 
             disabled={!input.trim()}
-            className="p-2 bg-red-400 text-white rounded-xl hover:bg-red-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-3 bg-navy-900 text-white rounded-2xl hover:bg-navy-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-navy-900/10 active:scale-95"
         >
-            <MdSend size={20} />
+            <MdSend size={20} className={input.trim() ? "text-terracotta-50" : ""} />
         </button>
       </form>
     </div>

@@ -1,13 +1,7 @@
-"use client";
-
-import { FilterSidebar, RightSidebar } from "@/components/dashboard";
-
 export default function DashboardLayout({ children }) {
   return (
-    <>
-      <main className="relative min-h-screen">
-        {children}
-      </main>
-    </>
+    <div className="relative min-h-screen bg-navy-50">
+      {children}
+    </div>
   );
 }
