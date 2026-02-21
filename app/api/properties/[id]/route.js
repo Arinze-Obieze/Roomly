@@ -1,52 +1,139 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { cachedFetch, invalidatePattern } from '@/core/utils/redis';
+import crypto from 'crypto';
+
+// Generate cache key for property details (includes user for personalized data)
+const generateCacheKey = (propertyId, userId = 'anon') => {
+  const hash = crypto
+    .createHash('md5')
+    .update(`${propertyId}:${userId}`)
+    .digest('hex');
+  return `property:${hash}`;
+};
 
 export async function GET(request, { params }) {
   try {
     const supabase = await createClient();
     const { id } = await params;
 
-    const authStart = Date.now();
     const { data: { user } } = await supabase.auth.getUser();
-    console.log(`[PERF_DETAIL] Auth Check: ${Date.now() - authStart}ms`);
+    const userId = user?.id || 'anon';
+    
+    const cacheKey = generateCacheKey(id, userId);
 
-    // Check for interest status
-    let interestStatus = null;
-    if (user) {
-      const interestStart = Date.now();
-      const { data: interest } = await supabase
-        .from('property_interests')
-        .select('status')
-        .eq('property_id', id)
-        .eq('seeker_id', user.id)
-        .maybeSingle();
-      interestStatus = interest?.status;
-      console.log(`[PERF_DETAIL] Interest Check: ${Date.now() - interestStart}ms`);
+    // Try to fetch from cache first (10 min TTL for property details)
+    const cachedData = await cachedFetch(cacheKey, 600, async () => {
+      return await fetchPropertyFromDB(supabase, id, user);
+    });
+
+    return NextResponse.json(cachedData);
+
+  } catch (error) {
+    console.error('[Property Details GET] Error:', error);
+    return NextResponse.json(
+      { error: 'Failed to fetch property' },
+      { status: 500 }
+    );
+  }
+}
+
+// Extract database fetch logic
+async function fetchPropertyFromDB(supabase, id, user) {
+  const authStart = Date.now();
+  console.log(`[PERF_DETAIL] Auth Check: ${Date.now() - authStart}ms`);
+
+  // Check for interest status
+  let interestStatus = null;
+  if (user) {
+    const interestStart = Date.now();
+    const { data: interest } = await supabase
+      .from('property_interests')
+      .select('status')
+      .eq('property_id', id)
+      .eq('seeker_id', user.id)
+      .maybeSingle();
+    interestStatus = interest?.status;
+    console.log(`[PERF_DETAIL] Interest Check: ${Date.now() - interestStart}ms`);
+  }
+
+  const propStart = Date.now();
+  const { data: property, error } = await supabase
+    .from('properties')
+    .select(`
+      *,
+      property_media (
+        id,
+        url,
+        display_order,
+        is_primary,
+        media_type
+      ),
+      users (
+        id,
+        full_name,
+        profile_picture,
+        is_verified,
+        privacy_setting
+      )
+    `)
+    .eq('id', id)
+    .single();
+  console.log(`[PERF_DETAIL] Property Fetch: ${Date.now() - propStart}ms`);
+
+  if (error) throw error;
+
+  if (!property) {
+    throw new Error('Property not found');
+  }
+
+  const isMutualInterest = interestStatus === 'accepted';
+  const isPrivate = property.privacy_setting === 'private';
+  const shouldMask = isPrivate && !isMutualInterest;
+
+  // Transform media URLs to public URLs
+  if (property.property_media && property.property_media.length > 0) {
+    property.property_media = property.property_media.map(media => ({
+      ...media,
+      url: media.url.startsWith('http') ? media.url : supabase.storage.from('property-media').getPublicUrl(media.url).data.publicUrl
+    }));
+  } else {
+      // Fallback for no media
+      property.property_media = [{
+          id: 'placeholder',
+          url: 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
+          media_type: 'image',
+          is_primary: true
+      }];
+  }
+
+  if (shouldMask) {
+    // Apply Masking
+    property.title = `Room in ${property.city}`;
+    property.street = undefined; // Hide street
+    property.price_range = `€${Math.floor(property.price_per_month / 100) * 100}-${Math.ceil(property.price_per_month / 100) * 100}`;
+    property.price_per_month = undefined;
+    property.description = property.description?.substring(0, 100) + '...';
+    property.isBlurry = true;
+
+    if (property.users && property.users.full_name) {
+      const nameParts = property.users.full_name.split(' ');
+      property.users.full_name = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1][0]}.` : property.users.full_name;
     }
+  } else if (!user) {
+    // Basic gating for unauthenticated
+    property.street = undefined;
+    if (property.users && property.users.full_name) {
+      property.users.full_name = property.users.full_name.split(' ')[0];
+    }
+  }
 
-    const propStart = Date.now();
-    const { data: property, error } = await supabase
-      .from('properties')
-      .select(`
-        *,
-        property_media (
-          id,
-          url,
-          display_order,
-          is_primary,
-          media_type
-        ),
-        users (
-          id,
-          full_name,
-          profile_picture,
-          is_verified,
-          privacy_setting
-        )
-      `)
-      .eq('id', id)
-      .single();
-    console.log(`[PERF_DETAIL] Property Fetch: ${Date.now() - propStart}ms`);
+  return {
+    ...property,
+    isPrivate,
+    interestStatus
+  };
+}
 
     if (error) throw error;
 
@@ -238,9 +325,14 @@ export async function PUT(request, { params }) {
        }
     }
 
+    // Invalidate property cache when property is updated
+    // This invalidates both the specific property cache and the properties list cache
+    await invalidatePattern(`property:*`);
+    await invalidatePattern('properties:list:*');
+
     return NextResponse.json(data);
   } catch (error) {
-    console.error('Error updating property:', error);
+    console.error('[Property Details PUT] Error:', error);
     return NextResponse.json(
       { error: 'Failed to update property' },
       { status: 500 }
@@ -284,9 +376,13 @@ export async function DELETE(request, { params }) {
 
     if (error) throw error;
 
+    // Invalidate property caches when property is deleted
+    await invalidatePattern(`property:*`);
+    await invalidatePattern('properties:list:*');
+
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting property:', error);
+    console.error('[Property Details DELETE] Error:', error);
     return NextResponse.json(
       { error: 'Failed to delete property' },
       { status: 500 }

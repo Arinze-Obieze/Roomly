@@ -10,7 +10,7 @@ export const BottomNavItem = ({ icon: Icon, label, active, badge, onClick }) => 
       {active && (
         <motion.div
           layoutId="activeDot"
-          className="absolute -top-1 w-1.5 h-1.5 bg-[#FF6B6B] rounded-full"
+          className="absolute -top-1 w-1.5 h-1.5 bg-primary rounded-full"
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
@@ -21,7 +21,7 @@ export const BottomNavItem = ({ icon: Icon, label, active, badge, onClick }) => 
         <Icon
           size={24}
           className={`transition-colors duration-200 ${
-            active ? 'text-[#FF6B6B]' : 'text-[#627D98] group-hover:text-[#020617]'
+            active ? 'text-primary' : 'text-[#627D98] group-hover:text-[#020617]'
           }`}
         />
 
@@ -39,7 +39,7 @@ export const BottomNavItem = ({ icon: Icon, label, active, badge, onClick }) => 
 
       <span
         className={`text-[11px] mt-1 font-medium transition-colors duration-200 ${
-          active ? 'text-[#FF6B6B] font-bold' : 'text-[#627D98] group-hover:text-[#020617]'
+          active ? 'text-primary font-bold' : 'text-[#627D98] group-hover:text-[#020617]'
         }`}
       >
         {label}

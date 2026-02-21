@@ -180,14 +180,14 @@ export default function DetailsForm({ formData, focusedField, setFocusedField, h
                 type="button"
                 onClick={() => toggleAmenity(amenity.value)}
                 className={`flex items-center gap-3 p-3 rounded-xl border-2 transition-all hover:scale-[1.02] ${
-                  formData.amenities.includes(amenity.value)
+                  (formData.amenities || []).includes(amenity.value)
                     ? 'border-emerald-500 bg-emerald-50'
                     : 'border-slate-200 bg-white hover:border-slate-300'
                 }`}
               >
                 <amenity.icon
                   className={
-                    formData.amenities.includes(amenity.value)
+                    (formData.amenities || []).includes(amenity.value)
                       ? 'text-emerald-600'
                       : 'text-slate-400'
                   }
@@ -196,7 +196,7 @@ export default function DetailsForm({ formData, focusedField, setFocusedField, h
                 <span className="text-sm font-medium text-slate-900">
                   {amenity.label}
                 </span>
-                {formData.amenities.includes(amenity.value) && (
+                {(formData.amenities || []).includes(amenity.value) && (
                   <MdCheckCircle className="ml-auto text-emerald-600" size={18} />
                 )}
               </button>

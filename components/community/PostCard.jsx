@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MdKeyboardArrowUp, MdKeyboardArrowDown, MdChatBubbleOutline, MdShare, MdReport, MdDelete, MdCheckCircle } from 'react-icons/md';
+import { MdKeyboardArrowUp, MdKeyboardArrowDown, MdChatBubbleOutline, MdShare, MdReport, MdDelete, MdCheckCircle, MdOutlineSecurity } from 'react-icons/md';
 import { formatDistanceToNow } from 'date-fns';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import CommentSection from './CommentSection';
@@ -118,6 +118,17 @@ export default function PostCard({ post, onVote, onDelete }) {
               {categoryLabel}
             </span>
             
+            {post.is_anonymous && (
+              <motion.span 
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="px-2 py-0.5 rounded-full border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-heading font-medium flex items-center gap-1"
+              >
+                <MdOutlineSecurity size={14} />
+                Anonymous
+              </motion.span>
+            )}
+            
             <span className="text-navy-500 font-sans">
               in <span className="font-heading font-bold text-navy-700">{post.city}</span>
             </span>
@@ -125,7 +136,7 @@ export default function PostCard({ post, onVote, onDelete }) {
             <span className="text-navy-300">•</span>
             
             <span className="text-navy-500 font-sans">
-              Posted by {post.author?.full_name?.split(' ')[0] || 'User'}
+              Posted by {post.is_anonymous ? 'Anonymous' : (post.author?.full_name?.split(' ')[0] || 'User')}
             </span>
             
             <span className="text-navy-300">•</span>

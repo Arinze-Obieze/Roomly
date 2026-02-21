@@ -122,18 +122,48 @@ export function AuthProvider({ children }) {
 
   const updateProfile = async (updates) => {
     try {
+      // Validate updates to prevent invalid data
+      if (!updates || typeof updates !== 'object') {
+        return { 
+          success: false, 
+          error: 'Invalid profile updates' 
+        };
+      }
+
+      // Save original state for rollback
+      const originalUser = user;
+
+      // Optimistic update - update UI immediately
+      const previousUser = { ...user };
+      setUser(prev => ({ ...prev, ...updates }));
+
       const supabase = createClient();
       const { error } = await supabase
         .from('users')
         .update(updates)
         .eq('id', user.id);
 
-      if (error) throw error;
-      setUser(prev => ({ ...prev, ...updates }));
+      if (error) {
+        // Rollback on error
+        setUser(previousUser);
+        console.error('Error updating profile:', error);
+        return { 
+          success: false, 
+          error: error.message || 'Failed to update profile. Please try again.',
+          details: error
+        };
+      }
+
       return { success: true };
     } catch (error) {
-      console.error('Error updating profile:', error);
-      return { success: false, error };
+      // Rollback on unexpected error
+      setUser(user);
+      console.error('Unexpected error updating profile:', error);
+      return { 
+        success: false, 
+        error: 'Failed to update profile. Please try again.',
+        details: error
+      };
     }
   };
 
@@ -164,7 +194,7 @@ export function AuthProvider({ children }) {
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectTo: `${location.origin}/auth/callback`,
+          redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`,
         },
       });
 
@@ -182,6 +212,7 @@ export function AuthProvider({ children }) {
     refreshSession,
     updateProfile,
     signOut,
+    logout: signOut, // Alias for clarity
     openLoginModal,
     signInWithGoogle
   };

@@ -111,12 +111,13 @@ export const ChatProvider = ({ children }) => {
         }
     });
 
-    // Trigger mark as read when messages load
+    // Trigger mark as read when messages load (only when conversation changes, NOT on every data update)
     useEffect(() => {
         if (activeConversation && messagesQuery.data?.pages?.[0]?.length > 0) {
+            // Only call once per conversation change to avoid memory leaks
             markReadMutation.mutate(activeConversation);
         }
-    }, [activeConversation, messagesQuery.dataUpdatedAt]);
+    }, [activeConversation]);
 
     // Send Message Mutation (Optimistic)
     const sendMessageMutation = useMutation({

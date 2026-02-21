@@ -122,7 +122,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                             <select 
                               onChange={(e) => {
                                 const val = e.target.value;
-                                if (val && !formData.location_areas.includes(val)) {
+                                if (val && !(formData.location_areas || []).includes(val)) {
                                   handleCheckboxGroup('location_areas', val);
                                 }
                                 e.target.value = ''; // Reset
@@ -131,14 +131,14 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                             >
                               <option value="">Add a city/town...</option>
                               {CITIES_TOWNS.map(city => (
-                                <option key={city} value={city} disabled={formData.location_areas.includes(city)}>
+                                <option key={city} value={city} disabled={(formData.location_areas || []).includes(city)}>
                                   {city}
                                 </option>
                               ))}
                             </select>
                          </div>
                          <div className="flex flex-wrap gap-2 mt-3">
-                           {formData.location_areas.map(loc => (
+                           {(formData.location_areas || []).map(loc => (
                              <span key={loc} className="inline-flex items-center gap-1 px-3 py-1 bg-cyan-50 text-cyan-700 rounded-full text-sm font-medium border border-cyan-100">
                                {loc}
                                <button onClick={() => handleCheckboxGroup('location_areas', loc)} className="hover:text-cyan-900">
@@ -179,7 +179,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
 
                {/* Budget - Always Shown */}
                <div>
-                  <label className="block text-sm font-semibold mb-3 text-slate-700 flex items-center gap-2">
+                  <label className=" text-sm font-semibold mb-3 text-slate-700 flex items-center gap-2">
                     <MdAttachMoney /> Budget Range (Monthly)
                   </label>
                   <div className="bg-slate-50 p-6 rounded-xl border border-slate-100">
@@ -232,7 +232,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                       type="button"
                       onClick={() => handleCheckboxGroup('occupation_preference', occ)}
                       className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
-                        formData.occupation_preference?.includes(occ)
+                        (formData.occupation_preference || []).includes(occ)
                           ? 'bg-purple-600 text-white border-purple-600 shadow-md transform scale-105'
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                       }`}
@@ -368,14 +368,14 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
            
            {userRole === 'seeker' && (
              <div className="mt-3 flex flex-wrap gap-1">
-               {formData.location_areas && formData.location_areas.length > 0 ? (
-                  formData.location_areas.slice(0, 3).map(loc => (
+               {(formData.location_areas || []).length > 0 ? (
+                  (formData.location_areas || []).slice(0, 3).map(loc => (
                     <span key={loc} className="text-xs px-2 py-1 bg-white border border-slate-200 rounded-md text-slate-600">
                       {loc}
                     </span>
                   ))
                ) : <span className="text-xs text-slate-400">Any Location</span>}
-               {formData.location_areas?.length > 3 && <span className="text-xs text-slate-400">+{formData.location_areas.length - 3} more</span>}
+               {(formData.location_areas || []).length > 3 && <span className="text-xs text-slate-400">+{(formData.location_areas || []).length - 3} more</span>}
              </div>
            )}
         </div>
@@ -393,8 +393,8 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
              <div className="flex items-center gap-2 text-sm text-slate-700">
                <MdWork className="text-slate-400" />
                <span>
-                  {formData.occupation_preference?.length > 0 
-                    ? formData.occupation_preference.join(', ') 
+                  {(formData.occupation_preference || []).length > 0 
+                    ? (formData.occupation_preference || []).join(', ') 
                     : 'Any Occupation'}
                </span>
              </div>
@@ -415,8 +415,8 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
              <li className="flex items-center gap-2 text-slate-700">
                 <span className="font-medium">Smoking:</span>
                 <span className="text-slate-600">
-                   {formData.accepted_smoking && formData.accepted_smoking.length > 0 
-                     ? formData.accepted_smoking.join(', ') 
+                   {(formData.accepted_smoking || []).length > 0 
+                     ? (formData.accepted_smoking || []).join(', ') 
                      : 'None'}
                 </span>
              </li>

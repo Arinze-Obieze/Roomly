@@ -8,7 +8,7 @@ export const HeaderNavItem = ({ icon: Icon, label, active, badge, onClick }) => 
           : 'text-[#627D98] hover:bg-white/60 hover:text-[#020617]'
       }`}
     >
-      <div className={`transition-colors ${active ? 'text-[#FF6B6B]' : 'text-[#627D98] group-hover:text-[#FF6B6B]'}`}>
+      <div className={`transition-colors ${active ? 'text-primary' : 'text-[#627D98] group-hover:text-primary'}`}>
         <Icon size={20} />
       </div>
       <span className={`text-sm font-medium`}>{label}</span>

@@ -74,7 +74,7 @@ const UserAvatar = ({ user, size = "w-8 h-8", showName = true }) => {
   
   const initials = user?.full_name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U';
   return (
-    <div className={`${size} rounded-full bg-[#FF6B6B20] text-[#FF6B6B] border-2 border-[#FF6B6B40] flex items-center justify-center text-xs font-bold`}>
+    <div className={`${size} rounded-full bg-[#FF6B6B20] text-primary border-2 border-[#FF6B6B40] flex items-center justify-center text-xs font-bold`}>
       {initials}
     </div>
   );
@@ -86,7 +86,7 @@ const DropdownMenu = ({ isOpen, onItemClick, onLogout }) => (
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-lg border border-[#BCCCDC] py-1 overflow-hidden z-[60]"
+      className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-lg border border-[#BCCCDC] py-1 overflow-hidden z-60"
     >
       {DROPDOWN_MENU_ITEMS.map((item, index) => (
         <div key={item.label}>
@@ -114,7 +114,7 @@ const SearchBar = ({ placeholder = "Search properties...", value, onChange }) =>
       placeholder={placeholder} 
       value={value || ''}
       onChange={(e) => onChange && onChange(e.target.value)}
-      className="w-full pl-11 pr-4 py-3 bg-white border border-[#BCCCDC] rounded-xl shadow-sm focus:ring-2 focus:ring-[#FF6B6B] focus:border-[#FF6B6B] transition-all outline-none placeholder:text-[#627D98] text-[#020617]"
+      className="w-full pl-11 pr-4 py-3 bg-white border border-[#BCCCDC] rounded-xl shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none placeholder:text-[#627D98] text-[#020617]"
       style={{ fontFamily: 'Inter, sans-serif' }}
     />
   </div>
@@ -130,7 +130,7 @@ const MobileSearchBar = ({ placeholder = "Search properties...", value, onChange
       placeholder={placeholder} 
       value={value || ''}
       onChange={(e) => onChange && onChange(e.target.value)}
-      className="w-full pl-10 pr-4 py-3 bg-white border border-[#BCCCDC] rounded-xl shadow-sm focus:ring-2 focus:ring-[#FF6B6B] focus:border-[#FF6B6B] transition-all outline-none text-sm placeholder:text-[#627D98] text-[#020617]"
+      className="w-full pl-10 pr-4 py-3 bg-white border border-[#BCCCDC] rounded-xl shadow-sm focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none text-sm placeholder:text-[#627D98] text-[#020617]"
       style={{ fontFamily: 'Inter, sans-serif' }}
     />
   </div>
@@ -147,7 +147,7 @@ const AuthButtons = () => (
     </Link>
     <Link 
       href="/signup" 
-      className="bg-[#FF6B6B] hover:bg-[#e05a5a] text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-[#FF6B6B40] active:scale-95"
+      className="bg-primary hover:bg-[#e05a5a] text-white text-sm font-bold px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-[#FF6B6B40] active:scale-95"
       style={{ fontFamily: 'Inter, sans-serif' }}
     >
       Sign Up
@@ -158,7 +158,7 @@ const AuthButtons = () => (
 const ListPropertyButton = ({ onClick }) => (
   <button 
     onClick={onClick}
-    className="bg-[#FF6B6B] text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:bg-[#e05a5a] shadow-lg shadow-[#FF6B6B40] transition-all active:scale-[0.98]"
+    className="bg-primary text-white px-5 py-2.5 rounded-xl font-semibold flex items-center gap-2 hover:bg-[#e05a5a] shadow-lg shadow-[#FF6B6B40] transition-all active:scale-[0.98]"
     style={{ fontFamily: 'Inter, sans-serif' }}
   >
     <MdAddCircleOutline size={20} />
@@ -230,7 +230,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
                         className="p-2 rounded-xl hover:bg-[#F0F4F8] transition-colors group"
                         title="Saved Properties"
                         >
-                        <MdFavoriteBorder size={22} className="text-[#627D98] group-hover:text-[#FF6B6B]" />
+                        <MdFavoriteBorder size={22} className="text-[#627D98] group-hover:text-primary" />
                         </button>
 
                         <div className="relative">
@@ -239,7 +239,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
                             onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                         />
                         {isNotificationsOpen && (
-                            <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#BCCCDC] overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200">
+                            <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#BCCCDC] overflow-hidden z-60 animate-in fade-in zoom-in-95 duration-200">
                             <NotificationList onClose={() => setIsNotificationsOpen(false)} />
                             </div>
                         )}
@@ -326,7 +326,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
                     onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                   />
                   {isNotificationsOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#BCCCDC] overflow-hidden z-[60] animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#BCCCDC] overflow-hidden z-60 animate-in fade-in zoom-in-95 duration-200">
                       <NotificationList onClose={() => setIsNotificationsOpen(false)} />
                     </div>
                   )}
@@ -354,7 +354,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
             ) : (
               <div className="flex items-center gap-3">
                 <Link href="/login" className="text-sm font-semibold text-[#627D98] hover:text-[#020617]">Log In</Link>
-                <Link href="/signup" className="text-sm font-bold text-[#FF6B6B]">Sign Up</Link>
+                <Link href="/signup" className="text-sm font-bold text-primary">Sign Up</Link>
               </div>
             )}
           </div>

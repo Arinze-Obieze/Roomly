@@ -6,6 +6,7 @@ import PremiumSlider from '@/components/ui/PremiumSlider';
 import { MdSchedule, MdCleaningServices, MdPets, MdMusicNote, MdLocalBar, MdSmokeFree, MdCheck, MdArrowForward, MdArrowBack, MdEdit } from 'react-icons/md';
 import { FaCannabis } from 'react-icons/fa';
 import { CITIES_TOWNS } from '@/data/locations';
+import { PROPERTY_CATEGORIES } from '@/data/listingOptions';
 import toast from 'react-hot-toast';
 
 const STEPS = [
@@ -34,6 +35,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
     drinking_habits: 'social',
     cannabis_friendly: false,
     dietary_preference: 'omnivore',
+    preferred_property_types: ['apartment'],
     cleanliness_level: 2,
     social_level: 2,
     noise_tolerance: 2,
@@ -105,6 +107,17 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
     });
   };
 
+  const togglePropertyType = (propType) => {
+    setFormData(prev => {
+      const types = prev.preferred_property_types || [];
+      if (types.includes(propType)) {
+        return { ...prev, preferred_property_types: types.filter(t => t !== propType) };
+      } else {
+        return { ...prev, preferred_property_types: [...types, propType] };
+      }
+    });
+  };
+
   const renderSummaryCard = () => (
     <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm animate-fadeIn">
       <div className="flex justify-between items-start mb-6">
@@ -164,6 +177,15 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                  <span className="text-lg">🐶</span>
                  <span className="font-medium text-slate-700">
                    {formData.pets.has_pets ? `Has Pets: ${formData.pets.description}` : 'No Pets'}
+                 </span>
+               </li>
+               <li className="flex items-center gap-2">
+                 <span className="text-lg">�️</span>
+                 <span className="font-medium text-slate-700">
+                   Property: {(formData.preferred_property_types || []).map(pt => {
+                     const cat = PROPERTY_CATEGORIES.find(c => c.value === pt);
+                     return cat?.label || pt;
+                   }).join(', ')}
                  </span>
                </li>
              </ul>
@@ -353,6 +375,33 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                     <option value="kosher">Kosher</option>
                   </select>
             </div>
+
+            <div>
+              <label className="block text-base font-semibold mb-3">Preferred Property Types</label>
+              <p className="text-slate-500 text-sm mb-4">Select the type(s) of properties you prefer</p>
+              <div className="grid grid-cols-2 gap-2">
+                {PROPERTY_CATEGORIES.map((prop) => (
+                  <button
+                    key={prop.value}
+                    onClick={() => togglePropertyType(prop.value)}
+                    className={`p-3 rounded-xl border transition-all text-left flex flex-col items-start gap-2 ${
+                      (formData.preferred_property_types || []).includes(prop.value)
+                        ? 'border-navy-600 bg-navy-50 ring-1 ring-navy-300'
+                        : 'border-slate-200 hover:border-navy-300'
+                    }`}
+                  >
+                    <span className={`text-2xl ${(formData.preferred_property_types || []).includes(prop.value) ? 'text-navy-700' : 'text-slate-400'}`}>
+                      <prop.icon />
+                    </span>
+                    <div className="flex-1">
+                      <div className={`font-medium text-sm ${(formData.preferred_property_types || []).includes(prop.value) ? 'text-navy-900' : 'text-slate-700'}`}>
+                        {prop.label}
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         );
 
@@ -541,7 +590,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                     key={tag}
                     onClick={() => toggleInterest(tag)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all transform hover:scale-105 active:scale-95 ${
-                      formData.interests.includes(tag)
+                      (formData.interests || []).includes(tag)
                         ? 'bg-cyan-600 text-white shadow-md'
                         : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-400'
                     }`}

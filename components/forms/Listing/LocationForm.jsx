@@ -108,22 +108,31 @@ export default function LocationForm({ formData, handleChange }) {
       {/* Transport Options */}
       <div>
          <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Nearest Transport</label>
-         <div className="flex flex-wrap gap-2">
-            {TRANSPORT_OPTIONS.map(opt => (
-                <button
-                    key={opt.value}
-                    type="button"
-                    onClick={() => toggleTransport(opt.value)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-full border transition-all font-sans ${
-                         (formData.transport_options || []).includes(opt.value)
-                         ? 'border-terracotta-500 bg-terracotta-50 text-terracotta-700 font-medium'
-                         : 'border-navy-200 bg-white text-navy-500 hover:border-navy-300'
-                    }`}
-                >
-                    <opt.icon size={16} />
-                    {opt.label}
-                </button>
-            ))}
+         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {TRANSPORT_OPTIONS.map(opt => {
+                const isSelected = (formData.transport_options || []).includes(opt.value);
+                return (
+                  <button
+                      key={opt.value}
+                      type="button"
+                      onClick={() => toggleTransport(opt.value)}
+                      className={`relative flex items-center justify-center gap-2 px-4 py-3 rounded-xl border transition-all font-sans w-full ${
+                           isSelected
+                           ? 'border-teal-500 bg-teal-50/50 text-teal-700 font-medium'
+                           : 'border-navy-200 bg-white text-navy-600 hover:border-navy-300'
+                      }`}
+                  >
+                      {opt.label}
+                      {isSelected && (
+                        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-teal-500 rounded-full flex items-center justify-center border-2 border-white shadow-sm">
+                          <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                          </svg>
+                        </div>
+                      )}
+                  </button>
+                );
+            })}
          </div>
       </div>
 

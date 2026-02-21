@@ -43,6 +43,21 @@ export default function BasicsForm({ formData, handleChange }) {
               </SelectionCard>
             ))}
           </div>
+          
+          {formData.rental_type === 'fixed' && (
+             <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
+               <label className="block text-sm font-heading font-bold text-navy-950 mb-2">Duration</label>
+               <select
+                   value={formData.fixed_term_duration || ''}
+                   onChange={(e) => handleChange('fixed_term_duration', e.target.value)}
+                   className="w-full px-4 py-3 rounded-xl border border-navy-200 bg-white focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none font-sans"
+               >
+                   <option value="">Select duration</option>
+                   <option value="6">6 Months</option>
+                   <option value="12">12 Months</option>
+               </select>
+             </div>
+          )}
         </div>
 
         <div>

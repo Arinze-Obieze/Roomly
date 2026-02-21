@@ -126,7 +126,7 @@ export default function HomeDashboard() {
                 <BuddyWidget />
                 
                 {/* Community CTA */}
-                <div className="bg-gradient-to-br from-navy-800 to-navy-900 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group cursor-pointer hover:shadow-xl transition-all border border-navy-700">
+                <div className="bg-linear-to-br from-navy-800 to-navy-900 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden group cursor-pointer hover:shadow-xl transition-all border border-navy-700">
                   <div className="relative z-10">
                     <div className="flex items-center gap-2 mb-3">
                       <div className="p-2 bg-white/10 rounded-xl">

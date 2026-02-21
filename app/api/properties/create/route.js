@@ -4,6 +4,59 @@ import { NextResponse } from 'next/server';
 export const runtime = 'nodejs';
 export const bodySizeLimit = '20mb';
 
+// File size limits (in bytes)
+const FILE_LIMITS = {
+  DEFAULT_IMAGE: 5 * 1024 * 1024, // 5MB for images
+  DEFAULT_VIDEO: 50 * 1024 * 1024, // 50MB for videos
+  ABSOLUTE_MAX: 20 * 1024 * 1024, // 20MB absolute max per file
+};
+
+// Allowed MIME types
+const ALLOWED_MIMES = {
+  image: ['image/jpeg', 'image/png', 'image/webp'],
+  video: ['video/mp4', 'video/quicktime', 'video/x-msvideo'],
+};
+
+/**
+ * Validate file before upload
+ * @param {File} file - The file to validate
+ * @param {string} type - 'image' or 'video'
+ * @returns {{valid: boolean, error?: string}}
+ */
+const validateFile = (file, type) => {
+  if (!file || typeof file === 'string') {
+    return { valid: false, error: 'Invalid file' };
+  }
+
+  // Check file size
+  const maxSize = type === 'image' ? FILE_LIMITS.DEFAULT_IMAGE : FILE_LIMITS.DEFAULT_VIDEO;
+  if (file.size > maxSize) {
+    return { 
+      valid: false, 
+      error: `${type === 'image' ? 'Image' : 'Video'} must be under ${maxSize / (1024 * 1024)}MB` 
+    };
+  }
+
+  // Check absolute max
+  if (file.size > FILE_LIMITS.ABSOLUTE_MAX) {
+    return { 
+      valid: false, 
+      error: `File exceeds maximum size limit of 20MB` 
+    };
+  }
+
+  // Check MIME type
+  const allowedMimes = ALLOWED_MIMES[type] || [];
+  if (!allowedMimes.includes(file.type)) {
+    return { 
+      valid: false, 
+      error: `Invalid ${type} format. Allowed: ${allowedMimes.join(', ')}` 
+    };
+  }
+
+  return { valid: true };
+};
+
 export async function POST(req) {
   try {
     console.log('[DEBUG] Starting property creation request');
@@ -58,18 +111,58 @@ export async function POST(req) {
         return val === 'true';
     };
 
+    // Validate numeric fields
+    const pricePerMonth = getNumber('price_per_month');
+    const bedrooms = getNumber('bedrooms');
+    const bathrooms = getNumber('bathrooms');
+    
+    if (pricePerMonth === null || pricePerMonth <= 0) {
+      return NextResponse.json({ 
+        error: 'Price per month must be a positive number' 
+      }, { status: 400 });
+    }
+
+    if (bedrooms !== null && bedrooms < 0) {
+      return NextResponse.json({ 
+        error: 'Bedrooms cannot be negative' 
+      }, { status: 400 });
+    }
+
+    if (bathrooms !== null && bathrooms < 0) {
+      return NextResponse.json({ 
+        error: 'Bathrooms cannot be negative' 
+      }, { status: 400 });
+    }
+
+    // Validate coordinates if provided
+    const latitude = getNumber('latitude');
+    const longitude = getNumber('longitude');
+    
+    if (latitude !== null && (latitude < -90 || latitude > 90)) {
+      return NextResponse.json({ 
+        error: 'Invalid latitude (must be between -90 and 90)' 
+      }, { status: 400 });
+    }
+
+    if (longitude !== null && (longitude < -180 || longitude > 180)) {
+      return NextResponse.json({ 
+        error: 'Invalid longitude (must be between -180 and 180)' 
+      }, { status: 400 });
+    }
+    
     // Prepare DB object
     const propertyData = {
       // Basics
       title: form.get('title'),
       description: form.get('description'),
       rental_type: form.get('rental_type') || 'monthly',
+      fixed_term_duration: getNumber('fixed_term_duration'),
       
       // Property Details
       property_type: form.get('property_category'),
       offering_type: form.get('offering_type') || 'private_room',
-      bedrooms: getNumber('bedrooms') || 0,
-      bathrooms: getNumber('bathrooms') || 0,
+      bedrooms: bedrooms || 0,
+      bathrooms: bathrooms || 0,
       square_meters: getNumber('floor_area'), // Mapping floor_area -> square_meters
       year_built: getNumber('year_built'),
       ber_rating: form.get('ber_rating'),
@@ -78,13 +171,13 @@ export async function POST(req) {
       state: form.get('state'),
       city: form.get('city'),
       street: form.get('street'),
-      latitude: getNumber('latitude'),
-      longitude: getNumber('longitude'),
+      latitude: latitude,
+      longitude: longitude,
       transport_options: getJson('transport_options', []),
       is_gaeltacht: getBool('is_gaeltacht'),
       
       // Financials
-      price_per_month: getNumber('price_per_month'),
+      price_per_month: pricePerMonth,
       deposit: getNumber('deposit'),
       bills_option: form.get('bills_option') || 'some',
       custom_bills: getJson('custom_bills', []),
@@ -129,7 +222,7 @@ export async function POST(req) {
       }, { status: 500 });
     }
 
-    // Media Upload
+    // Media Upload with validation
     // Handle 'new_photos[]', 'new_videos[]' (from frontend) and 'photos[]', 'videos[]' (legacy/API)
     const files = [
         ...form.getAll('new_photos[]').map(f => ({ file: f, type: 'image' })),
@@ -138,18 +231,28 @@ export async function POST(req) {
         ...form.getAll('videos[]').map(f => ({ file: f, type: 'video' })),
     ];
     
+    // Validate all files before uploading
+    for (const { file, type } of files) {
+      if (!file || typeof file === 'string') continue; // Skip non-files
+      
+      const validation = validateFile(file, type);
+      if (!validation.valid) {
+        // Clean up property since media upload failed
+        await supabase.from('properties').delete().eq('id', property.id);
+        return NextResponse.json({ 
+          error: `File validation failed: ${validation.error}` 
+        }, { status: 400 });
+      }
+    }
+    
     const mediaRecords = [];
-    
-    // Sequential upload to ensure order is preserved if needed, or mapped
-    // But parallel is faster. We need to assign display_order.
-    
     let photoCount = 0;
     let videoCount = 0;
 
     const uploadPromises = files.map(async ({ file, type }, index) => {
          if (!file || typeof file === 'string') return null; // Skip non-files
 
-         const ext = file.name.split('.').pop();
+         const ext = file.name.split('.').pop().toLowerCase();
          const path = `properties/${property.id}/${type}_${Date.now()}_${Math.random().toString(36).substring(7)}.${ext}`;
          
          const { error: uploadErr } = await supabase.storage

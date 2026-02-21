@@ -15,6 +15,7 @@ export const NotificationsProvider = ({ children }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
     const supabase = createClient();
+    const subscriptionRef = useRef(null);
     
     // Audio ref for notification sound
     const audioRef = useRef(null);
@@ -46,9 +47,14 @@ export const NotificationsProvider = ({ children }) => {
         fetchNotifications();
     }, [fetchNotifications]);
 
-    // Real-time subscription
+    // Real-time subscription - FIXED: removed 'notifications' from deps to prevent recreation
     useEffect(() => {
         if (!user) return;
+
+        // Cleanup existing subscription if any
+        if (subscriptionRef.current) {
+            supabase.removeChannel(subscriptionRef.current);
+        }
 
         const channel = supabase
             .channel('notifications-updates')
@@ -81,20 +87,24 @@ export const NotificationsProvider = ({ children }) => {
             }, (payload) => {
                 const updated = payload.new;
                 setNotifications(prev => prev.map(n => n.id === updated.id ? updated : n));
-                // Re-calc unread count from current state + update
+                // Update unread count based on is_read status
                 setUnreadCount(prev => {
-                   // Crude recalculation or just fetch? 
-                   // Let's rely on the updated list
-                   const newList = notifications.map(n => n.id === updated.id ? updated : n);
-                   return newList.filter(n => !n.is_read).length;
+                    // If was unread and now read, decrement
+                    if (updated.is_read) return Math.max(0, prev - 1);
+                    return prev;
                 });
             })
             .subscribe();
 
+        subscriptionRef.current = channel;
+
         return () => {
-            supabase.removeChannel(channel);
+            if (subscriptionRef.current) {
+                supabase.removeChannel(subscriptionRef.current);
+                subscriptionRef.current = null;
+            }
         };
-    }, [user, supabase, notifications]); // Dependencies might need tuning to avoid stale closure on notifications
+    }, [user, supabase]); // Fixed: removed 'notifications' dependency
 
     const markAsRead = async (id) => {
         // Optimistic update

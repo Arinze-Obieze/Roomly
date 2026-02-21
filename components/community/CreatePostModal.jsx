@@ -21,7 +21,8 @@ export default function CreatePostModal({ onClose, onCreated }) {
     content: '',
     category: 'general',
     city: '',
-    image: null
+    image: null,
+    isAnonymous: false
   });
 
   const handleChange = (e) => {
@@ -39,6 +40,11 @@ export default function CreatePostModal({ onClose, onCreated }) {
     setLoading(true);
 
     try {
+      // Get CSRF token
+      const csrfRes = await fetch('/api/csrf-token');
+      if (!csrfRes.ok) throw new Error('Failed to get CSRF token');
+      const { csrfToken } = await csrfRes.json();
+
       let image_url = null;
       const supabase = createClient();
       
@@ -61,7 +67,9 @@ export default function CreatePostModal({ onClose, onCreated }) {
           content: formData.content,
           category: formData.category,
           city: formData.city,
-          image_url
+          image_url,
+          is_anonymous: formData.isAnonymous,
+          csrfToken
         }),
       });
 
@@ -169,6 +177,20 @@ export default function CreatePostModal({ onClose, onCreated }) {
               onChange={handleChange}
               className="w-full px-4 py-2 rounded-xl border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500 resize-none font-sans placeholder-navy-400"
             />
+          </div>
+
+          <div className="flex items-center gap-2 p-3 rounded-xl bg-navy-50 border border-navy-200">
+            <input
+              type="checkbox"
+              id="anonymous-toggle"
+              checked={formData.isAnonymous}
+              onChange={(e) => setFormData(prev => ({ ...prev, isAnonymous: e.target.checked }))}
+              className="w-5 h-5 rounded cursor-pointer accent-terracotta-500"
+            />
+            <label htmlFor="anonymous-toggle" className="cursor-pointer flex-1">
+              <span className="text-sm font-heading font-semibold text-navy-950">Post Anonymously</span>
+              <p className="text-xs text-navy-500 mt-0.5">Your name won't be shown with this post</p>
+            </label>
           </div>
 
           <div>

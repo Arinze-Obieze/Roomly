@@ -53,7 +53,7 @@ export const BottomNav = () => {
                 className={`w-14 h-14 rounded-2xl flex items-center justify-center border-4 border-white transition-all shadow-[0_10px_25px_-5px_rgba(255,107,107,0.4)] ${
                   isActive('/my-properties')
                     ? 'bg-[#020617] text-white'        // active navy
-                    : 'bg-[#FF6B6B] text-white hover:bg-[#e05a5a]' // brand coral
+                    : 'bg-primary text-white hover:bg-[#e05a5a]' // brand coral
                 }`}
               >
                 <FaRegEdit size={22} />
@@ -77,12 +77,18 @@ export const BottomNav = () => {
             onClick={() => router.push('/messages')}
           />
 
-          {/* Profile */}
+          {/* Menu */}
           <BottomNavItem
-            icon={MdPersonOutline}
-            label="Profile"
-            active={isActive('/profile')}
-            onClick={() => router.push('/profile')}
+            icon={() => (
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="12" cy="5" r="2" fill={isActive('/menu') ? '#FF6B6B' : '#627D98'} />
+                <circle cx="12" cy="12" r="2" fill={isActive('/menu') ? '#FF6B6B' : '#627D98'} />
+                <circle cx="12" cy="19" r="2" fill={isActive('/menu') ? '#FF6B6B' : '#627D98'} />
+              </svg>
+            )}
+            label="Menu"
+            active={isActive('/menu')}
+            onClick={() => router.push('/menu')}
           />
         </div>
       </div>

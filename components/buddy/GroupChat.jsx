@@ -30,7 +30,9 @@ export default function GroupChat({ groupId }) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'buddy_messages', filter: `group_id=eq.${groupId}` },
         (payload) => {
-            fetchNewMessage(payload.new.id);
+            // Direct subscription - add message to state instead of pollling
+            const newMessage = payload.new;
+            setMessages(prev => [...prev, newMessage]);
         }
       )
       .subscribe();
@@ -54,10 +56,6 @@ export default function GroupChat({ groupId }) {
     } finally {
       setLoading(false);
     }
-  };
-
-  const fetchNewMessage = async (id) => {
-    fetchMessages();
   };
 
   const scrollToBottom = () => {
@@ -102,7 +100,7 @@ export default function GroupChat({ groupId }) {
             
             return (
                 <div key={msg.id} className={`flex gap-4 ${isMe ? 'flex-row-reverse' : ''} group`}>
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-navy-50 border border-navy-100 overflow-hidden mt-1 shadow-sm">
+                    <div className="shrink-0 w-8 h-8 rounded-full bg-navy-50 border border-navy-100 overflow-hidden mt-1 shadow-sm">
                         {msg.sender?.profile_picture ? (
                             <img src={msg.sender.profile_picture} className="w-full h-full object-cover" />
                         ) : (
@@ -149,7 +147,7 @@ export default function GroupChat({ groupId }) {
                         ) : (
                             <div className={`px-5 py-3 rounded-3xl text-sm font-medium shadow-sm transition-all ${
                                 isMe 
-                                    ? 'bg-gradient-to-br from-terracotta-500 to-terracotta-600 text-white rounded-tr-none shadow-terracotta-500/20' 
+                                    ? 'bg-linear-to-br from-terracotta-500 to-terracotta-600 text-white rounded-tr-none shadow-terracotta-500/20' 
                                     : 'bg-navy-50 text-navy-800 rounded-tl-none border border-navy-100/50'
                             }`}>
                                 {msg.content}

@@ -52,7 +52,7 @@ export default function ReviewCard({ formData }) {
               )}
             </div>
             <div className="flex gap-2 flex-wrap">
-              {formData.amenities.slice(0, 3).map((amenity) => (
+              {(formData.amenities || []).slice(0, 3).map((amenity) => (
                 <span
                   key={amenity}
                   className="px-2 py-1 bg-slate-100 rounded-lg text-xs"
@@ -60,9 +60,9 @@ export default function ReviewCard({ formData }) {
                   {AMENITIES.find(a => a.value === amenity)?.label}
                 </span>
               ))}
-              {formData.amenities.length > 3 && (
+              {(formData.amenities || []).length > 3 && (
                 <span className="px-2 py-1 bg-slate-100 rounded-lg text-xs">
-                  +{formData.amenities.length - 3} more
+                  +{(formData.amenities || []).length - 3} more
                 </span>
               )}
             </div>

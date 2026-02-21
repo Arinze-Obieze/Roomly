@@ -3,8 +3,41 @@ import { signupSchema } from '@/core/validations/auth.schema';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
+// Simple in-memory rate limiter (for development; use Redis in production)
+const signupAttempts = new Map();
+
+const checkSignupRateLimit = (ip) => {
+  const now = Date.now();
+  const WINDOW = 60 * 60 * 1000; // 1 hour
+  const MAX_ATTEMPTS = 10; // Max 10 signups per IP per hour
+
+  if (!signupAttempts.has(ip)) {
+    signupAttempts.set(ip, []);
+  }
+
+  const attempts = signupAttempts.get(ip);
+  const recentAttempts = attempts.filter(time => now - time < WINDOW);
+  signupAttempts.set(ip, recentAttempts);
+
+  if (recentAttempts.length >= MAX_ATTEMPTS) {
+    return false;
+  }
+
+  recentAttempts.push(now);
+  return true;
+};
+
 export async function POST(req) {
   try {
+    // Rate limiting by IP
+    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
+    if (!checkSignupRateLimit(ip)) {
+      return NextResponse.json(
+        { error: 'Too many signup attempts from this IP. Please try again later.' },
+        { status: 429 }
+      );
+    }
+
     const body = await req.json();
 
     // Validation
@@ -41,13 +74,15 @@ export async function POST(req) {
     // 3️⃣ Set session cookies if session exists (auto-confirm is enabled)
     if (signUpData.session) {
       const cookieStore = await cookies();
-      const maxAge = 60 * 60 * 24 * 7; // 7 days
+      // Access token expires in 1 hour (standard JWT), refresh token allows longer session
+      const accessTokenMaxAge = 60 * 60; // 1 hour
+      const refreshTokenMaxAge = 60 * 60 * 24 * 30; // 30 days
 
       cookieStore.set('sb-access-token', signUpData.session.access_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge,
+        maxAge: accessTokenMaxAge,
         path: '/',
       });
 
@@ -55,7 +90,7 @@ export async function POST(req) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
-        maxAge,
+        maxAge: refreshTokenMaxAge,
         path: '/',
       });
     }
