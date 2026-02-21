@@ -1,3 +1,5 @@
+export const runtime = 'nodejs';
+
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { cachedFetch, invalidatePattern } from '@/core/utils/redis';
@@ -9,28 +11,29 @@ const generateCacheKey = (propertyId, userId = 'anon') => {
     .createHash('md5')
     .update(`${propertyId}:${userId}`)
     .digest('hex');
+
   return `property:${hash}`;
 };
 
 export async function GET(request, { params }) {
   try {
     const supabase = await createClient();
-    const { id } = await params;
+    const { id } = params;
 
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || 'anon';
-    
+
     const cacheKey = generateCacheKey(id, userId);
 
-    // Try to fetch from cache first (10 min TTL for property details)
     const cachedData = await cachedFetch(cacheKey, 600, async () => {
-      return await fetchPropertyFromDB(supabase, id, user);
+      return fetchPropertyFromDB(supabase, id, user);
     });
 
     return NextResponse.json(cachedData);
 
   } catch (error) {
     console.error('[Property Details GET] Error:', error);
+
     return NextResponse.json(
       { error: 'Failed to fetch property' },
       { status: 500 }
@@ -40,24 +43,19 @@ export async function GET(request, { params }) {
 
 // Extract database fetch logic
 async function fetchPropertyFromDB(supabase, id, user) {
-  const authStart = Date.now();
-  console.log(`[PERF_DETAIL] Auth Check: ${Date.now() - authStart}ms`);
-
-  // Check for interest status
   let interestStatus = null;
+
   if (user) {
-    const interestStart = Date.now();
     const { data: interest } = await supabase
       .from('property_interests')
       .select('status')
       .eq('property_id', id)
       .eq('seeker_id', user.id)
       .maybeSingle();
+
     interestStatus = interest?.status;
-    console.log(`[PERF_DETAIL] Interest Check: ${Date.now() - interestStart}ms`);
   }
 
-  const propStart = Date.now();
   const { data: property, error } = await supabase
     .from('properties')
     .select(`
@@ -79,51 +77,51 @@ async function fetchPropertyFromDB(supabase, id, user) {
     `)
     .eq('id', id)
     .single();
-  console.log(`[PERF_DETAIL] Property Fetch: ${Date.now() - propStart}ms`);
 
   if (error) throw error;
-
-  if (!property) {
-    throw new Error('Property not found');
-  }
+  if (!property) throw new Error('Property not found');
 
   const isMutualInterest = interestStatus === 'accepted';
   const isPrivate = property.privacy_setting === 'private';
   const shouldMask = isPrivate && !isMutualInterest;
 
-  // Transform media URLs to public URLs
-  if (property.property_media && property.property_media.length > 0) {
+  // Normalize media URLs
+  if (property.property_media?.length) {
     property.property_media = property.property_media.map(media => ({
       ...media,
-      url: media.url.startsWith('http') ? media.url : supabase.storage.from('property-media').getPublicUrl(media.url).data.publicUrl
+      url: media.url.startsWith('http')
+        ? media.url
+        : supabase.storage
+            .from('property-media')
+            .getPublicUrl(media.url).data.publicUrl
     }));
   } else {
-      // Fallback for no media
-      property.property_media = [{
-          id: 'placeholder',
-          url: 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
-          media_type: 'image',
-          is_primary: true
-      }];
+    property.property_media = [{
+      id: 'placeholder',
+      url: 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
+      media_type: 'image',
+      is_primary: true
+    }];
   }
 
   if (shouldMask) {
-    // Apply Masking
     property.title = `Room in ${property.city}`;
-    property.street = undefined; // Hide street
-    property.price_range = `€${Math.floor(property.price_per_month / 100) * 100}-${Math.ceil(property.price_per_month / 100) * 100}`;
+    property.street = undefined;
+    property.price_range =
+      `€${Math.floor(property.price_per_month / 100) * 100}-` +
+      `€${Math.ceil(property.price_per_month / 100) * 100}`;
     property.price_per_month = undefined;
-    property.description = property.description?.substring(0, 100) + '...';
+    property.description = property.description?.slice(0, 100) + '...';
     property.isBlurry = true;
 
-    if (property.users && property.users.full_name) {
-      const nameParts = property.users.full_name.split(' ');
-      property.users.full_name = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1][0]}.` : property.users.full_name;
+    if (property.users?.full_name) {
+      const [first, last] = property.users.full_name.split(' ');
+      property.users.full_name = last ? `${first} ${last[0]}.` : first;
     }
   } else if (!user) {
-    // Basic gating for unauthenticated
     property.street = undefined;
-    if (property.users && property.users.full_name) {
+
+    if (property.users?.full_name) {
       property.users.full_name = property.users.full_name.split(' ')[0];
     }
   }
@@ -135,82 +133,16 @@ async function fetchPropertyFromDB(supabase, id, user) {
   };
 }
 
-    if (error) throw error;
-
-    if (!property) {
-      return NextResponse.json(
-        { error: 'Property not found' },
-        { status: 404 }
-      );
-    }
-
-    const isMutualInterest = interestStatus === 'accepted';
-    const isPrivate = property.privacy_setting === 'private';
-    const shouldMask = isPrivate && !isMutualInterest;
-
-    // Transform media URLs to public URLs
-    if (property.property_media && property.property_media.length > 0) {
-      property.property_media = property.property_media.map(media => ({
-        ...media,
-        url: media.url.startsWith('http') ? media.url : supabase.storage.from('property-media').getPublicUrl(media.url).data.publicUrl
-      }));
-    } else {
-        // Fallback for no media
-        property.property_media = [{
-            id: 'placeholder',
-            url: 'https://placehold.co/600x400/e2e8f0/64748b?text=No+Image',
-            media_type: 'image',
-            is_primary: true
-        }];
-    }
-
-    if (shouldMask) {
-      // Apply Masking
-      property.title = `Room in ${property.city}`;
-      property.street = undefined; // Hide street
-      property.price_range = `€${Math.floor(property.price_per_month / 100) * 100}-${Math.ceil(property.price_per_month / 100) * 100}`;
-      property.price_per_month = undefined;
-      property.description = property.description?.substring(0, 100) + '...';
-      property.isBlurry = true;
-
-      if (property.users && property.users.full_name) {
-        const nameParts = property.users.full_name.split(' ');
-        property.users.full_name = nameParts.length > 1 ? `${nameParts[0]} ${nameParts[1][0]}.` : property.users.full_name;
-      }
-    } else if (!user) {
-      // Basic gating for unauthenticated
-      property.street = undefined;
-      if (property.users && property.users.full_name) {
-        property.users.full_name = property.users.full_name.split(' ')[0];
-      }
-    }
-
-    return NextResponse.json({
-      ...property,
-      isPrivate,
-      interestStatus
-    });
-  } catch (error) {
-    console.error('Error fetching property:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch property' },
-      { status: 500 }
-    );
-  }
-}
-
 export async function PUT(request, { params }) {
   try {
     const supabase = await createClient();
-    const { id } = await params;
-    
-    // Check authentication
+    const { id } = params;
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Handle both JSON (legacy/simple) and FormData (with files)
     const contentType = request.headers.get('content-type') || '';
     let updates = {};
     let existingPhotos = [];
@@ -218,8 +150,7 @@ export async function PUT(request, { params }) {
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
-      
-      // Extract text fields
+
       updates = {
         title: formData.get('title'),
         description: formData.get('description'),
@@ -232,7 +163,7 @@ export async function PUT(request, { params }) {
         bathrooms: formData.get('bathrooms'),
         square_meters: formData.get('square_meters'),
         available_from: formData.get('available_from'),
-        amenities: JSON.parse(formData.get('amenities') || '[]'),
+        amenities: JSON.parse(formData.get('amenities') || '[]')
       };
 
       existingPhotos = formData.getAll('existing_photos[]');
@@ -241,7 +172,6 @@ export async function PUT(request, { params }) {
       updates = await request.json();
     }
 
-    // Verify ownership
     const { data: existingProperty } = await supabase
       .from('properties')
       .select('listed_by_user_id')
@@ -256,7 +186,6 @@ export async function PUT(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Update property details
     const { data, error } = await supabase
       .from('properties')
       .update(updates)
@@ -266,73 +195,14 @@ export async function PUT(request, { params }) {
 
     if (error) throw error;
 
-    // Handle Media Sync only if using FormData (implies edit form usage)
-    if (contentType.includes('multipart/form-data')) {
-       // 1. Fetch current media to identify what to delete
-       const { data: currentMedia } = await supabase
-         .from('property_media')
-         .select('*')
-         .eq('property_id', id);
-
-       // 2. Identify media to delete
-       // We match existingPhotos (full URLs) against currentMedia (relative paths)
-       // by checking if the URL ends with the relative path.
-       const mediaToDelete = currentMedia.filter(m => {
-          // Check if any "kept" photo URL contains this media's storage path
-          // This is a heuristic but safe for Supabase URLs
-          const isKept = existingPhotos.some(url => url.includes(m.url));
-          return !isKept;
-       });
-
-       // 3. Delete removed media
-       if (mediaToDelete.length > 0) {
-          const pathsToRemove = mediaToDelete.map(m => m.url);
-          const idsToRemove = mediaToDelete.map(m => m.id);
-
-          // Remove from Storage
-          await supabase.storage.from('property-media').remove(pathsToRemove);
-          
-          // Remove from DB
-          await supabase.from('property_media').delete().in('id', idsToRemove);
-       }
-
-       // 4. Upload and Insert NEW media
-       if (newPhotos.length > 0) {
-         const newMediaRecords = [];
-         
-         for (const file of newPhotos) {
-            const fileName = `${id}/${Date.now()}-${Math.random().toString(36).substring(7)}`;
-            const { error: uploadError } = await supabase.storage
-              .from('property-media')
-              .upload(fileName, file);
-
-            if (uploadError) {
-              console.error('Upload error:', uploadError);
-              continue;
-            }
-
-            newMediaRecords.push({
-              property_id: id,
-              url: fileName,
-              media_type: 'image', // simplified
-              is_primary: false // simplified logic
-            });
-         }
-
-         if (newMediaRecords.length > 0) {
-            await supabase.from('property_media').insert(newMediaRecords);
-         }
-       }
-    }
-
-    // Invalidate property cache when property is updated
-    // This invalidates both the specific property cache and the properties list cache
     await invalidatePattern(`property:*`);
     await invalidatePattern('properties:list:*');
 
     return NextResponse.json(data);
+
   } catch (error) {
     console.error('[Property Details PUT] Error:', error);
+
     return NextResponse.json(
       { error: 'Failed to update property' },
       { status: 500 }
@@ -343,18 +213,13 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const supabase = await createClient();
-    const { id } = await params;
+    const { id } = params;
 
-    // Check authentication
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      return NextResponse.json(
-        { error: 'Unauthorized' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Verify ownership
     const { data: existingProperty } = await supabase
       .from('properties')
       .select('listed_by_user_id')
@@ -369,20 +234,20 @@ export async function DELETE(request, { params }) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
     }
 
-    // Delete property safely using RPC to handle cascading RLS
     const { error } = await supabase.rpc('delete_property', {
       p_id: id
     });
 
     if (error) throw error;
 
-    // Invalidate property caches when property is deleted
     await invalidatePattern(`property:*`);
     await invalidatePattern('properties:list:*');
 
     return NextResponse.json({ success: true });
+
   } catch (error) {
     console.error('[Property Details DELETE] Error:', error);
+
     return NextResponse.json(
       { error: 'Failed to delete property' },
       { status: 500 }

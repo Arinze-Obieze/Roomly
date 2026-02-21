@@ -78,10 +78,7 @@ async function fetchMessagesFromDB(supabase, userId, groupId) {
   return messages;
 }
 
-  } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
+
 
 export async function POST(request) {
   try {

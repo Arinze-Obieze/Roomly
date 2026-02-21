@@ -89,7 +89,7 @@ async function fetchLandlordInterestsFromDB(supabase, userId) {
     if (shouldMask) {
       // Mask Seeker Details
       const nameParts = seeker.full_name?.split(' ') || ['User'];
-      const nameParts = seeker.full_name?.split(' ') || ['User'];
+
         seekerData.full_name = nameParts.length > 1 
           ? `${nameParts[0]} ${nameParts[1][0]}.` 
           : seeker.full_name;

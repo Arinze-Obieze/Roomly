@@ -68,8 +68,4 @@ export async function POST(request) {
   }
 }
 
-  } catch (error) {
-    console.error('Error creating buddy group:', error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
+
