@@ -28,6 +28,29 @@ export const ListingCard = ({ data, onSelect }) => {
   const [imgSrc, setImgSrc] = useState(data.image);
   const [interestLoading, setInterestLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const getPriceLabel = () => {
+    if (data.isBlurry && data.priceRange) {
+      return data.priceRange;
+    }
+
+    if (typeof data.price === 'number' && Number.isFinite(data.price)) {
+      return `€${data.price.toLocaleString('en-IE')}`;
+    }
+
+    if (typeof data.price === 'string') {
+      const trimmed = data.price.trim();
+      if (!trimmed) return '€0';
+
+      const numeric = Number(trimmed.replace(/[^\d.]/g, ''));
+      if (Number.isFinite(numeric) && numeric > 0) {
+        return `€${numeric.toLocaleString('en-IE')}`;
+      }
+
+      return trimmed.startsWith('€') ? trimmed : `€${trimmed}`;
+    }
+
+    return '€0';
+  };
 
   useEffect(() => {
     setImgSrc(data.image);
@@ -76,7 +99,7 @@ export const ListingCard = ({ data, onSelect }) => {
                 attachmentData: {
                     id: data.id,
                     title: data.title,
-                    price: data.price,
+                    price: getPriceLabel(),
                     image: data.image,
                     location: data.location
                 }
@@ -85,7 +108,7 @@ export const ListingCard = ({ data, onSelect }) => {
 
         if (res.ok) {
             toast.success('Shared to group chat!');
-            router.push('/buddy');
+            router.push('/dashboard/buddy');
         } else {
             throw new Error('Failed to share');
         }
@@ -189,7 +212,7 @@ export const ListingCard = ({ data, onSelect }) => {
 
         {/* Action Buttons */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
-            {!isOwner && !data.isBlurry && (
+            {!data.isBlurry && (
             <>
                 <button 
                     onClick={handleSave}
@@ -217,7 +240,7 @@ export const ListingCard = ({ data, onSelect }) => {
              {data.title}
            </h3>
            <div className="flex flex-col items-end shrink-0">
-             <span className="text-xl font-extrabold text-terracotta-600">€{data.price?.toLocaleString('en-IE')}</span>
+             <span className="text-xl font-extrabold text-terracotta-600">{getPriceLabel()}</span>
              <span className="text-[10px] text-navy-500 font-medium uppercase tracking-wide">{data.period === 'monthly' ? 'per month' : data.period}</span>
            </div>
         </div>

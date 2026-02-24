@@ -1,11 +1,14 @@
 'use client';
 
 import { useState } from 'react';
-import { MdEdit, MdDelete, MdLocationOn, MdOutlineBed, MdBathtub } from 'react-icons/md';
+import { MdEdit, MdDelete, MdLocationOn, MdOutlineBed, MdBathtub, MdShare, MdFavorite, MdFavoriteBorder } from 'react-icons/md';
 import toast from 'react-hot-toast';
+import { useSavedProperties } from '@/core/contexts/SavedPropertiesContext';
 
 export default function MyListingCard({ property, onEdit, onDelete }) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const { isPropertySaved, toggleSave } = useSavedProperties();
+  const isSaved = isPropertySaved(property.id);
 
   const formatPrice = (price) => {
     return new Intl.NumberFormat('en-IE', {
@@ -38,6 +41,27 @@ export default function MyListingCard({ property, onEdit, onDelete }) {
     }
   };
 
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/rooms/${property.id}`;
+    const shareData = {
+      title: property.title,
+      text: `Check out this listing on RoomFind`,
+      url: shareUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch {
+        // no-op: fallback to clipboard
+      }
+    }
+
+    await navigator.clipboard.writeText(shareUrl);
+    toast.success('Listing link copied');
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-all group">
       <div className="relative aspect-[4/3] overflow-hidden">
@@ -47,6 +71,20 @@ export default function MyListingCard({ property, onEdit, onDelete }) {
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute top-3 right-3 flex gap-2">
+          <button
+            onClick={handleShare}
+            className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white text-slate-700 shadow-sm transition-colors"
+            title="Share Listing"
+          >
+            <MdShare size={18} />
+          </button>
+          <button
+            onClick={() => toggleSave(property.id)}
+            className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white text-slate-700 shadow-sm transition-colors"
+            title={isSaved ? 'Remove from favorites' : 'Save listing'}
+          >
+            {isSaved ? <MdFavorite size={18} className="text-rose-500" /> : <MdFavoriteBorder size={18} />}
+          </button>
           <button
             onClick={() => onEdit(property)}
             className="p-2 bg-white/90 backdrop-blur-sm rounded-lg hover:bg-white text-slate-700 shadow-sm transition-colors"

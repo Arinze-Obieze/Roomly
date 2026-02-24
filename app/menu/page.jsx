@@ -17,7 +17,8 @@ import {
   MdOutlineFeedback,
   MdNotificationsNone,
   MdVerified,
-  MdChevronRight
+  MdChevronRight,
+  MdPeopleAlt
 } from 'react-icons/md';
 import { FaRegEdit } from 'react-icons/fa';
 import { useAuthContext } from '@/core/contexts/AuthContext';
@@ -41,8 +42,11 @@ export default function MenuPage() {
     }
   };
 
-  const nonMobileItems = [
+  const moreItems = [
     { icon: MdFavoriteBorder, label: 'Saved', path: '/saved', description: 'Your favorite properties' },
+    { icon: MdGroups, label: 'Community', path: '/dashboard/community', description: 'Join the community hub' },
+    { icon: MdPeopleAlt, label: 'Find People', path: '/find-people', description: 'Source 70%+ matched seekers' },
+    { icon: MdPersonOutline, label: 'Profile', path: '/profile', description: 'Manage your profile settings' },
     { icon: MdNotificationsNone, label: 'Notifications', path: '/notifications', description: 'Stay updated on activity' }
   ];
 
@@ -107,8 +111,8 @@ export default function MenuPage() {
     <div className="min-h-screen bg-transparent pb-8 pt-4">
 
       <div className="py-6">
-        {/* Block 1: Things NOT in the mobile menu */}
-        <MenuSection title="Account & Preferences" items={nonMobileItems} />
+        {/* Block 1: More (Navs not shown in the bottom tab bar) */}
+        <MenuSection title="More" items={moreItems} />
         
         {/* Block 2: The Rest (Mobile Menu Items) */}
         <MenuSection title="Main Navigation" items={mobileMenuItems} />

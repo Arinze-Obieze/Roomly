@@ -73,14 +73,20 @@ export const PropertiesProvider = ({ children }) => {
       if (filters.priceRange && filters.priceRange !== 'all') {
         params.append('priceRange', filters.priceRange);
       }
+      if (typeof filters.minPrice === 'number' && filters.minPrice >= 0) {
+        params.append('minPrice', filters.minPrice.toString());
+      }
+      if (typeof filters.maxPrice === 'number' && filters.maxPrice > 0) {
+        params.append('maxPrice', filters.maxPrice.toString());
+      }
       if (filters.bedrooms?.length > 0) {
         params.append('bedrooms', filters.bedrooms.join(','));
       }
       if (filters.propertyType && filters.propertyType !== 'any') {
         params.append('propertyType', filters.propertyType);
       }
-      if (filters.verifiedOnly) {
-        params.append('verifiedOnly', 'true');
+      if (filters.propertyTypes?.length > 0) {
+        params.append('propertyTypes', filters.propertyTypes.join(','));
       }
       if (filters.amenities?.length > 0) {
         params.append('amenities', filters.amenities.join(','));
@@ -96,6 +102,9 @@ export const PropertiesProvider = ({ children }) => {
       }
       if (filters.searchQuery) {
         params.append('search', filters.searchQuery);
+      }
+      if (filters.sortBy) {
+        params.append('sortBy', filters.sortBy);
       }
 
       const response = await fetch(`/api/properties?${params.toString()}`, {

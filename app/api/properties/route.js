@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
-import { cachedFetch, invalidatePattern } from '@/core/utils/redis';
+import { cachedFetch } from '@/core/utils/redis';
+import { handleCreateProperty } from '@/core/services/properties/create-property.service';
 import crypto from 'crypto';
 
 export const runtime = 'nodejs';
@@ -47,14 +48,17 @@ async function fetchPropertiesFromDB(searchParams) {
   const page = parseInt(searchParams.get('page') || '1');
   const pageSize = parseInt(searchParams.get('pageSize') || '12');
   const priceRange = searchParams.get('priceRange');
+  const minPrice = parseInt(searchParams.get('minPrice') || '');
+  const maxPrice = parseInt(searchParams.get('maxPrice') || '');
   const bedrooms = searchParams.get('bedrooms')?.split(',').map(Number).filter(Boolean);
   const propertyType = searchParams.get('propertyType');
-  const verifiedOnly = searchParams.get('verifiedOnly') === 'true';
+  const propertyTypes = searchParams.get('propertyTypes')?.split(',').map(v => v.trim()).filter(Boolean);
   const amenities = searchParams.get('amenities')?.split(',').filter(Boolean);
   const minBedrooms = parseInt(searchParams.get('minBedrooms'));
   const minBathrooms = parseInt(searchParams.get('minBathrooms'));
   const location = searchParams.get('location');
   const search = searchParams.get('search');
+  const sortBy = searchParams.get('sortBy');
 
   const supabase = await createClient();
 
@@ -75,8 +79,15 @@ async function fetchPropertiesFromDB(searchParams) {
         profile_picture
       )
     `, { count: 'exact' })
-    .eq('is_active', true)
-    .order('created_at', { ascending: false });
+    .eq('is_active', true);
+
+  if (!Number.isNaN(minPrice)) {
+    query = query.gte('price_per_month', minPrice);
+  }
+
+  if (!Number.isNaN(maxPrice)) {
+    query = query.lte('price_per_month', maxPrice);
+  }
 
   if (priceRange && priceRange !== 'all') {
     const priceRanges = {
@@ -102,7 +113,9 @@ async function fetchPropertiesFromDB(searchParams) {
     query = query.gte('bathrooms', minBathrooms);
   }
 
-  if (propertyType && propertyType !== 'any' && propertyType !== 'studio') {
+  if (propertyTypes && propertyTypes.length > 0) {
+    query = query.in('property_type', propertyTypes);
+  } else if (propertyType && propertyType !== 'any') {
     query = query.eq('property_type', propertyType);
   }
 
@@ -116,6 +129,21 @@ async function fetchPropertiesFromDB(searchParams) {
 
   if (amenities && amenities.length > 0) {
     query = query.contains('amenities', amenities);
+  }
+
+  switch (sortBy) {
+    case 'price_low':
+      query = query.order('price_per_month', { ascending: true }).order('created_at', { ascending: false });
+      break;
+    case 'price_high':
+      query = query.order('price_per_month', { ascending: false }).order('created_at', { ascending: false });
+      break;
+    case 'new':
+    case 'recommended':
+    case 'match':
+    default:
+      query = query.order('created_at', { ascending: false });
+      break;
   }
 
   const from = (page - 1) * pageSize;
@@ -169,7 +197,8 @@ async function fetchPropertiesFromDB(searchParams) {
         id: property.id,
         title: `Room in ${property.city}`,
         location: `${property.city}, ${property.state}`,
-        price: `€${Math.floor(property.price_per_month / 100) * 100}-${Math.ceil(property.price_per_month / 100) * 100}`,
+        price: property.price_per_month,
+        priceRange: `€${Math.floor(property.price_per_month / 100) * 100}-${Math.ceil(property.price_per_month / 100) * 100}`,
         period: 'month',
         image: (() => {
           const primary = property.property_media?.find(m => m.is_primary);
@@ -209,7 +238,7 @@ async function fetchPropertiesFromDB(searchParams) {
       id: property.id,
       title: property.title,
       location: `${property.city}, ${property.state}`,
-      price: `€${property.price_per_month}`,
+      price: property.price_per_month,
       period: 'month',
       image: (() => {
         const primary = property.property_media?.find(m => m.is_primary);
@@ -261,244 +290,5 @@ async function fetchPropertiesFromDB(searchParams) {
 }
 
 export async function POST(req) {
-  try {
-    console.log('[DEBUG] Starting property creation request');
-    
-    const supabase = await createClient();
-    console.log('[DEBUG] Supabase client created');
-    
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log('[DEBUG] Session check:', { 
-      hasSession: !!session, 
-      sessionError: sessionError?.message 
-    });
-    
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    console.log('[DEBUG] User check:', { 
-      hasUser: !!user, 
-      userId: user?.id,
-      userEmail: user?.email,
-      authError: authError?.message 
-    });
-    
-    if (authError || !user) {
-      console.error('[DEBUG] Authentication failed:', authError);
-      return NextResponse.json({ 
-        error: 'Authentication required: You must be logged in to publish a property.',
-        debug: {
-          hasSession: !!session,
-          authError: authError?.message
-        }
-      }, { status: 401 });
-    }
-
-    console.log('[DEBUG] User authenticated successfully:', user.id);
-
-    const form = await req.formData();
-    
-    const requiredFields = [
-      'title', 'description', 'property_type', 'price_per_month',
-      'state', 'city', 'street', 'bedrooms', 'bathrooms', 'available_from',
-    ];
-    
-    for (const field of requiredFields) {
-      if (!form.get(field)) {
-        return NextResponse.json({ 
-          error: `Missing required field: ${field}` 
-        }, { status: 400 });
-      }
-    }
-
-    let amenities = [];
-    try {
-      amenities = JSON.parse(form.get('amenities') || '[]');
-    } catch {
-      amenities = [];
-    }
-
-    const photos = form.getAll('photos[]');
-    const videos = form.getAll('videos[]');
-    
-    console.log('[DEBUG] Files received:', { 
-      photoCount: photos.length, 
-      videoCount: videos.length 
-    });
-    
-    if (!photos || photos.length < 1) {
-      return NextResponse.json({ 
-        error: 'At least one photo is required' 
-      }, { status: 400 });
-    }
-    if (photos.length > 10) {
-      return NextResponse.json({ 
-        error: 'Maximum 10 photos allowed' 
-      }, { status: 400 });
-    }
-    if (videos.length > 5) {
-      return NextResponse.json({ 
-        error: 'Maximum 5 videos allowed' 
-      }, { status: 400 });
-    }
-
-    for (const file of photos) {
-      if (!file.type.startsWith('image/')) {
-        return NextResponse.json({ 
-          error: 'All photos must be images' 
-        }, { status: 400 });
-      }
-    }
-    for (const file of videos) {
-      if (!file.type.startsWith('video/')) {
-        return NextResponse.json({ 
-          error: 'All videos must be videos' 
-        }, { status: 400 });
-      }
-    }
-
-    console.log('[DEBUG] Inserting property for user:', user.id);
-    
-    const propertyData = {
-      title: form.get('title'),
-      description: form.get('description'),
-      property_type: form.get('property_type'),
-      price_per_month: Number(form.get('price_per_month')),
-      state: form.get('state'),
-      city: form.get('city'),
-      street: form.get('street'),
-      bedrooms: Number(form.get('bedrooms')),
-      bathrooms: Number(form.get('bathrooms')),
-      bedrooms: Number(form.get('bedrooms')),
-      bathrooms: Number(form.get('bathrooms')),
-      square_meters: form.get('square_meters') ? Number(form.get('square_meters')) : null,
-      available_from: form.get('available_from'),
-      amenities,
-      listed_by_user_id: user.id,
-      is_active: true,
-      status: 'available',
-    };
-    
-    console.log('[DEBUG] Property data:', propertyData);
-    
-    const { data: property, error: propErr } = await supabase
-      .from('properties')
-      .insert(propertyData)
-      .select()
-      .single();
-      
-    if (propErr) {
-      console.error('[DEBUG] Property insert error:', {
-        message: propErr.message,
-        code: propErr.code,
-        details: propErr.details,
-        hint: propErr.hint
-      });
-      
-      if (propErr.message && propErr.message.toLowerCase().includes('row-level security')) {
-        return NextResponse.json({ 
-          error: 'Permission denied: Row-level security policy violation.',
-          debug: {
-            error: propErr.message,
-            hint: propErr.hint,
-            userId: user.id
-          }
-        }, { status: 403 });
-      }
-      
-      return NextResponse.json({ 
-        error: propErr.message || 'Failed to insert property',
-        debug: {
-          code: propErr.code,
-          details: propErr.details
-        }
-      }, { status: 500 });
-    }
-
-    console.log('[DEBUG] Property created successfully:', property.id);
-
-    const mediaRecords = [];
-    
-    // Parallel upload for photos
-    const photoUploadPromises = photos.map(async (file, i) => {
-      const ext = file.name.split('.').pop();
-      const path = `properties/${property.id}/photo_${i + 1}.${ext}`;
-      
-      console.log('[DEBUG] Uploading photo:', path);
-      
-      const { data: upload, error: uploadErr } = await supabase.storage
-        .from('property-media')
-        .upload(path, file, { contentType: file.type });
-        
-      if (uploadErr) {
-        console.error('[DEBUG] Photo upload error:', uploadErr);
-        throw uploadErr;
-      }
-
-      return {
-        property_id: property.id,
-        url: upload.path,
-        media_type: 'image',
-        is_primary: i === 0,
-        display_order: i + 1,
-      };
-    });
-
-    // Parallel upload for videos
-    const videoUploadPromises = videos.map(async (file, i) => {
-      const ext = file.name.split('.').pop();
-      const path = `properties/${property.id}/video_${i + 1}.${ext}`;
-      
-      console.log('[DEBUG] Uploading video:', path);
-      
-      const { data: upload, error: uploadErr } = await supabase.storage
-        .from('property-media')
-        .upload(path, file, { contentType: file.type });
-        
-      if (uploadErr) {
-        console.error('[DEBUG] Video upload error:', uploadErr);
-        throw uploadErr;
-      }
-
-      return {
-        property_id: property.id,
-        url: upload.path,
-        media_type: 'video',
-        is_primary: false,
-        display_order: 100 + i + 1,
-      };
-    });
-
-    const [photoMediaRecords, videoMediaRecords] = await Promise.all([
-      Promise.all(photoUploadPromises),
-      Promise.all(videoUploadPromises)
-    ]);
-
-    const allMediaRecords = [...photoMediaRecords, ...videoMediaRecords];
-
-    const { error: mediaErr } = await supabase.from('property_media').insert(allMediaRecords);
-      
-    if (mediaErr) {
-      console.error('[DEBUG] Media record error:', mediaErr);
-      throw mediaErr;
-    }
-
-    console.log('[DEBUG] All media uploaded successfully');
-
-    // Invalidate properties cache after creating new property
-    await invalidatePattern('properties:list:*');
-    console.log('[Cache] Invalidated properties:list:* pattern');
-
-    return NextResponse.json({ 
-      success: true, 
-      property_id: property.id 
-    });
-    
-  } catch (err) {
-    console.error('[DEBUG] Unexpected error:', err);
-    return NextResponse.json({ 
-      error: err.message || 'Failed to create property',
-      debug: {
-        stack: err.stack
-      }
-    }, { status: 500 });
-  }
+  return handleCreateProperty(req);
 }

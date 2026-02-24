@@ -14,7 +14,7 @@ import {
   MdAddCircleOutline,
   MdLogout,
   MdKeyboardArrowDown,
-  MdFavorite
+  MdPeopleAlt
 } from "react-icons/md";
 import { FaRegEdit } from "react-icons/fa";
 import { HeaderNavItem } from "@/components/dashboard/ui/HeaderNavItem"; // we just redesigned this
@@ -32,9 +32,9 @@ const NAV_ITEMS = {
   DISCOVER: { icon: MdHome, label: "Discover", path: "/dashboard", public: true },
   MY_LISTINGS: { icon: FaRegEdit, label: "My Listings", path: "/my-properties" },
   SAVED: { icon: MdFavoriteBorder, label: "Saved", path: "/saved" },
-  INTERESTS: { icon: MdFavorite, label: "Interests", path: "/interests" },
+  FIND_PEOPLE: { icon: MdPeopleAlt, label: "Find People", path: "/find-people" },
   MESSAGES: { icon: MdChatBubbleOutline, label: "Messages", path: "/messages", badge: true },
-  COMMUNITY: { icon: MdGroups, label: "Community", path: "/community" }
+  COMMUNITY: { icon: MdGroups, label: "Community", path: "/dashboard/community" }
 };
 
 const DROPDOWN_MENU_ITEMS = [
@@ -200,7 +200,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
       items.push(
         NAV_ITEMS.MY_LISTINGS,
         NAV_ITEMS.SAVED,
-        NAV_ITEMS.INTERESTS,
+        NAV_ITEMS.FIND_PEOPLE,
         NAV_ITEMS.MESSAGES,
         NAV_ITEMS.COMMUNITY
       );

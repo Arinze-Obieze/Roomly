@@ -3,14 +3,19 @@
 import { useState, createContext } from "react";
 
 export const DEFAULT_FILTERS = {
+  minPrice: null,
+  maxPrice: null,
   priceRange: 'all',
   bedrooms: [],
+  minBedrooms: 0,
+  minBathrooms: 0,
   propertyType: 'any',
+  propertyTypes: [],
   amenities: [],
   moveInDate: 'any',
-  verifiedOnly: false,
   sortBy: 'recommended',
   searchQuery: '',
+  location: '',
 };
 
 export const FilterContext = createContext();
@@ -18,9 +23,8 @@ export const FilterContext = createContext();
 export const FilterProvider = ({ children }) => {
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [savedSearches, setSavedSearches] = useState([
-    { id: 1, name: "City Center Studios", filters: { propertyType: 'studio' } },
-    { id: 2, name: "Verified Listings", filters: { verifiedOnly: true } },
-    { id: 3, name: "1 Bedroom Apartments", filters: { bedrooms: [1] } }
+    { id: 1, name: "City Center Studios", filters: { propertyType: 'studio', propertyTypes: ['studio'] } },
+    { id: 2, name: "1 Bedroom Apartments", filters: { bedrooms: [1] } }
   ]);
 
   const updateFilters = (newFilters) => {
@@ -57,5 +61,3 @@ export const FilterProvider = ({ children }) => {
     </FilterContext.Provider>
   );
 };
-
-

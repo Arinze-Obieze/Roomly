@@ -13,6 +13,7 @@ export default function FilterPills({ onOpenFilters }) {
   const { filters, updateFilters } = useFilters();
   const [activePill, setActivePill] = useState(null);
   const pillsRef = useRef(null);
+  const [draftPropertyTypes, setDraftPropertyTypes] = useState([]);
 
   // Price State
   const [priceRange, setPriceRange] = useState([filters.minPrice || 0, filters.maxPrice || 5000]);
@@ -40,6 +41,12 @@ export default function FilterPills({ onOpenFilters }) {
     if (activePill === 'location') {
       setLocationInput(filters.location || '');
       setShowSuggestions(true);
+    }
+    if (activePill === 'type') {
+      const currentTypes = filters.propertyTypes?.length > 0
+        ? filters.propertyTypes
+        : (filters.propertyType && filters.propertyType !== 'any' ? [filters.propertyType] : []);
+      setDraftPropertyTypes(currentTypes);
     }
   }, [activePill, filters]);
 
@@ -88,20 +95,38 @@ export default function FilterPills({ onOpenFilters }) {
   };
 
   const getPropertyTypeLabel = () => {
-    if (filters.propertyType && filters.propertyType !== 'any') {
-       const type = PROPERTY_CATEGORIES.find(t => t.value === filters.propertyType);
-       return type ? type.label : filters.propertyType;
+    const selected = filters.propertyTypes?.length > 0
+      ? filters.propertyTypes
+      : (filters.propertyType && filters.propertyType !== 'any' ? [filters.propertyType] : []);
+    if (selected.length === 1) {
+       const type = PROPERTY_CATEGORIES.find(t => t.value === selected[0]);
+       return type ? type.label : selected[0];
+    }
+    if (selected.length > 1) {
+      return `${selected.length} Types`;
     }
     return 'Type';
   };
 
-  const hasActiveFilters = Object.keys(filters).some(key => 
-    filters[key] && filters[key] !== '' && filters[key] !== 'any' && filters[key] !== 0
-  );
+  const hasActiveFilters = (() => {
+    const values = Object.values(filters);
+    return values.some((value) => {
+      if (Array.isArray(value)) return value.length > 0;
+      if (value === null || value === undefined) return false;
+      return value !== '' && value !== 'any' && value !== 0 && value !== 'all' && value !== 'recommended';
+    });
+  })();
+
+  const isTypeFilterActive = (() => {
+    const selected = filters.propertyTypes?.length > 0
+      ? filters.propertyTypes
+      : (filters.propertyType && filters.propertyType !== 'any' ? [filters.propertyType] : []);
+    return selected.length > 0;
+  })();
 
   return (
-    <div className="relative" ref={pillsRef}>
-      <div className="flex items-center gap-2 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 lg:mx-0 lg:px-0">
+    <div className="relative z-[160]" ref={pillsRef}>
+      <div className="flex flex-wrap items-center gap-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0">
         {/* All Filters Button */}
         <motion.button 
           whileHover={{ scale: 1.02 }}
@@ -136,7 +161,7 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute left-0 top-full mt-2 w-[320px] z-50"
+                className="filter-pill-content absolute left-0 top-full mt-2 w-[320px] z-[400]"
               >
                 <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-4">
                   <h3 className="font-heading font-bold text-navy-950 mb-3">Where to?</h3>
@@ -235,7 +260,7 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute left-0 top-full mt-2 w-[340px] z-50"
+                className="filter-pill-content absolute left-0 top-full mt-2 w-[340px] z-[400]"
               >
                 <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-5">
                   <div className="flex justify-between items-center mb-5">
@@ -320,14 +345,14 @@ export default function FilterPills({ onOpenFilters }) {
             whileTap={{ scale: 0.98 }}
             onClick={() => setActivePill(activePill === 'type' ? null : 'type')}
             className={`filter-pill-trigger shrink-0 flex items-center gap-1.5 px-4 py-2 rounded-full border text-sm font-heading font-medium transition-all ${
-              filters.propertyType && filters.propertyType !== 'any'
+              isTypeFilterActive
                 ? 'bg-navy-950 border-navy-950 text-white shadow-md shadow-navy-950/20' 
                 : 'bg-white border-navy-200 text-navy-600 hover:border-navy-300 hover:text-navy-900'
             }`}
           >
-            <MdHome size={16} className={filters.propertyType && filters.propertyType !== 'any' ? 'text-white' : 'text-navy-400'} />
+            <MdHome size={16} className={isTypeFilterActive ? 'text-white' : 'text-navy-400'} />
             {getPropertyTypeLabel()}
-            {(!filters.propertyType || filters.propertyType === 'any') && <MdKeyboardArrowDown size={14} className="text-navy-400" />}
+            {!isTypeFilterActive && <MdKeyboardArrowDown size={14} className="text-navy-400" />}
           </motion.button>
 
           <AnimatePresence>
@@ -337,23 +362,22 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute left-0 top-full mt-2 w-[260px] z-50"
+                className="filter-pill-content absolute left-0 top-full mt-2 w-[300px] z-[400]"
               >
-                <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-2">
+                <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-3">
                   <div className="space-y-1">
                     <button
                       onClick={() => {
-                        updateFilters({ propertyType: 'any' });
-                        setActivePill(null);
+                        setDraftPropertyTypes([]);
                       }}
                       className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between transition-colors ${
-                        !filters.propertyType || filters.propertyType === 'any' 
+                        draftPropertyTypes.length === 0
                           ? 'bg-navy-50 text-navy-900 font-bold' 
                           : 'text-navy-600 hover:bg-navy-50'
                       }`}
                     >
                       Any Type
-                      {(!filters.propertyType || filters.propertyType === 'any') && (
+                      {draftPropertyTypes.length === 0 && (
                         <span className="w-2 h-2 rounded-full bg-terracotta-500" />
                       )}
                     </button>
@@ -361,21 +385,44 @@ export default function FilterPills({ onOpenFilters }) {
                       <button
                         key={opt.value}
                         onClick={() => {
-                          updateFilters({ propertyType: opt.value });
-                          setActivePill(null);
+                          setDraftPropertyTypes((prev) => (
+                            prev.includes(opt.value)
+                              ? prev.filter((value) => value !== opt.value)
+                              : [...prev, opt.value]
+                          ));
                         }}
                         className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between transition-colors ${
-                          filters.propertyType === opt.value 
+                          draftPropertyTypes.includes(opt.value)
                             ? 'bg-navy-50 text-navy-900 font-bold' 
                             : 'text-navy-600 hover:bg-navy-50'
                         }`}
                       >
                         {opt.label}
-                        {filters.propertyType === opt.value && (
+                        {draftPropertyTypes.includes(opt.value) && (
                           <span className="w-2 h-2 rounded-full bg-terracotta-500" />
                         )}
                       </button>
                     ))}
+                  </div>
+                  <div className="flex justify-between items-center pt-4 mt-3 border-t border-navy-100">
+                    <button
+                      onClick={() => setActivePill(null)}
+                      className="px-3 py-1.5 text-xs font-medium text-navy-500 hover:bg-navy-50 rounded-lg transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        updateFilters({
+                          propertyTypes: draftPropertyTypes,
+                          propertyType: draftPropertyTypes.length === 1 ? draftPropertyTypes[0] : 'any'
+                        });
+                        setActivePill(null);
+                      }}
+                      className="px-4 py-1.5 bg-navy-950 text-white text-xs font-bold rounded-lg hover:bg-navy-900 transition-all"
+                    >
+                      Apply
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -407,7 +454,7 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute left-0 top-full mt-2 w-[340px] z-50"
+                className="filter-pill-content absolute left-0 top-full mt-2 w-[340px] z-[400]"
               >
                 <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-5">
                   <div className="flex justify-between items-center mb-5">
@@ -499,7 +546,8 @@ export default function FilterPills({ onOpenFilters }) {
               location: '', 
               minPrice: '', 
               maxPrice: '', 
-              propertyType: 'any', 
+              propertyType: 'any',
+              propertyTypes: [],
               minBedrooms: 0, 
               minBathrooms: 0,
               sortBy: 'recommended'

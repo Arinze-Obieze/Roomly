@@ -1,46 +1,39 @@
 'use client';
 
 import { useFilters } from "./filters/useFilters";
-import { motion } from 'framer-motion';
+import { MdSort } from 'react-icons/md';
+
+const SORT_OPTIONS = [
+  { id: 'recommended', label: 'Recommended' },
+  { id: 'new', label: 'Newest' },
+  { id: 'price_low', label: 'Price: Low to High' },
+  { id: 'price_high', label: 'Price: High to Low' },
+  { id: 'match', label: 'Best Match' }
+];
 
 export default function DashboardFilters() {
   const { filters, updateFilters } = useFilters();
-  
-  const TABS = [
-    { id: 'recommended', label: 'Recommended', icon: '✨' },
-    { id: 'new', label: 'Newest', icon: '🆕' },
-    { id: 'price_low', label: 'Price: Low to High', icon: '💰' },
-    { id: 'price_high', label: 'Price: High to Low', icon: '💎' },
-    { id: 'match', label: 'Best Match', icon: '🤝' }
-  ];
-
-  const handleTabChange = (tabId) => {
-    updateFilters({ sortBy: tabId });
-  };
 
   return (
-    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-      {TABS.map((tab) => {
-        const isActive = filters.sortBy === tab.id || 
-          (tab.id === 'recommended' && !filters.sortBy);
-        
-        return (
-          <motion.button
-            key={tab.id}
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => handleTabChange(tab.id)}
-            className={`shrink-0 px-4 py-2 rounded-full text-sm font-heading font-medium whitespace-nowrap transition-all ${
-              isActive 
-                ? 'bg-navy-950 text-white shadow-lg shadow-navy-950/20' 
-                : 'bg-white border border-navy-200 text-navy-500 hover:border-navy-300 hover:text-navy-900'
-            }`}
-          >
-            <span className="mr-1.5">{tab.icon}</span>
-            {tab.label}
-          </motion.button>
-        );
-      })}
+    <div className="flex items-center justify-end">
+      <div className="flex items-center gap-2 bg-white border border-navy-200 rounded-xl px-3 py-2 shadow-sm">
+        <MdSort size={18} className="text-navy-500" />
+        <label htmlFor="sort-by" className="text-xs font-heading font-bold text-navy-600 uppercase tracking-wide">
+          Sort by
+        </label>
+        <select
+          id="sort-by"
+          value={filters.sortBy || 'recommended'}
+          onChange={(e) => updateFilters({ sortBy: e.target.value })}
+          className="bg-transparent text-sm font-heading font-medium text-navy-900 outline-none pr-1"
+        >
+          {SORT_OPTIONS.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }

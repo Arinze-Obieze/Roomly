@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters";
+import { DEFAULT_FILTERS } from "@/core/contexts/FilterContext";
 
 // New Components
 import Navbar from "@/components/marketing/Navbar";
@@ -125,14 +126,7 @@ export default function RoomsPage() {
                We couldn't find any matches for your current filters. Try adjusting your search criteria.
              </p>
              <button 
-               onClick={() => updateFilters({ 
-                 minPrice: 0, 
-                 maxPrice: 5000, 
-                 propertyType: 'any', 
-                 bedrooms: [], 
-                 bathrooms: 'any',
-                 location: '' 
-                })}
+               onClick={() => updateFilters({ ...DEFAULT_FILTERS })}
                className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors"
              >
                Reset Filters

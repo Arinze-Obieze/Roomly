@@ -1,18 +1,16 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { MdHomeWork, MdCheck, MdOutlineClose } from 'react-icons/md';
+import { MdCheck, MdOutlineClose } from 'react-icons/md';
+import { PROPERTY_CATEGORIES } from '@/data/listingOptions';
 
 export default function PropertyTypeFilter({ value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
-
-  const OPTIONS = [
-     { id: 'room', label: 'Private Room' },
-     { id: 'studio', label: 'Studio' },
-     { id: 'apartment', label: 'Apartment' },
-     { id: 'house', label: 'House' },
-  ];
+  const OPTIONS = PROPERTY_CATEGORIES.map((category) => ({
+    id: category.value,
+    label: category.label,
+  }));
 
   useEffect(() => {
     const handleClickOutside = (event) => {

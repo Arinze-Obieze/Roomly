@@ -11,8 +11,7 @@ export default function FeaturedProperties() {
   const { properties, loading } = usePropertiesWithFilters({
     autoFetch: true,
     initialFilters: {
-        pageSize: 4,
-        verifiedOnly: true
+        pageSize: 4
     }
   });
 

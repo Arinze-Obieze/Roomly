@@ -44,35 +44,48 @@ export async function POST(request) {
     // 2. Check if already member - idempotent response
     const { data: existingMember } = await supabase
         .from('buddy_group_members')
-        .select('id')
+        .select('id, status')
         .eq('group_id', invite.group_id)
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
     if (existingMember) {
-        // Instead of error, return success (idempotent)
-        // This prevents double-submission issues
-        return NextResponse.json({ 
-            success: true, 
-            groupId: invite.group_id,
-            alreadyMember: true,
-            message: 'You are already a member of this group' 
-        });
-    }
+        if (existingMember.status === 'active') {
+            return NextResponse.json({ 
+                success: true, 
+                groupId: invite.group_id,
+                alreadyMember: true,
+                message: 'You are already a member of this group' 
+            });
+        }
 
-    // 3. Add to Group
-    const { error: joinError } = await supabase
-        .from('buddy_group_members')
-        .insert({
-            group_id: invite.group_id,
-            user_id: user.id,
-            role: 'member',
-            status: 'active'
-        });
+        const { error: reactivateError } = await supabase
+            .from('buddy_group_members')
+            .update({
+              status: 'active',
+              role: 'member',
+              joined_at: new Date().toISOString(),
+            })
+            .eq('id', existingMember.id);
 
-    if (joinError) {
-        console.error('Join group error:', joinError);
-        throw joinError;
+        if (reactivateError) {
+          throw reactivateError;
+        }
+    } else {
+      // 3. Add to Group
+      const { error: joinError } = await supabase
+          .from('buddy_group_members')
+          .insert({
+              group_id: invite.group_id,
+              user_id: user.id,
+              role: 'member',
+              status: 'active'
+          });
+
+      if (joinError) {
+          console.error('Join group error:', joinError);
+          throw joinError;
+      }
     }
 
     // 4. Update Invite Status (mark as accepted)

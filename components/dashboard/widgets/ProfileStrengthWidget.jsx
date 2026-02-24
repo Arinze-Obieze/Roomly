@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { MdCheckCircle, MdArrowForward, MdBolt, MdPerson, MdStyle, MdTune } from 'react-icons/md';
+import { MdArrowForward, MdBolt, MdPerson, MdStyle, MdTune } from 'react-icons/md';
 import { motion } from 'framer-motion';
 
 export default function ProfileStrengthWidget() {
@@ -55,6 +55,7 @@ export default function ProfileStrengthWidget() {
   if (data.preferences) score += 34;
 
   const isComplete = score >= 99;
+  if (isComplete) return null;
 
   const getScoreColor = () => {
     if (score < 40) return 'bg-terracotta-500';
@@ -104,30 +105,24 @@ export default function ProfileStrengthWidget() {
         />
       </div>
 
-      {isComplete ? (
-        <div className="bg-teal-50 text-teal-700 p-4 rounded-xl flex items-center gap-3 text-sm font-medium border border-teal-100">
-          <MdCheckCircle className="text-xl shrink-0 text-teal-600" />
-          <span className="font-sans">Your profile is optimised! You'll get more responses.</span>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {!hasAvatar && (
-            <button 
-              onClick={() => router.push('/profile')}
-              className="w-full flex items-center justify-between p-3 rounded-xl border border-navy-200 hover:border-terracotta-200 hover:bg-terracotta-50/50 group transition-all text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-1.5 bg-navy-100 rounded-lg group-hover:bg-white transition-colors">
-                  <MdPerson className="text-navy-500 group-hover:text-terracotta-500" size={16} />
-                </div>
-                <div>
-                  <div className="text-sm font-heading font-bold text-navy-950">Add profile photo</div>
-                  <div className="text-xs text-navy-500">+10% match accuracy</div>
-                </div>
+      <div className="space-y-2">
+        {!hasAvatar && (
+          <button 
+            onClick={() => router.push('/profile')}
+            className="w-full flex items-center justify-between p-3 rounded-xl border border-navy-200 hover:border-terracotta-200 hover:bg-terracotta-50/50 group transition-all text-left"
+          >
+            <div className="flex items-center gap-3">
+              <div className="p-1.5 bg-navy-100 rounded-lg group-hover:bg-white transition-colors">
+                <MdPerson className="text-navy-500 group-hover:text-terracotta-500" size={16} />
               </div>
-              <MdArrowForward className="text-navy-300 group-hover:text-terracotta-500" />
-            </button>
-          )}
+              <div>
+                <div className="text-sm font-heading font-bold text-navy-950">Add profile photo</div>
+                <div className="text-xs text-navy-500">+10% match accuracy</div>
+              </div>
+            </div>
+            <MdArrowForward className="text-navy-300 group-hover:text-terracotta-500" />
+          </button>
+        )}
 
           {!hasBio && (
             <button 
@@ -182,8 +177,7 @@ export default function ProfileStrengthWidget() {
               <MdArrowForward className="text-navy-300 group-hover:text-terracotta-500" />
             </button>
           )}
-        </div>
-      )}
+      </div>
     </motion.div>
   );
 }

@@ -1,5 +1,6 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { invalidatePattern } from '@/core/utils/redis';
 
 export async function POST(request, { params }) {
   try {
@@ -35,6 +36,9 @@ export async function POST(request, { params }) {
 
       if (error) throw error;
     }
+
+    await invalidatePattern('community:post:*');
+    await invalidatePattern('community:posts:*');
 
     return NextResponse.json({ success: true });
 

@@ -5,6 +5,25 @@ import { createClient } from '@/core/utils/supabase/client';
 import { MdCheckCircle, MdCancel, MdInfo, MdWarning } from 'react-icons/md';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 
+const calculateAgeFromBirthDate = (birthDate) => {
+  if (!birthDate) return null;
+
+  const dob = new Date(birthDate);
+  if (Number.isNaN(dob.getTime())) return null;
+
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  const hasNotHadBirthday =
+    monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate());
+
+  if (hasNotHadBirthday) {
+    age -= 1;
+  }
+
+  return age >= 0 ? age : null;
+};
+
 export default function VibeMatchCard({ property }) {
   const { user } = useAuthContext();
   const [lifestyle, setLifestyle] = useState(null);
@@ -37,7 +56,6 @@ export default function VibeMatchCard({ property }) {
 
   // 1. Smoking
   const userSmokes = lifestyle.smoking_status !== 'no';
-  const propAllowsSmoking = property.utilities_included?.includes('smoking') || property.description?.toLowerCase().includes('smoking allowed'); 
   // Wait, standardized field might be missing. Using property.smokers_allowed if available, else infer.
   // PropertyDetailsPage didn't explicitly show a 'smokers_allowed' field in the "Rental Details" or "Preferences".
   // I will check property.amenities for 'smoking allowed' or similar.
@@ -74,10 +92,21 @@ export default function VibeMatchCard({ property }) {
   }
 
   // 4. Age (Using user.birth_date -> age)
-  // Skipping complicated age math for MVP, assuming simple check if DOB exists
-  if (user.birth_date) {
-      const age = new undefined // TODO implement age calc
-      // Skipping for now to avoid errors
+  const userAge = calculateAgeFromBirthDate(user.birth_date);
+  const minAge = Number(property.age_min);
+  const maxAge = Number(property.age_max);
+  const hasMinAge = Number.isFinite(minAge) && minAge > 0;
+  const hasMaxAge = Number.isFinite(maxAge) && maxAge > 0;
+
+  if (userAge !== null && (hasMinAge || hasMaxAge)) {
+      const isTooYoung = hasMinAge && userAge < minAge;
+      const isTooOld = hasMaxAge && userAge > maxAge;
+
+      if (isTooYoung || isTooOld) {
+          checks.push({ type: 'warning', icon: <MdWarning />, text: `Preferred age range: ${hasMinAge ? minAge : 18}-${hasMaxAge ? maxAge : 99}` });
+      } else {
+          checks.push({ type: 'success', icon: <MdCheckCircle />, text: 'Age Preference Match' });
+      }
   }
   
   // Vibe Checks (Occupation)

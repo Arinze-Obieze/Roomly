@@ -1,5 +1,6 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { invalidatePattern } from '@/core/utils/redis';
 
 export async function POST(request, { params }) {
   try {
@@ -20,6 +21,9 @@ export async function POST(request, { params }) {
       .maybeSingle();
 
     if (existing) {
+      await invalidatePattern('property:*');
+      await invalidatePattern(`seeker:interests:*`);
+      await invalidatePattern(`landlord:interests:*`);
       return NextResponse.json({ 
         success: true, 
         message: 'Interest already recorded',
@@ -39,6 +43,10 @@ export async function POST(request, { params }) {
       .single();
 
     if (error) throw error;
+
+    await invalidatePattern('property:*');
+    await invalidatePattern(`seeker:interests:*`);
+    await invalidatePattern(`landlord:interests:*`);
 
     return NextResponse.json({
       success: true,
@@ -70,6 +78,10 @@ export async function DELETE(request, { params }) {
           .eq('seeker_id', user.id);
     
         if (error) throw error;
+
+        await invalidatePattern('property:*');
+        await invalidatePattern(`seeker:interests:*`);
+        await invalidatePattern(`landlord:interests:*`);
     
         return NextResponse.json({ success: true });
       } catch (error) {

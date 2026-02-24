@@ -6,7 +6,7 @@ import { useAuthContext } from '@/core/contexts/AuthContext';
 import { createClient } from '@/core/utils/supabase/client';
 import MyListingCard from '@/components/dashboard/MyListingCard';
 import CreateListingForm from '@/components/listings/CreateListingForm';
-import { MdAddCircleOutline, MdSentimentDissatisfied } from 'react-icons/md';
+import { MdAddCircleOutline, MdSentimentDissatisfied, MdPeopleAlt } from 'react-icons/md';
 
 export default function MyPropertiesPage() {
   const { user, loading } = useAuthContext();
@@ -95,18 +95,27 @@ export default function MyPropertiesPage() {
         </div>
       )}
 
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex items-center justify-between mb-8 gap-3">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">My Properties</h1>
           <p className="text-slate-500 mt-1">Manage your active listings</p>
         </div>
-        <button
-          onClick={() => router.push('/listings/new')}
-          className="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors"
-        >
-          <MdAddCircleOutline size={20} />
-          <span className="hidden sm:inline">List New Property</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push('/find-people')}
+            className="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-slate-50 transition-colors"
+          >
+            <MdPeopleAlt size={18} />
+            <span className="hidden sm:inline">Find People</span>
+          </button>
+          <button
+            onClick={() => router.push('/listings/new')}
+            className="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 hover:bg-slate-800 transition-colors"
+          >
+            <MdAddCircleOutline size={20} />
+            <span className="hidden sm:inline">List New Property</span>
+          </button>
+        </div>
       </div>
 
       {isLoadingProps ? (

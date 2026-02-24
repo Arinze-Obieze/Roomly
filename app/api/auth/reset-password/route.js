@@ -1,6 +1,5 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 
 // Rate limit tracking for password reset (in-memory for dev; use Redis for prod)
@@ -63,40 +62,17 @@ export async function POST(req) {
       );
     }
 
-    // Get session from cookies
-    const cookieStore = await cookies();
-    const accessToken = cookieStore.get('sb-access-token')?.value;
-    const refreshToken = cookieStore.get('sb-refresh-token')?.value;
-
-    if (!accessToken) {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
       return NextResponse.json(
         { error: 'No active session found. Please request a new password reset link.' },
         { status: 401 }
       );
     }
 
-    // Create Supabase client with the session
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    );
-
-    // Set the session
-    const { error: sessionError } = await supabase.auth.setSession({
-      access_token: accessToken,
-      refresh_token: refreshToken,
-    });
-
-    if (sessionError) {
-      console.error('Session error:', sessionError);
-      return NextResponse.json(
-        { error: 'Invalid or expired session. Please request a new password reset link.' },
-        { status: 401 }
-      );
-    }
-
     // Update the password
-    const { data: updateData, error } = await supabase.auth.updateUser({
+    const { error } = await supabase.auth.updateUser({
       password: password,
     });
 
@@ -108,10 +84,7 @@ export async function POST(req) {
       );
     }
 
-    // Clear old session cookies - user must re-authenticate with new password
-    const newCookieStore = await cookies();
-    newCookieStore.delete('sb-access-token');
-    newCookieStore.delete('sb-refresh-token');
+    await supabase.auth.signOut();
 
     return NextResponse.json({
       message: 'Password updated successfully. Please log in with your new password.',

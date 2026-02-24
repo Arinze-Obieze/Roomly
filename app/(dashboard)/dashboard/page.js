@@ -15,12 +15,14 @@ import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters"
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
 import { useAuthContext } from "@/core/contexts/AuthContext";
+import { useFilters } from "@/components/dashboard/filters/useFilters";
 import { MdGroups, MdChat } from "react-icons/md";
 
 export default function HomeDashboard() {
   const router = useRouter();
   const loadMoreRef = useRef(null);
   const { user } = useAuthContext();
+  const { resetFilters } = useFilters();
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   
   const { 
@@ -36,14 +38,6 @@ export default function HomeDashboard() {
     autoFetch: true,
     debounceMs: 300
   });
-
-  const handleFilterChange = (key, value) => {
-    if (key === 'priceRange') {
-        updateFilters({ minPrice: value.min, maxPrice: value.max });
-    } else {
-        updateFilters({ [key]: value });
-    }
-  };
 
   // Infinite scroll implementation
   useEffect(() => {
@@ -75,7 +69,7 @@ export default function HomeDashboard() {
             {/* Main Content - Property Grid */}
             <main className="lg:col-span-9 min-w-0">
               {/* Mobile/Tablet Filter Pills */}
-              <div className="sticky top-0 z-30 bg-navy-50/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 lg:relative lg:top-0 lg:z-0 lg:bg-transparent lg:backdrop-blur-none lg:pt-0">
+              <div className="sticky top-0 z-[140] bg-navy-50/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 lg:relative lg:top-0 lg:bg-transparent lg:backdrop-blur-none lg:pt-0">
                 <FilterPills onOpenFilters={() => setIsFilterModalOpen(true)} />
               </div>
 
@@ -96,7 +90,7 @@ export default function HomeDashboard() {
               {/* Empty State */}
               {!loading && properties.length === 0 && !error && (
                 <EmptyState 
-                  onReset={() => updateFilters({})} 
+                  onReset={resetFilters}
                   location={filters.location}
                 />
               )}
@@ -137,7 +131,10 @@ export default function HomeDashboard() {
                     <p className="text-navy-200 text-sm mb-4 font-sans leading-relaxed">
                       Join 12,000+ others in the community. Share tips, events, and connect with like-minded people.
                     </p>
-                    <button className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-3 rounded-xl text-sm font-heading font-bold transition-all text-white border border-white/10 flex items-center justify-center gap-2 group-hover:gap-3">
+                    <button
+                      onClick={() => router.push('/dashboard/community')}
+                      className="w-full bg-white/10 hover:bg-white/20 backdrop-blur-md px-4 py-3 rounded-xl text-sm font-heading font-bold transition-all text-white border border-white/10 flex items-center justify-center gap-2 group-hover:gap-3"
+                    >
                       <MdChat size={18} />
                       Join Community
                     </button>

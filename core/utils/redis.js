@@ -17,8 +17,6 @@
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-let isConnecting = false;
-
 // Helper: Make REST API call to Upstash
 const callRedis = async (command, ...args) => {
   if (!REDIS_URL || !REDIS_TOKEN) {
@@ -27,15 +25,13 @@ const callRedis = async (command, ...args) => {
   }
 
   try {
-    const response = await fetch(`${REDIS_URL}/exec`, {
+    const response = await fetch(`${REDIS_URL}/pipeline`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${REDIS_TOKEN}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        commands: [[command, ...args]],
-      }),
+      body: JSON.stringify([[command, ...args]]),
     });
 
     if (!response.ok) {
@@ -43,7 +39,11 @@ const callRedis = async (command, ...args) => {
     }
 
     const data = await response.json();
-    return data?.result?.[0];
+    const result = Array.isArray(data) ? data[0] : null;
+    if (result?.error) {
+      throw new Error(result.error);
+    }
+    return result?.result ?? null;
   } catch (err) {
     console.error(`[Redis] Error executing ${command}:`, err.message);
     return null;

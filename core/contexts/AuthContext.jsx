@@ -187,6 +187,8 @@ export function AuthProvider({ children }) {
   const signInWithGoogle = async () => {
     try {
       const supabase = createClient();
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') ||
+        (typeof window !== 'undefined' ? window.location.origin : '');
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -194,7 +196,7 @@ export function AuthProvider({ children }) {
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback`,
+          redirectTo: `${siteUrl}/auth/callback`,
         },
       });
 

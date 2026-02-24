@@ -22,6 +22,9 @@ import { COUNTIES, DUBLIN_AREAS, CITIES_TOWNS } from '@/data/locations';
 export const FilterContent = ({ variant }) => {
   const { filters, updateFilters } = useFilters();
   const isSidebar = variant === 'sidebar';
+  const selectedPropertyTypes = filters.propertyTypes?.length > 0
+    ? filters.propertyTypes
+    : (filters.propertyType && filters.propertyType !== 'any' ? [filters.propertyType] : []);
 
   // --- Location Logic ---
   const [locationInput, setLocationInput] = useState(filters.location || '');
@@ -225,9 +228,9 @@ export const FilterContent = ({ variant }) => {
       <FilterSection title="Property Type" isSidebar={isSidebar} defaultOpen={true}>
          <div className="grid grid-cols-2 gap-2">
             <button
-                onClick={() => updateFilters({ propertyType: 'any' })}
+                onClick={() => updateFilters({ propertyType: 'any', propertyTypes: [] })}
                 className={`py-2 px-3 rounded-lg text-xs font-bold text-center transition-all border ${
-                    !filters.propertyType || filters.propertyType === 'any'
+                    selectedPropertyTypes.length === 0
                     ? 'bg-navy-900 border-navy-900 text-white' 
                     : 'bg-white border-navy-200 text-navy-600 hover:bg-navy-50'
                 }`}
@@ -237,9 +240,18 @@ export const FilterContent = ({ variant }) => {
             {PROPERTY_CATEGORIES.map(type => (
                  <button
                     key={type.value}
-                    onClick={() => updateFilters({ propertyType: filters.propertyType === type.value ? 'any' : type.value })}
+                    onClick={() => {
+                      const current = selectedPropertyTypes;
+                      const next = current.includes(type.value)
+                        ? current.filter((value) => value !== type.value)
+                        : [...current, type.value];
+                      updateFilters({
+                        propertyTypes: next,
+                        propertyType: next.length === 1 ? next[0] : 'any'
+                      });
+                    }}
                     className={`py-2 px-3 rounded-lg text-xs font-bold text-center transition-all border ${
-                        filters.propertyType === type.value 
+                        selectedPropertyTypes.includes(type.value)
                         ? 'bg-navy-900 border-navy-900 text-white' 
                         : 'bg-white border-navy-200 text-navy-600 hover:bg-navy-50'
                     }`}

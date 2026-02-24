@@ -6,16 +6,23 @@ import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import GroupChat from './GroupChat';
 import InviteMemberModal from './InviteMemberModal';
-import { MdPersonAdd, MdChat, MdHomeWork, MdSettings, MdPerson } from 'react-icons/md';
+import { MdPersonAdd, MdChat, MdHomeWork, MdSettings, MdPerson, MdExitToApp, MdDeleteOutline } from 'react-icons/md';
 import dayjs from 'dayjs';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
 
 export default function BuddyDashboard({ group }) {
   const { user } = useAuthContext();
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('chat');
   const [members, setMembers] = useState([]);
   const [sharedProperties, setSharedProperties] = useState([]);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [onlineMemberIds, setOnlineMemberIds] = useState(new Set());
+  const [actionLoading, setActionLoading] = useState(false);
+  const [groupName, setGroupName] = useState(group?.name || '');
   const supabase = createClient();
+  const isAdmin = group?.admin_id === user?.id;
 
   useEffect(() => {
     if (group?.id) {
@@ -24,10 +31,39 @@ export default function BuddyDashboard({ group }) {
   }, [group?.id]);
 
   useEffect(() => {
+    setGroupName(group?.name || '');
+  }, [group?.name]);
+
+  useEffect(() => {
     if (activeTab === 'properties' && group?.id) {
         fetchSharedProperties();
     }
   }, [activeTab, group?.id]);
+
+  useEffect(() => {
+    if (!group?.id || !user?.id) return;
+
+    const channel = supabase.channel(`buddy_presence:${group.id}`, {
+      config: { presence: { key: user.id } },
+    });
+
+    channel.on('presence', { event: 'sync' }, () => {
+      const state = channel.presenceState();
+      const activeIds = new Set(Object.keys(state));
+      setOnlineMemberIds(activeIds);
+    });
+
+    channel.subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await channel.track({ online_at: new Date().toISOString() });
+      }
+    });
+
+    return () => {
+      channel.untrack();
+      supabase.removeChannel(channel);
+    };
+  }, [group?.id, user?.id]);
 
   const fetchMembers = async () => {
     const { data } = await supabase
@@ -43,6 +79,122 @@ export default function BuddyDashboard({ group }) {
         .eq('status', 'active');
     
     if (data) setMembers(data);
+  };
+
+  const getCSRFToken = async () => {
+    const res = await fetch('/api/csrf-token');
+    const data = await res.json();
+    return data?.csrfToken;
+  };
+
+  const handleRemoveMember = async (memberId) => {
+    if (!isAdmin) return;
+    if (!group?.id || !memberId || actionLoading) return;
+    if (!confirm('Remove this member from the group?')) return;
+
+    setActionLoading(true);
+    try {
+      const csrfToken = await getCSRFToken();
+      const res = await fetch(`/api/buddy/groups/${group.id}/members/${memberId}`, {
+        method: 'DELETE',
+        headers: { 'x-csrf-token': csrfToken },
+      });
+
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || 'Failed to remove member');
+
+      toast.success('Member removed');
+      fetchMembers();
+    } catch (error) {
+      toast.error(error.message || 'Failed to remove member');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!group?.id || !user?.id || actionLoading) return;
+    if (!confirm('Leave this group?')) return;
+
+    setActionLoading(true);
+    try {
+      const csrfToken = await getCSRFToken();
+      const res = await fetch(`/api/buddy/groups/${group.id}/members/${user.id}`, {
+        method: 'DELETE',
+        headers: { 'x-csrf-token': csrfToken },
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || 'Failed to leave group');
+
+      toast.success('You left the group');
+      router.push('/dashboard/buddy');
+      router.refresh();
+    } catch (error) {
+      toast.error(error.message || 'Failed to leave group');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!group?.id || actionLoading) return;
+    if (!confirm('Delete this group? This action cannot be undone.')) return;
+
+    setActionLoading(true);
+    try {
+      const csrfToken = await getCSRFToken();
+      const res = await fetch(`/api/buddy/groups/${group.id}`, {
+        method: 'DELETE',
+        headers: { 'x-csrf-token': csrfToken },
+      });
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || 'Failed to delete group');
+
+      toast.success('Group deleted');
+      router.push('/dashboard/buddy');
+      router.refresh();
+    } catch (error) {
+      toast.error(error.message || 'Failed to delete group');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleSaveGroupName = async () => {
+    if (!isAdmin || !group?.id || actionLoading) return;
+
+    const trimmedName = groupName.trim();
+    if (!trimmedName) {
+      toast.error('Group name is required');
+      return;
+    }
+    if (trimmedName.length < 3 || trimmedName.length > 60) {
+      toast.error('Group name must be between 3 and 60 characters');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const csrfToken = await getCSRFToken();
+      const res = await fetch(`/api/buddy/groups/${group.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
+        body: JSON.stringify({ name: trimmedName }),
+      });
+
+      const payload = await res.json();
+      if (!res.ok) throw new Error(payload.error || 'Failed to update group name');
+
+      toast.success('Group name updated');
+      router.refresh();
+    } catch (error) {
+      toast.error(error.message || 'Failed to update group name');
+    } finally {
+      setActionLoading(false);
+    }
   };
 
   const fetchSharedProperties = async () => {
@@ -78,7 +230,7 @@ export default function BuddyDashboard({ group }) {
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
                 <div className="flex items-center gap-3 mb-2">
-                    <h1 className="font-heading text-3xl md:text-4xl font-bold tracking-tight">{group.name}</h1>
+                    <h1 className="font-heading text-3xl md:text-4xl font-bold tracking-tight">{groupName || group.name}</h1>
                     <span className="bg-white/10 backdrop-blur-md text-white border border-white/20 text-xs font-bold px-3 py-1 rounded-full">
                         {members.length} Members
                     </span>
@@ -89,7 +241,7 @@ export default function BuddyDashboard({ group }) {
             <div className="flex items-center gap-4">
                 <div className="flex -space-x-3">
                     {members.map(m => (
-                        <div key={m.user.id} className="w-10 h-10 rounded-full border-2 border-navy-900 bg-navy-800 overflow-hidden" title={m.user.full_name}>
+                        <div key={m.user.id} className="relative w-10 h-10 rounded-full border-2 border-navy-900 bg-navy-800 overflow-hidden" title={m.user.full_name}>
                             {m.user.profile_picture ? (
                                 <img src={m.user.profile_picture} className="w-full h-full object-cover" />
                             ) : (
@@ -100,13 +252,34 @@ export default function BuddyDashboard({ group }) {
                         </div>
                     ))}
                 </div>
-                <button 
-                    onClick={() => setIsInviteOpen(true)}
-                    className="bg-white text-navy-900 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-navy-50 transition-all shadow-lg active:scale-95"
-                >
-                    <MdPersonAdd size={20} className="text-terracotta-600" />
-                    Invite
-                </button>
+                {isAdmin && (
+                  <button 
+                      onClick={() => setIsInviteOpen(true)}
+                      className="bg-white text-navy-900 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-navy-50 transition-all shadow-lg active:scale-95"
+                  >
+                      <MdPersonAdd size={20} className="text-terracotta-600" />
+                      Invite
+                  </button>
+                )}
+                {isAdmin ? (
+                  <button
+                    onClick={handleDeleteGroup}
+                    disabled={actionLoading}
+                    className="bg-red-500/90 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-red-600 transition-all disabled:opacity-60"
+                  >
+                    <MdDeleteOutline size={18} />
+                    Delete Group
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleLeaveGroup}
+                    disabled={actionLoading}
+                    className="bg-white/10 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-white/20 transition-all border border-white/20 disabled:opacity-60"
+                  >
+                    <MdExitToApp size={18} />
+                    Leave Group
+                  </button>
+                )}
             </div>
         </div>
       </div>
@@ -141,6 +314,17 @@ export default function BuddyDashboard({ group }) {
                 <MdPerson size={18} />
                 Members
             </button>
+            {isAdmin && (
+              <button 
+                  onClick={() => setActiveTab('settings')}
+                  className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
+                      activeTab === 'settings' ? 'bg-navy-900 text-white shadow-md' : 'text-navy-600 hover:bg-navy-50'
+                  }`}
+              >
+                  <MdSettings size={18} />
+                  Settings
+              </button>
+            )}
         </div>
 
         {/* Desktop Sidebar / Tabs */}
@@ -179,13 +363,19 @@ export default function BuddyDashboard({ group }) {
                     <MdPerson size={22} className={activeTab === 'members' ? 'text-terracotta-500' : ''} />
                     Members
                 </button>
-                 <button 
-                    onClick={() => alert('Settings coming soon')}
-                    className={`w-full flex items-center gap-3 px-5 py-4 rounded-3xl font-bold transition-all text-navy-400 hover:text-navy-600 hover:bg-navy-50`}
-                >
-                    <MdSettings size={22} />
-                    Settings
-                </button>
+                {isAdmin && (
+                  <button 
+                      onClick={() => setActiveTab('settings')}
+                      className={`w-full flex items-center gap-3 px-5 py-4 rounded-3xl font-bold transition-all ${
+                          activeTab === 'settings'
+                              ? 'bg-navy-50 text-navy-900 border border-navy-100 shadow-sm'
+                              : 'text-navy-500 hover:bg-navy-50 hover:text-navy-700'
+                      }`}
+                  >
+                      <MdSettings size={22} className={activeTab === 'settings' ? 'text-terracotta-500' : ''} />
+                      Settings
+                  </button>
+                )}
             </div>
 
             {/* Members List (Sidebar Summary) */}
@@ -198,13 +388,16 @@ export default function BuddyDashboard({ group }) {
                     {members.map(m => (
                         <div key={m.user.id} className="flex items-center justify-between group">
                             <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-navy-50 border border-navy-100 overflow-hidden">
-                                     {m.user.profile_picture ? (
+                                <div className="relative w-10 h-10 rounded-full bg-navy-50 border border-navy-100 overflow-hidden">
+                                 {m.user.profile_picture ? (
                                         <img src={m.user.profile_picture} className="w-full h-full object-cover" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center font-bold text-navy-400 text-xs">
                                             {m.user.full_name[0]}
                                         </div>
+                                    )}
+                                    {onlineMemberIds.has(m.user.id) && (
+                                      <span className="absolute right-0 bottom-0 w-2.5 h-2.5 bg-green-500 rounded-full ring-2 ring-white" />
                                     )}
                                 </div>
                                 <div>
@@ -281,7 +474,7 @@ export default function BuddyDashboard({ group }) {
                         {members.map(m => (
                             <div key={m.user.id} className="flex items-center justify-between p-5 bg-navy-50 rounded-3xl border border-navy-100/50">
                                 <div className="flex items-center gap-4">
-                                    <div className="w-14 h-14 rounded-full bg-white border-2 border-white shadow-sm overflow-hidden text-xl">
+                                    <div className="relative w-14 h-14 rounded-full bg-white border-2 border-white shadow-sm overflow-hidden text-xl">
                                          {m.user.profile_picture ? (
                                             <img src={m.user.profile_picture} className="w-full h-full object-cover" />
                                         ) : (
@@ -289,19 +482,69 @@ export default function BuddyDashboard({ group }) {
                                                 {m.user.full_name[0]}
                                             </div>
                                         )}
+                                        {onlineMemberIds.has(m.user.id) && (
+                                          <span className="absolute right-0 bottom-0 w-3 h-3 bg-green-500 rounded-full ring-2 ring-white" />
+                                        )}
                                     </div>
                                     <div>
                                         <div className="font-bold text-lg text-navy-900">{m.user.full_name}</div>
                                         <div className="text-sm text-navy-500 font-medium">Joined {dayjs(m.joined_at).format('MMMM D, YYYY')}</div>
                                     </div>
                                 </div>
-                                <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                    m.role === 'admin' ? 'bg-terracotta-100 text-terracotta-700' : 'bg-navy-200 text-navy-600'
-                                }`}>
-                                    {m.role}
-                                </span>
+                                <div className="flex items-center gap-3">
+                                  <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                      m.role === 'admin' ? 'bg-terracotta-100 text-terracotta-700' : 'bg-navy-200 text-navy-600'
+                                  }`}>
+                                      {m.role}
+                                  </span>
+                                  {isAdmin && m.role !== 'admin' && (
+                                    <button
+                                      onClick={() => handleRemoveMember(m.user.id)}
+                                      disabled={actionLoading}
+                                      className="px-3 py-1.5 rounded-xl text-xs font-bold text-red-600 hover:bg-red-50 border border-red-200 disabled:opacity-60"
+                                    >
+                                      Remove
+                                    </button>
+                                  )}
+                                </div>
                             </div>
                         ))}
+                    </div>
+                  </div>
+             )}
+
+             {activeTab === 'settings' && isAdmin && (
+                  <div className="bg-white rounded-[2rem] border border-navy-100 p-8">
+                    <h3 className="font-heading font-bold text-navy-900 mb-2 text-xl">Group Settings</h3>
+                    <p className="text-sm text-navy-500 mb-8">Update your group name.</p>
+                    <div className="max-w-xl space-y-4">
+                      <label className="block">
+                        <span className="block text-sm font-bold text-navy-700 mb-2">Group Name</span>
+                        <input
+                          type="text"
+                          value={groupName}
+                          maxLength={60}
+                          onChange={(e) => setGroupName(e.target.value)}
+                          className="w-full px-4 py-3 rounded-xl border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500"
+                          placeholder="Enter group name"
+                        />
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={handleSaveGroupName}
+                          disabled={actionLoading}
+                          className="px-5 py-2.5 rounded-xl bg-navy-900 text-white font-bold hover:bg-navy-800 disabled:opacity-60"
+                        >
+                          Save Changes
+                        </button>
+                        <button
+                          onClick={() => setGroupName(group?.name || '')}
+                          disabled={actionLoading}
+                          className="px-5 py-2.5 rounded-xl border border-navy-200 text-navy-700 font-bold hover:bg-navy-50 disabled:opacity-60"
+                        >
+                          Cancel
+                        </button>
+                      </div>
                     </div>
                   </div>
              )}

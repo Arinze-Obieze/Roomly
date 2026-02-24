@@ -69,7 +69,7 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
                 <MdVideoCameraBack size={32} />
              </div>
              <p className="font-heading font-medium text-navy-950">Upload a video tour</p>
-             <p className="text-sm text-navy-500 mt-1 font-sans">MP4, MOV up to 100MB</p>
+             <p className="text-sm text-navy-500 mt-1 font-sans">MP4, MOV up to 20MB</p>
         </div>
 
         {formData.videos && formData.videos.length > 0 && (

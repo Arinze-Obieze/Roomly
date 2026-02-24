@@ -1,5 +1,6 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { invalidatePattern } from '@/core/utils/redis';
 
 export async function PATCH(request, { params }) {
   try {
@@ -38,6 +39,10 @@ export async function PATCH(request, { params }) {
       .single();
 
     if (updateError) throw updateError;
+
+    await invalidatePattern('property:*');
+    await invalidatePattern(`seeker:interests:*`);
+    await invalidatePattern(`landlord:interests:*`);
 
     return NextResponse.json({
       success: true,

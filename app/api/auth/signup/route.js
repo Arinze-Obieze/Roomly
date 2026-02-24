@@ -53,7 +53,8 @@ export async function POST(req) {
 
     let signUpData;
     try {
-        const redirectUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/auth/callback`;
+        const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin).replace(/\/+$/, '');
+        const redirectUrl = `${baseUrl}/api/auth/callback`;
         signUpData = await AuthService.signup({ email, password, fullName, phone, redirectUrl });
     } catch (error) {
         if (error.code === 'DUPLICATE_EMAIL') {

@@ -1,16 +1,32 @@
 "use client";
 
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { MdArrowBack } from "react-icons/md";
 import { useFilters } from "./useFilters";
 import { FilterContent } from "../ui/FilterContent";
 
 export const FilterModal = ({ isOpen, onClose }) => {
   const { resetFilters } = useFilters();
-  
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
 
-  return (
-    <div className="fixed inset-0 z-50 bg-white lg:hidden">
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] bg-white lg:hidden">
       <div className="h-full flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-slate-200">
           <button 
@@ -41,6 +57,7 @@ export const FilterModal = ({ isOpen, onClose }) => {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
