@@ -11,26 +11,51 @@ export default function CreateGroupModal({ isOpen, onClose, onCreated }) {
 
   if (!isOpen) return null;
 
+  const getCSRFToken = async () => {
+    const res = await fetch('/api/csrf-token');
+    const payload = await res.json();
+    if (!res.ok || !payload?.csrfToken) {
+      throw new Error('Unable to get security token. Please refresh and try again.');
+    }
+    return payload.csrfToken;
+  };
+
   const handleSubmit = async (e) => {
     e?.preventDefault();
     if (!name.trim()) return;
 
     setLoading(true);
     try {
+      const csrfToken = await getCSRFToken();
       const res = await fetch('/api/buddy/groups/create', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({ name })
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      let data = null;
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        throw new Error(
+          res.status === 401
+            ? 'Your session expired. Please log in again.'
+            : `Unexpected server response (${res.status}). ${text.slice(0, 120)}`
+        );
+      }
+
+      if (!res.ok) throw new Error(data?.error || 'Failed to create group');
 
       toast.success('Group created successfully!');
       onCreated?.(data.data);
       onClose();
     } catch (error) {
-      toast.error(error.message);
+      toast.error(error?.message || 'Failed to create group');
     } finally {
       setLoading(false);
     }

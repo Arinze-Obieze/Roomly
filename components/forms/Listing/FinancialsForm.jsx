@@ -34,7 +34,10 @@ export default function FinancialsForm({ formData, handleChange }) {
       {/* Rent & Deposit */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-          <label className="block text-sm font-heading font-bold text-navy-950 mb-2">Monthly Rent</label>
+          <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
+            Monthly Rent
+            <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
+          </label>
           <div className="relative">
             <MdEuro className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-400" size={20} />
             <input
@@ -57,7 +60,10 @@ export default function FinancialsForm({ formData, handleChange }) {
         </div>
 
         <div>
-          <label className="block text-sm font-heading font-bold text-navy-950 mb-2">Security Deposit</label>
+          <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
+            Security Deposit
+            <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
+          </label>
           <div className="relative">
             <MdEuro className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-400" size={20} />
             <input
@@ -74,7 +80,10 @@ export default function FinancialsForm({ formData, handleChange }) {
       {/* Bills Section */}
       <div className="space-y-4">
         <div>
-            <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Are bills included?</label>
+            <label className="block text-sm font-heading font-bold text-navy-950 mb-3">
+              Are bills included?
+              <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+            </label>
             <div className="grid grid-cols-3 gap-3">
             {['box', 'some', 'none'].map((opt) => (
                 <button
@@ -97,7 +106,9 @@ export default function FinancialsForm({ formData, handleChange }) {
         {formData.bills_option !== 'box' && (
             <div className="bg-navy-50 rounded-xl p-4 border border-navy-200 space-y-3">
                 <div className="flex items-center justify-between">
-                    <label className="text-sm font-heading font-bold text-navy-950">Estimated Bill Costs</label>
+                    <label className="text-sm font-heading font-bold text-navy-950">
+                      Estimated Bill Costs <span className="text-xs font-sans font-medium text-navy-500">(Optional)</span>
+                    </label>
                     <button 
                         type="button" 
                         onClick={addBill}
@@ -152,7 +163,9 @@ export default function FinancialsForm({ formData, handleChange }) {
                     <MdGroup size={20} />
                  </div>
                  <div>
-                    <div className="font-heading font-bold text-navy-950">Couples Allowed?</div>
+                    <div className="font-heading font-bold text-navy-950">
+                      Couples Allowed? <span className="text-xs font-sans font-medium text-navy-500">(Optional)</span>
+                    </div>
                     <div className="text-xs text-navy-500 font-sans">Is the room suitable for two people?</div>
                  </div>
             </div>
@@ -169,7 +182,10 @@ export default function FinancialsForm({ formData, handleChange }) {
 
       {/* Payment Methods */}
       <div>
-        <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Preferred Payment Methods</label>
+        <label className="block text-sm font-heading font-bold text-navy-950 mb-3">
+          Preferred Payment Methods
+          <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+        </label>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {PAYMENT_METHODS.map(method => (
                 <button

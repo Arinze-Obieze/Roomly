@@ -14,37 +14,92 @@ export const NotificationsProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [isFetchingMore, setIsFetchingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [page, setPage] = useState(0);
+    const [soundEnabled, setSoundEnabled] = useState(true);
+    const [toastEnabled, setToastEnabled] = useState(true);
     const supabase = createClient();
     const subscriptionRef = useRef(null);
+    const PAGE_SIZE = 20;
     
     // Audio ref for notification sound
     const audioRef = useRef(null);
 
-    const fetchNotifications = useCallback(async () => {
+    useEffect(() => {
+        const storedSound = localStorage.getItem('notifications:sound');
+        const storedToast = localStorage.getItem('notifications:toast');
+        if (storedSound !== null) setSoundEnabled(storedSound === 'true');
+        if (storedToast !== null) setToastEnabled(storedToast === 'true');
+    }, []);
+
+    const persistNotificationPrefs = useCallback((nextSoundEnabled, nextToastEnabled) => {
+        localStorage.setItem('notifications:sound', String(nextSoundEnabled));
+        localStorage.setItem('notifications:toast', String(nextToastEnabled));
+    }, []);
+
+    const fetchUnreadCount = useCallback(async () => {
         if (!user) return;
-        
+        const { count, error } = await supabase
+            .from('notifications')
+            .select('id', { count: 'exact', head: true })
+            .eq('user_id', user.id)
+            .eq('is_read', false);
+
+        if (error) throw error;
+        setUnreadCount(count || 0);
+    }, [user, supabase]);
+
+    const fetchNotifications = useCallback(async ({ append = false, targetPage = 0 } = {}) => {
+        if (!user) return;
+
         try {
+            if (append) {
+                setIsFetchingMore(true);
+            } else {
+                setLoading(true);
+            }
+
+            const from = targetPage * PAGE_SIZE;
+            const to = from + PAGE_SIZE - 1;
             const { data, error } = await supabase
                 .from('notifications')
                 .select('*')
                 .eq('user_id', user.id)
                 .order('created_at', { ascending: false })
-                .limit(50);
-                
+                .range(from, to);
+
             if (error) throw error;
-            
-            setNotifications(data || []);
-            setUnreadCount(data?.filter(n => !n.is_read).length || 0);
+
+            const batch = data || [];
+            setNotifications(prev => {
+                const merged = append ? [...prev, ...batch] : batch;
+                const dedupedMap = new Map();
+                merged.forEach(item => dedupedMap.set(item.id, item));
+                return Array.from(dedupedMap.values()).sort(
+                    (a, b) => new Date(b.created_at) - new Date(a.created_at)
+                );
+            });
+            setHasMore(batch.length === PAGE_SIZE);
+            setPage(targetPage);
+            if (!append) {
+                await fetchUnreadCount();
+            }
         } catch (error) {
             console.error('Error fetching notifications:', error);
         } finally {
-            setLoading(false);
+            if (append) {
+                setIsFetchingMore(false);
+            } else {
+                setLoading(false);
+            }
         }
-    }, [user, supabase]);
+    }, [user, supabase, fetchUnreadCount]);
 
     // Initial fetch
     useEffect(() => {
-        fetchNotifications();
+        if (!user) return;
+        fetchNotifications({ append: false, targetPage: 0 });
     }, [fetchNotifications]);
 
     // Real-time subscription - FIXED: removed 'notifications' from deps to prevent recreation
@@ -65,19 +120,24 @@ export const NotificationsProvider = ({ children }) => {
                 filter: `user_id=eq.${user.id}`
             }, (payload) => {
                 const newNotification = payload.new;
-                setNotifications(prev => [newNotification, ...prev]);
-                setUnreadCount(prev => prev + 1);
+                setNotifications(prev => {
+                    if (prev.some(n => n.id === newNotification.id)) return prev;
+                    return [newNotification, ...prev];
+                });
+                setUnreadCount(prev => prev + (newNotification.is_read ? 0 : 1));
                 
                 // Play sound
-                if (audioRef.current) {
+                if (soundEnabled && audioRef.current) {
                     audioRef.current.play().catch(e => console.log('Audio play failed', e));
                 }
                 
                 // Show toast
-                toast(newNotification.title, {
-                    icon: '🔔',
-                    duration: 4000
-                });
+                if (toastEnabled) {
+                    toast(newNotification.title, {
+                        icon: '🔔',
+                        duration: 4000
+                    });
+                }
             })
             .on('postgres_changes', {
                 event: 'UPDATE',
@@ -86,12 +146,14 @@ export const NotificationsProvider = ({ children }) => {
                 filter: `user_id=eq.${user.id}`
             }, (payload) => {
                 const updated = payload.new;
-                setNotifications(prev => prev.map(n => n.id === updated.id ? updated : n));
-                // Update unread count based on is_read status
-                setUnreadCount(prev => {
-                    // If was unread and now read, decrement
-                    if (updated.is_read) return Math.max(0, prev - 1);
-                    return prev;
+                setNotifications(prev => {
+                    const existing = prev.find(n => n.id === updated.id);
+                    const wasUnread = existing && !existing.is_read;
+                    const isUnread = !updated.is_read;
+                    if (wasUnread !== isUnread) {
+                        setUnreadCount(count => Math.max(0, count + (isUnread ? 1 : -1)));
+                    }
+                    return prev.map(n => n.id === updated.id ? updated : n);
                 });
             })
             .subscribe();
@@ -104,12 +166,18 @@ export const NotificationsProvider = ({ children }) => {
                 subscriptionRef.current = null;
             }
         };
-    }, [user, supabase]); // Fixed: removed 'notifications' dependency
+    }, [user, supabase, soundEnabled, toastEnabled]); // Fixed: removed 'notifications' dependency
 
     const markAsRead = async (id) => {
-        // Optimistic update
-        setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        let shouldDecrement = false;
+        setNotifications(prev => prev.map(n => {
+            if (n.id !== id) return n;
+            if (!n.is_read) shouldDecrement = true;
+            return n.is_read ? n : { ...n, is_read: true };
+        }));
+        if (shouldDecrement) {
+            setUnreadCount(prev => Math.max(0, prev - 1));
+        }
 
         try {
             const { error } = await supabase
@@ -120,7 +188,7 @@ export const NotificationsProvider = ({ children }) => {
             if (error) throw error;
         } catch (error) {
             console.error('Error marking notification as read:', error);
-            // Revert if needed, but low risk
+            await refresh();
         }
     };
 
@@ -139,7 +207,25 @@ export const NotificationsProvider = ({ children }) => {
             if (error) throw error;
         } catch (error) {
             console.error('Error marking all as read:', error);
+            await refresh();
         }
+    };
+
+    const loadMore = async () => {
+        if (!hasMore || isFetchingMore) return;
+        await fetchNotifications({ append: true, targetPage: page + 1 });
+    };
+
+    const refresh = useCallback(async () => {
+        await fetchNotifications({ append: false, targetPage: 0 });
+    }, [fetchNotifications]);
+
+    const updatePreferences = ({ sound, toast: toastPref }) => {
+        const nextSound = typeof sound === 'boolean' ? sound : soundEnabled;
+        const nextToast = typeof toastPref === 'boolean' ? toastPref : toastEnabled;
+        setSoundEnabled(nextSound);
+        setToastEnabled(nextToast);
+        persistNotificationPrefs(nextSound, nextToast);
     };
 
     return (
@@ -147,9 +233,15 @@ export const NotificationsProvider = ({ children }) => {
             notifications,
             unreadCount,
             loading,
+            isFetchingMore,
+            hasMore,
+            soundEnabled,
+            toastEnabled,
             markAsRead,
             markAllAsRead,
-            refresh: fetchNotifications
+            loadMore,
+            refresh,
+            updatePreferences
         }}>
             <audio ref={audioRef} src="/sounds/notification.mp3" className="hidden" />
             {children}

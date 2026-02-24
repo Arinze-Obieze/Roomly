@@ -2,8 +2,12 @@
 
 import { ListingCard } from "./ui/ListingCard";
 import { motion } from 'framer-motion';
+import { useMemo } from "react";
 
 export default function PropertyGrid({ properties, loading, onSelect }) {
+  const renderedProperties = useMemo(() => properties || [], [properties]);
+  const skeletonItems = useMemo(() => Array.from({ length: 6 }), []);
+
   const container = {
     hidden: { opacity: 0 },
     show: {
@@ -21,14 +25,14 @@ export default function PropertyGrid({ properties, loading, onSelect }) {
 
   return (
     <>
-      {!loading && properties.length > 0 && (
+      {!loading && renderedProperties.length > 0 && (
         <motion.div 
           variants={container}
           initial="hidden"
           animate="show"
           className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-fr"
         >
-          {properties.map((listing) => (
+          {renderedProperties.map((listing) => (
             <motion.div key={listing.id} variants={item}>
               <ListingCard 
                 data={listing}
@@ -42,7 +46,7 @@ export default function PropertyGrid({ properties, loading, onSelect }) {
       {/* Loading Skeletons */}
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
-          {[...Array(6)].map((_, i) => (
+          {skeletonItems.map((_, i) => (
             <div key={i} className="bg-white rounded-3xl border border-navy-200 overflow-hidden h-[420px] animate-pulse">
               <div className="h-48 bg-navy-100" />
               <div className="p-4 space-y-3">

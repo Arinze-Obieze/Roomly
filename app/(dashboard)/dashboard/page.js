@@ -81,7 +81,9 @@ export default function HomeDashboard() {
               {/* Filter Modal for Mobile */}
               <FilterModal 
                 isOpen={isFilterModalOpen} 
-                onClose={() => setIsFilterModalOpen(false)} 
+                onClose={() => setIsFilterModalOpen(false)}
+                resultsCount={properties.length}
+                isLoading={loading}
               />
 
               {/* Error State */}

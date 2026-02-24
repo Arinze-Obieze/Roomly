@@ -15,7 +15,9 @@ export default function MediaUpload({ formData, handleFileChange, removeFile }) 
       <div className="bg-white rounded-2xl border border-navy-200 p-6 space-y-8">
         {/* Photos - Drag and Drop Area */}
         <div>
-          <label className="font-heading font-bold text-navy-950 mb-2 block">Photos <span className="text-xs text-navy-500 font-sans">(at least 1, max 10)</span></label>
+          <label className="font-heading font-bold text-navy-950 mb-2 block">
+            Photos <span className="text-xs text-terracotta-600 font-sans">(Required, at least 1, max 10)</span>
+          </label>
           <div
             className="border-2 border-dashed border-terracotta-300 rounded-xl p-8 text-center hover:border-terracotta-500 hover:bg-terracotta-50/50 transition-all cursor-pointer flex flex-col items-center justify-center relative group"
             onClick={() => document.getElementById('photo-upload-input').click()}
@@ -61,7 +63,9 @@ export default function MediaUpload({ formData, handleFileChange, removeFile }) 
 
         {/* Videos - Drag and Drop Area */}
         <div>
-          <label className="font-heading font-bold text-navy-950 mb-2 block">Videos <span className="text-xs text-navy-500 font-sans">(optional, max 5)</span></label>
+          <label className="font-heading font-bold text-navy-950 mb-2 block">
+            Videos <span className="text-xs text-navy-500 font-sans">(Optional, max 5)</span>
+          </label>
           <div
             className="border-2 border-dashed border-teal-300 rounded-xl p-8 text-center hover:border-teal-500 hover:bg-teal-50/50 transition-all cursor-pointer flex flex-col items-center justify-center relative group"
             onClick={() => document.getElementById('video-upload-input').click()}

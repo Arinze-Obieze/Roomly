@@ -10,6 +10,7 @@ export default function PropertyForm({ formData, handleChange }) {
       <div>
         <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
           Property Category
+          <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
         </label>
         <select
           value={formData.property_category || ''}
@@ -26,6 +27,7 @@ export default function PropertyForm({ formData, handleChange }) {
       <div>
         <label className="block text-sm font-heading font-bold text-navy-950 mb-3">
           What are you offering?
+          <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
         </label>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           {OFFERING_TYPES.map(type => (
@@ -47,6 +49,7 @@ export default function PropertyForm({ formData, handleChange }) {
         <div>
           <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
             Bedrooms (total)
+            <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
           </label>
           <input
             type="number"
@@ -59,6 +62,7 @@ export default function PropertyForm({ formData, handleChange }) {
         <div>
           <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
             Bathrooms
+            <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
           </label>
           <input
             type="number"
@@ -71,6 +75,7 @@ export default function PropertyForm({ formData, handleChange }) {
         <div>
           <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
             Floor Area (sqm)
+            <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
           </label>
           <input
             type="number"
@@ -84,6 +89,7 @@ export default function PropertyForm({ formData, handleChange }) {
         <div>
           <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
             Year Built
+            <span className="ml-2 text-xs font-sans text-navy-500 font-medium">(Optional)</span>
           </label>
           <input
             type="number"
@@ -93,6 +99,7 @@ export default function PropertyForm({ formData, handleChange }) {
             onChange={(e) => handleChange('year_built', e.target.value)}
             className="w-full px-4 py-3 rounded-xl border border-navy-200 focus:ring-2 focus:ring-terracotta-500 outline-none font-sans"
           />
+          <span className="text-xs text-navy-400 mt-1 block">Optional - helps seekers understand property age</span>
         </div>
       </div>
 
@@ -100,6 +107,7 @@ export default function PropertyForm({ formData, handleChange }) {
       <div>
         <label className="flex items-center gap-1 text-sm font-heading font-bold text-navy-950 mb-2">
           BER/EPC Rating
+          <span className="ml-1 text-xs font-sans font-medium text-navy-500">(Optional)</span>
           <MdInfoOutline className="text-navy-400" />
         </label>
         <select

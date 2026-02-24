@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
+  const isApiRoute = pathname.startsWith('/api');
 
   // Get user session and refresh tokens
   const { supabaseResponse, user } = await updateSession(request);
@@ -25,6 +26,13 @@ export async function middleware(request) {
 
   // Protect routes that require authentication
   if (isProtectedRoute && !user) {
+    if (isApiRoute) {
+      return NextResponse.json(
+        { error: 'Unauthorized', redirectTo: '/login' },
+        { status: 401 }
+      );
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirectTo', pathname);

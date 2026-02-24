@@ -9,6 +9,7 @@ export default function BasicsForm({ formData, handleChange }) {
         <div>
           <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
             Who is listing this property?
+            <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
           </label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -30,6 +31,7 @@ export default function BasicsForm({ formData, handleChange }) {
         <div>
            <label className="block text-sm font-heading font-bold text-navy-950 mb-3">
             Rental Type
+            <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Required)</span>
           </label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
             {RENTAL_TYPES.map(type => (
@@ -46,7 +48,10 @@ export default function BasicsForm({ formData, handleChange }) {
           
           {formData.rental_type === 'fixed' && (
              <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-200">
-               <label className="block text-sm font-heading font-bold text-navy-950 mb-2">Duration</label>
+               <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
+                 Duration
+                 <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required for fixed-term)</span>
+               </label>
                <select
                    value={formData.fixed_term_duration || ''}
                    onChange={(e) => handleChange('fixed_term_duration', e.target.value)}
@@ -63,6 +68,7 @@ export default function BasicsForm({ formData, handleChange }) {
         <div>
           <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
             Listing Title
+            <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
           </label>
           <div className="relative">
             <input
@@ -78,6 +84,7 @@ export default function BasicsForm({ formData, handleChange }) {
         <div>
           <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
             Description
+            <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
           </label>
           <textarea
             value={formData.description}

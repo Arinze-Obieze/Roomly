@@ -16,7 +16,7 @@ export default function MessagesPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
-            className="h-screen flex flex-col bg-white overflow-hidden"
+            className="h-[calc(100dvh-8.5rem)] lg:h-[calc(100dvh-5.5rem)] flex flex-col bg-white overflow-hidden"
         >
             <div className="flex-1 flex min-h-0">
                 {/* Sidebar - Fixed width, full height */}

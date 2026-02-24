@@ -168,7 +168,7 @@ export default function InterestsPage() {
                                     {item.seeker.full_name}
                                     {item.shouldMask && <MdLock className="text-slate-300 text-xs" />}
                                 </h4>
-                                <span className="text-xs text-slate-500">{item.seeker.is_verified ? 'Verified Seeker' : 'Seeker'}</span>
+                                <span className="text-xs text-slate-500">Seeker</span>
                             </div>
                         </div>
                         <StatusBadge status={item.status} />

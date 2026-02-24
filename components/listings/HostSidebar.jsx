@@ -1,7 +1,5 @@
 'use client';
 
-import { MdVerified } from 'react-icons/md';
-
 export default function HostSidebar({ 
   host, 
   isOwner, 
@@ -36,7 +34,6 @@ export default function HostSidebar({
             <div>
               <div className="font-bold text-navy-950 flex items-center gap-2">
                 {isOwner ? 'You' : host.name}
-                {host.verified && !isPrivate && <MdVerified className="text-terracotta-500" title="Verified Host" />}
               </div>
               <div className="text-sm text-slate-500">Joined 2024</div>
             </div>

@@ -44,7 +44,10 @@ export default function LocationForm({ formData, handleChange }) {
         {/* County & City Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                 <label className="block text-sm font-heading font-bold text-navy-950 mb-2">County</label>
+                 <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
+                  County
+                  <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
+                 </label>
                  <select
                     value={formData.state || ''}
                     onChange={e => handleChange('state', e.target.value)}
@@ -55,7 +58,10 @@ export default function LocationForm({ formData, handleChange }) {
                   </select>
             </div>
             <div ref={cityWrapperRef} className="relative">
-                <label className="block text-sm font-heading font-bold text-navy-950 mb-2">City / Town</label>
+                <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
+                  City / Town
+                  <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
+                </label>
                  <div className="relative">
                     <input
                         type="text"
@@ -91,7 +97,10 @@ export default function LocationForm({ formData, handleChange }) {
         </div>
 
         <div>
-            <label className="block text-sm font-heading font-bold text-navy-950 mb-2">Address</label>
+            <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
+              Address
+              <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
+            </label>
             <div className="relative">
                 <MdLocationOn className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-400" size={20} />
                 <input 
@@ -107,7 +116,10 @@ export default function LocationForm({ formData, handleChange }) {
 
       {/* Transport Options */}
       <div>
-         <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Nearest Transport</label>
+         <label className="block text-sm font-heading font-bold text-navy-950 mb-3">
+          Nearest Transport
+          <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+         </label>
          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {TRANSPORT_OPTIONS.map(opt => {
                 const isSelected = (formData.transport_options || []).includes(opt.value);
@@ -143,7 +155,9 @@ export default function LocationForm({ formData, handleChange }) {
                     <MdTranslate size={20} />
                  </div>
                  <div>
-                    <div className="font-heading font-bold text-navy-950">Gaeltacht Area?</div>
+                    <div className="font-heading font-bold text-navy-950">
+                      Gaeltacht Area? <span className="text-xs font-sans font-medium text-navy-500">(Optional)</span>
+                    </div>
                     <div className="text-xs text-navy-500 font-sans">Is this property in an Irish speaking area?</div>
                  </div>
             </div>

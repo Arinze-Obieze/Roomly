@@ -14,7 +14,10 @@ export default function PreferencesForm({ formData, handleChange }) {
       
       {/* Occupation */}
       <div>
-        <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Ideally, who are you looking for?</label>
+        <label className="block text-sm font-heading font-bold text-navy-950 mb-3">
+          Ideally, who are you looking for?
+          <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+        </label>
         <div className="grid grid-cols-3 gap-3">
             {OCCUPATION_PREFERENCES.map(pref => (
                  <SelectionCard
@@ -35,7 +38,10 @@ export default function PreferencesForm({ formData, handleChange }) {
       {/* Age & Gender */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
          <div>
-            <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Gender Preference</label>
+            <label className="block text-sm font-heading font-bold text-navy-950 mb-3">
+              Gender Preference
+              <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+            </label>
             <div className="flex bg-navy-100 p-1 rounded-xl">
                  {GENDER_PREFERENCES.map(g => (
                      <button
@@ -54,7 +60,10 @@ export default function PreferencesForm({ formData, handleChange }) {
             </div>
          </div>
          <div>
-             <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Age Range</label>
+             <label className="block text-sm font-heading font-bold text-navy-950 mb-3">
+              Age Range
+              <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+             </label>
              <div className="bg-white border border-navy-200 rounded-xl px-4 py-3 flex items-center justify-between">
                 <span className="text-navy-500 text-sm font-sans">Min: 18</span>
                 <span className="font-heading font-bold text-navy-950">
@@ -83,7 +92,10 @@ export default function PreferencesForm({ formData, handleChange }) {
 
       {/* Deal Breakers */}
       <div>
-         <label className="block text-sm font-heading font-bold text-navy-950 mb-3">Deal-breakers</label>
+         <label className="block text-sm font-heading font-bold text-navy-950 mb-3">
+          Deal-breakers
+          <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+         </label>
          <p className="text-sm text-navy-500 mb-3 font-sans">Select any absolute no-go factors</p>
          <div className="flex flex-wrap gap-3">
             {DEAL_BREAKERS.map(breaker => {
@@ -114,7 +126,10 @@ export default function PreferencesForm({ formData, handleChange }) {
 
       {/* Lifestyle Priorities */}
       <div>
-         <label className="block text-sm font-heading font-bold text-navy-950 mb-4">Lifestyle Matching</label>
+         <label className="block text-sm font-heading font-bold text-navy-950 mb-4">
+          Lifestyle Matching
+          <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+         </label>
          <div className="space-y-4">
             {LIFESTYLE_PRIORITIES.map(factor => (
                 <div key={factor.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-navy-100 last:border-0">
@@ -148,7 +163,10 @@ export default function PreferencesForm({ formData, handleChange }) {
 
       {/* Flatmate Description */}
       <div>
-        <label className="block text-sm font-heading font-bold text-navy-950 mb-2">Ideal Flatmate Description</label>
+        <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
+          Ideal Flatmate Description
+          <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+        </label>
         <textarea
             value={formData.partner_description || ''}
             onChange={(e) => handleChange('partner_description', e.target.value)}

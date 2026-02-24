@@ -28,6 +28,7 @@ export const PropertiesProvider = ({ children }) => {
   // Cache to avoid unnecessary refetches
   const cacheRef = useRef(new Map());
   const abortControllerRef = useRef(null);
+  const requestIdRef = useRef(0);
 
   /**
    * Fetch properties with filters and pagination
@@ -39,6 +40,8 @@ export const PropertiesProvider = ({ children }) => {
       append = false,
       useCache = true 
     } = options;
+
+    const requestId = ++requestIdRef.current;
 
     // Cancel any pending requests
     if (abortControllerRef.current) {
@@ -150,9 +153,9 @@ export const PropertiesProvider = ({ children }) => {
       setError(err.message);
       return { data: [], pagination: { page: 1, pageSize, total: 0, hasMore: false } };
     } finally {
-      if (!abortControllerRef.current?.signal.aborted) {
-         setLoading(false);
-         abortControllerRef.current = null;
+      if (requestId === requestIdRef.current) {
+        setLoading(false);
+        abortControllerRef.current = null;
       }
     }
   }, []);

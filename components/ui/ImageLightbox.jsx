@@ -44,11 +44,17 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
   const currentImage = images[currentIndex];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/95 backdrop-blur-sm animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/95 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
       
       {/* Controls */}
       <button 
-        onClick={onClose}
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
         className="absolute top-4 right-4 p-2 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50"
         aria-label="Close"
       >
@@ -58,7 +64,10 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
       {images.length > 1 && (
         <>
           <button 
-            onClick={handlePrev}
+            onClick={(e) => {
+              e.stopPropagation();
+              handlePrev();
+            }}
             className="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50 hidden md:block"
             aria-label="Previous image"
           >
@@ -66,7 +75,10 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
           </button>
 
           <button 
-            onClick={handleNext}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleNext();
+            }}
             className="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50 hidden md:block"
             aria-label="Next image"
           >
@@ -76,7 +88,10 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
       )}
 
       {/* Main Image Container */}
-      <div className="relative w-full h-full flex items-center justify-center p-4 md:p-12 overflow-hidden">
+      <div
+        className="relative w-full h-full flex items-center justify-center p-4 md:p-12 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
         {currentImage.type === 'video' ? (
              <video 
                 src={currentImage.url} 
@@ -119,6 +134,17 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
                 </button>
             ))}
          </div>
+
+         <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onClose();
+            }}
+            className="md:hidden inline-flex items-center justify-center gap-2 bg-white text-navy-950 px-4 py-2 rounded-full text-sm font-semibold shadow-sm"
+         >
+            <MdClose size={18} />
+            Close
+         </button>
       </div>
 
     </div>

@@ -130,7 +130,9 @@ export async function POST(request) {
     if (inviteError) throw inviteError;
 
     // 6. Send Email
-    const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(request.url).origin).replace(/\/+$/, '');
+    const envSiteUrl = (process.env.NEXT_PUBLIC_SITE_URL || '').trim().replace(/\/+$/, '');
+    const requestOrigin = new URL(request.url).origin.replace(/\/+$/, '');
+    const baseUrl = (envSiteUrl || requestOrigin).replace(/\/+$/, '');
     const inviteLink = `${baseUrl}/dashboard/buddy/join?token=${token}`;
 
     // Get inviter name

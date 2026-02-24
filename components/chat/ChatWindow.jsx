@@ -79,7 +79,7 @@ export const ChatWindow = () => {
             <motion.div 
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="h-16 bg-white border-b border-navy-200 flex items-center justify-between px-4 md:px-6 shrink-0 shadow-sm"
+                className="h-16 bg-white border-b border-navy-200 flex items-center justify-between px-4 md:px-6 shrink-0 shadow-sm sticky top-0 z-20"
             >
                 <div className="flex items-center gap-3 min-w-0">
                     <motion.button 
@@ -199,7 +199,7 @@ export const ChatWindow = () => {
                 initial={{ y: 20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 onSubmit={handleSend} 
-                className="p-4 bg-white border-t border-navy-200 shrink-0"
+                className="p-4 bg-white border-t border-navy-200 shrink-0 sticky bottom-0 z-20"
             >
                 <div className="max-w-3xl mx-auto">
                     <div className="flex items-end gap-2">

@@ -59,7 +59,7 @@ export const ChatList = ({ activeTab, onTabChange }) => {
   return (
     <div className="flex flex-col h-full bg-white w-full md:w-96">
       {/* Fixed Header Section - Never scrolls */}
-      <div className="shrink-0 border-b border-navy-100 bg-white">
+      <div className="shrink-0 border-b border-navy-100 bg-white sticky top-0 z-20">
         {/* Tabs */}
         <div className="flex items-center p-2 gap-2">
           <motion.button
@@ -156,17 +156,6 @@ export const ChatList = ({ activeTab, onTabChange }) => {
                         </div>
                       )}
                       
-                      {/* Property Thumbnail Badge */}
-                      {conv.property?.property_media?.[0]?.url && (
-                        <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full border-2 border-white overflow-hidden bg-white shadow-sm">
-                          <img 
-                            src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/property-media/${conv.property.property_media[0].url}`}
-                            alt="Property"
-                            className="w-full h-full object-cover"
-                          />
-                        </div>
-                      )}
-
                       {/* Unread Badge */}
                       {hasUnread && activeTab === 'received' && (
                         <motion.div

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/core/utils/supabase/client';
-import { MdVerified, MdPerson, MdLocationOn, MdCalendarToday, MdArrowBack, MdCheckCircle } from 'react-icons/md';
+import { MdPerson, MdLocationOn, MdCalendarToday, MdArrowBack, MdCheckCircle } from 'react-icons/md';
 import { ListingCard } from '@/components/dashboard/ui/ListingCard';
 import toast from 'react-hot-toast';
 
@@ -162,16 +162,6 @@ export default function HostProfilePage() {
           {host.full_name}&apos;s Profile
         </h1>
 
-        {host.is_verified && (
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            className="flex items-center gap-1 bg-teal-50 text-teal-600 px-3 py-1 rounded-full border border-teal-200"
-          >
-            <MdVerified className="text-teal-500" size={16} />
-            <span className="text-xs font-heading font-medium">Verified Host</span>
-          </motion.div>
-        )}
       </motion.div>
 
       <div className="container max-w-5xl mx-auto px-4 py-8">
@@ -202,16 +192,6 @@ export default function HostProfilePage() {
                     </div>
                   )}
                   
-                  {host.is_verified && (
-                    <motion.div 
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 30, delay: 0.3 }}
-                      className="absolute bottom-1 right-1 bg-white rounded-full p-1 shadow-lg"
-                    >
-                      <MdVerified className="text-teal-500 text-2xl" />
-                    </motion.div>
-                  )}
                 </div>
                 
                 <h2 className="text-2xl font-heading font-bold text-navy-950 mb-1">{host.full_name}</h2>

@@ -32,9 +32,14 @@ export async function updateSession(request) {
   // supabase.auth.getUser(). A simple mistake could make it very hard to debug
   // issues with users being randomly logged out.
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  return { supabaseResponse, user };
+    return { supabaseResponse, user };
+  } catch (error) {
+    console.error('[middleware] Failed to refresh Supabase session:', error?.message || error);
+    return { supabaseResponse, user: null };
+  }
 }

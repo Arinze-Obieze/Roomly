@@ -43,7 +43,9 @@ export default function AmenitiesForm({ formData, handleChange }) {
       
       {AMENITY_GROUPS.map((group) => (
         <div key={group.title}>
-            <h3 className="text-lg font-heading font-bold text-navy-950 mb-4">{group.title}</h3>
+            <h3 className="text-lg font-heading font-bold text-navy-950 mb-4">
+              {group.title} <span className="text-xs font-sans font-medium text-navy-500">(Optional)</span>
+            </h3>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                 {group.items.map((item) => (
                     <button
@@ -80,7 +82,9 @@ export default function AmenitiesForm({ formData, handleChange }) {
 
       {/* Custom Amenities */}
       <div>
-        <h3 className="text-lg font-heading font-bold text-navy-950 mb-4">Other Amenities</h3>
+        <h3 className="text-lg font-heading font-bold text-navy-950 mb-4">
+          Other Amenities <span className="text-xs font-sans font-medium text-navy-500">(Optional)</span>
+        </h3>
         <div className="p-4 rounded-xl border border-navy-200 bg-white">
             <div className="flex gap-2 mb-4">
                 <input

@@ -84,8 +84,7 @@ export default function SavedPage() {
                     id: p.host?.id,
                     name: p.host?.full_name || 'Host',
                     avatar: p.host?.profile_picture,
-                },
-                verified: true
+                }
             };
         });
 

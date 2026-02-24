@@ -86,7 +86,7 @@ const DropdownMenu = ({ isOpen, onItemClick, onLogout }) => (
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-lg border border-[#BCCCDC] py-1 overflow-hidden z-60"
+      className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-lg border border-[#BCCCDC] py-1 overflow-hidden z-[260]"
     >
       {DROPDOWN_MENU_ITEMS.map((item, index) => (
         <div key={item.label}>
@@ -303,7 +303,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
       </header>
 
       {/* Mobile Header */}
-      <header className={`lg:hidden sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-[#BCCCDC] transition-shadow ${isScrolled ? 'shadow-sm' : ''}`}>
+      <header className={`lg:hidden sticky top-0 z-[220] bg-white/80 backdrop-blur-md border-b border-[#BCCCDC] transition-shadow ${isScrolled ? 'shadow-sm' : ''}`}>
         <div className="px-4 py-3 flex items-center justify-between">
           <Logo />
           

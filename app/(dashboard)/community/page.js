@@ -46,7 +46,7 @@ export default function CommunityPage() {
               <h3 className="font-heading font-bold text-navy-900">Keep It Helpful</h3>
             </div>
             <p className="text-sm text-navy-600 leading-relaxed">
-              Be respectful and specific. Community posts are most useful when they include city, timing, and verified details.
+              Be respectful and specific. Community posts are most useful when they include city, timing, and clear details.
             </p>
           </div>
         </aside>

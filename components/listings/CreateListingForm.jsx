@@ -260,7 +260,7 @@ export default function CreateListingForm({ onClose, initialData = null }) {
   };
 
   return (
-    <div className="min-h-screen bg-navy-50 flex flex-col">
+    <div className="min-h-screen bg-navy-50 flex flex-col overflow-x-hidden">
       {/* Header */}
       <div className="sticky top-0 z-20 bg-white border-b border-navy-200">
         <div className="container max-w-5xl mx-auto px-4 lg:px-8 py-4">
@@ -288,8 +288,11 @@ export default function CreateListingForm({ onClose, initialData = null }) {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto pb-32">
+      <div className="flex-1 overflow-y-auto overflow-x-hidden pb-32">
         <div className="container max-w-3xl mx-auto px-4 lg:px-8 py-8">
+            <div className="mb-5 text-xs font-sans text-navy-500 bg-navy-50 border border-navy-200 rounded-xl px-3 py-2">
+              Fields marked Required are needed to publish. Optional fields help your listing rank better and can be added anytime.
+            </div>
             
             {profileIncomplete && (
                 <div className="bg-terracotta-50 border border-terracotta-200 rounded-2xl p-4 mb-8 flex gap-3">

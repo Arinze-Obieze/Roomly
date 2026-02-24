@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MdPeopleAlt, MdRefresh, MdVerified, MdHomeWork, MdLocationOn } from 'react-icons/md';
+import { MdPeopleAlt, MdRefresh, MdHomeWork, MdLocationOn } from 'react-icons/md';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -164,7 +164,6 @@ export default function FindPeoplePage() {
                   <div className="min-w-0">
                     <h3 className="font-bold text-slate-900 truncate flex items-center gap-1.5">
                       <span className="truncate">{seeker.full_name}</span>
-                      {seeker.is_verified && <MdVerified className="text-teal-600 shrink-0" size={16} />}
                     </h3>
                     {seeker.current_city && (
                       <div className="text-xs text-slate-500 flex items-center gap-1 mt-0.5">

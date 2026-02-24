@@ -8,7 +8,10 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
       {/* Date & Min Stay */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
-            <label className="block text-sm font-heading font-bold text-navy-950 mb-2">Available From</label>
+            <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
+              Available From
+              <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
+            </label>
             <div className="relative">
                 <MdCalendarToday className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-400" size={20} />
                 <input
@@ -34,7 +37,10 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
         </div>
 
         <div>
-           <label className="block text-sm font-heading font-bold text-navy-950 mb-2">Minimum Stay</label>
+           <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
+             Minimum Stay
+             <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+           </label>
            <div className="relative">
                <MdOutlineEventAvailable className="absolute left-4 top-1/2 -translate-y-1/2 text-navy-400" size={20} />
                 <select
@@ -54,7 +60,9 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
       {/* Virtual Tour Video */}
       <div>
         <div className="flex items-center justify-between mb-4">
-             <label className="text-sm font-heading font-bold text-navy-950">Virtual Tour Video</label>
+             <label className="text-sm font-heading font-bold text-navy-950">
+              Virtual Tour Video <span className="text-xs font-sans font-medium text-navy-500">(Optional)</span>
+             </label>
              <span className="text-xs text-navy-500 bg-navy-100 px-2 py-1 rounded-md font-sans">Highly Recommended</span>
         </div>
         
@@ -97,7 +105,9 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
       {/* Private Viewings Toggle */}
       <div className="p-4 rounded-xl bg-navy-50 border border-navy-200 flex items-center justify-between">
             <div>
-                <div className="font-heading font-bold text-navy-950">Accept Private Viewings?</div>
+                <div className="font-heading font-bold text-navy-950">
+                  Accept Private Viewings? <span className="text-xs font-sans font-medium text-navy-500">(Optional)</span>
+                </div>
                 <div className="text-xs text-navy-500 font-sans">Allow users to request specific viewing slots</div>
             </div>
             <label className="relative inline-flex items-center cursor-pointer">

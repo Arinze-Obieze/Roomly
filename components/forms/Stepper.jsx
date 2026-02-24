@@ -2,7 +2,8 @@ import React from 'react';
 
 export default function Stepper({ steps, currentStep, furthestStep, onStepClick }) {
   return (
-    <div className="mt-6 flex items-center justify-between pointer-events-auto">
+    <div className="mt-6 overflow-x-auto scrollbar-hide">
+      <div className="min-w-[760px] flex items-center justify-between pointer-events-auto">
       {steps.map((step, index) => {
         // Can click if the step has been reached previously (or current/previous)
         // Default to step.id <= currentStep if furthestStep not provided
@@ -53,6 +54,7 @@ export default function Stepper({ steps, currentStep, furthestStep, onStepClick 
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

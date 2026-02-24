@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/core/utils/supabase/client';
-import { MdLocationOn, MdVerified } from 'react-icons/md';
+import { MdLocationOn, MdCheckCircle } from 'react-icons/md';
 import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -118,7 +118,6 @@ export default function PropertyDetailsPage() {
            host: {
              name: data.users?.full_name || 'Unknown Host',
              avatar: data.users?.profile_picture,
-             verified: data.users?.is_verified,
              id: data.users?.id
            }
         });
@@ -223,6 +222,8 @@ export default function PropertyDetailsPage() {
                      bathrooms={property.bathrooms}
                      square_meters={property.square_meters}
                      available_from={property.available_from}
+                     property_type={property.property_type}
+                     offering_type={property.offering_type}
                    />
                 </div>
 
@@ -244,6 +245,10 @@ export default function PropertyDetailsPage() {
                             <div className="flex justify-between">
                                 <dt className="text-slate-500">Deposit</dt>
                                 <dd className="font-medium text-slate-900">€{property.deposit || '0'}</dd>
+                            </div>
+                            <div className="flex justify-between">
+                                <dt className="text-slate-500">Rental Type</dt>
+                                <dd className="font-medium text-slate-900 capitalize">{(property.rental_type || 'monthly').replaceAll('_', ' ')}</dd>
                             </div>
                             <div className="flex justify-between">
                                 <dt className="text-slate-500">Bills</dt>
@@ -283,7 +288,7 @@ export default function PropertyDetailsPage() {
                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                      {property.amenities && property.amenities.map((am, i) => (
                        <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl text-sm font-medium text-slate-700">
-                         <MdVerified className="text-terracotta-500" /> {/* Placeholder icon */}
+                         <MdCheckCircle className="text-terracotta-500" />
                          <span className="capitalize">{am.label || am}</span>
                        </div>
                      ))}

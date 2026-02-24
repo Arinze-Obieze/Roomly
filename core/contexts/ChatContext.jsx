@@ -15,6 +15,11 @@ export const ChatProvider = ({ children }) => {
     const [activeConversation, setActiveConversation] = useState(null);
     const supabase = createClient();
     const queryClient = useQueryClient();
+    const activeConversationRef = useRef(activeConversation);
+
+    useEffect(() => {
+        activeConversationRef.current = activeConversation;
+    }, [activeConversation]);
 
     // Fetch User's Conversations (Infinite)
     const conversationsQuery = useInfiniteQuery({
@@ -45,7 +50,9 @@ export const ChatProvider = ({ children }) => {
             return allPages.length * 20;
         },
         enabled: !!user,
-        staleTime: 60 * 1000,
+        staleTime: 5 * 60 * 1000,
+        placeholderData: (prev) => prev,
+        refetchOnMount: false,
     });
 
     // Fetch Unread Count
@@ -93,6 +100,8 @@ export const ChatProvider = ({ children }) => {
         },
         enabled: !!activeConversation,
         staleTime: Infinity,
+        placeholderData: (prev) => prev,
+        refetchOnMount: false,
     });
 
     // Mark as Read Mutation
@@ -248,8 +257,10 @@ export const ChatProvider = ({ children }) => {
                     queryClient.invalidateQueries(['unread-count', user.id]);
                 }
                 
-                if (activeConversation && msg.conversation_id === activeConversation) {
-                    queryClient.setQueryData(['messages', activeConversation], (old) => {
+                const currentConversation = activeConversationRef.current;
+
+                if (currentConversation && msg.conversation_id === currentConversation) {
+                    queryClient.setQueryData(['messages', currentConversation], (old) => {
                         if (!old) return old;
                         const pages = [...old.pages];
                         const lastPage = pages[pages.length - 1];
@@ -261,7 +272,7 @@ export const ChatProvider = ({ children }) => {
                     });
                     
                     if (msg.sender_id !== user.id) {
-                        markReadMutation.mutate(activeConversation);
+                        markReadMutation.mutate(currentConversation);
                     }
                 }
 
@@ -272,7 +283,7 @@ export const ChatProvider = ({ children }) => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user, activeConversation, queryClient]);
+    }, [user, queryClient]);
 
     const conversationMessages = messagesQuery.data 
         ? messagesQuery.data.pages.flat() 
@@ -285,7 +296,7 @@ export const ChatProvider = ({ children }) => {
     const value = {
         conversations: conversationsList,
         messages: conversationMessages,
-        loading: conversationsQuery.isLoading,
+        loading: conversationsQuery.isLoading && conversationsList.length === 0,
         
         fetchNextConversations: conversationsQuery.fetchNextPage,
         hasNextConversations: conversationsQuery.hasNextPage,

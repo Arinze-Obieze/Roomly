@@ -2,23 +2,23 @@
 
 import { useAuthContext } from "@/core/contexts/AuthContext";
 import { useSavedProperties } from "@/core/contexts/SavedPropertiesContext";
+import { createClient } from "@/core/utils/supabase/client";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import { 
   MdLocationOn, 
-  MdVerified, 
   MdFavorite, 
   MdFavoriteBorder, 
   MdLock, 
-  MdCheckCircle, 
+  MdCheckCircle,
   MdGroupAdd,
   MdBolt,
   MdGroup
 } from "react-icons/md";
 
-export const ListingCard = ({ data, onSelect }) => {
+export const ListingCard = memo(function ListingCard({ data, onSelect }) {
   const router = useRouter();
   const { user, openLoginModal } = useAuthContext();
   const { isPropertySaved, toggleSave } = useSavedProperties();
@@ -28,7 +28,7 @@ export const ListingCard = ({ data, onSelect }) => {
   const [imgSrc, setImgSrc] = useState(data.image);
   const [interestLoading, setInterestLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
-  const getPriceLabel = () => {
+  const priceLabel = useMemo(() => {
     if (data.isBlurry && data.priceRange) {
       return data.priceRange;
     }
@@ -50,22 +50,22 @@ export const ListingCard = ({ data, onSelect }) => {
     }
 
     return '€0';
-  };
+  }, [data.isBlurry, data.price, data.priceRange]);
 
   useEffect(() => {
     setImgSrc(data.image);
   }, [data.image]);
 
-  const handleSave = (e) => {
+  const handleSave = useCallback((e) => {
     e.stopPropagation();
     if (!user) {
       openLoginModal('You need an account to save/favorite a room.');
       return;
     }
     toggleSave(data.id);
-  };
+  }, [data.id, openLoginModal, toggleSave, user]);
 
-  const handleShare = async (e) => {
+  const handleShare = useCallback(async (e) => {
     e.stopPropagation();
     if (!user) {
         openLoginModal('Sign up to share properties with friends.');
@@ -74,7 +74,6 @@ export const ListingCard = ({ data, onSelect }) => {
 
     setSharing(true);
     try {
-        const { createClient } = require('@/core/utils/supabase/client');
         const supabase = createClient();
         
         const { data: member } = await supabase
@@ -99,7 +98,7 @@ export const ListingCard = ({ data, onSelect }) => {
                 attachmentData: {
                     id: data.id,
                     title: data.title,
-                    price: getPriceLabel(),
+                    price: priceLabel,
                     image: data.image,
                     location: data.location
                 }
@@ -119,9 +118,9 @@ export const ListingCard = ({ data, onSelect }) => {
     } finally {
         setSharing(false);
     }
-  };
+  }, [data.id, data.image, data.location, data.title, openLoginModal, priceLabel, router, user]);
 
-  const handleShowInterest = async (e) => {
+  const handleShowInterest = useCallback(async (e) => {
     e.stopPropagation();
     if (!user) {
       openLoginModal('Sign up to show interest in this private listing.');
@@ -145,12 +144,12 @@ export const ListingCard = ({ data, onSelect }) => {
     } finally {
       setInterestLoading(false);
     }
-  };
+  }, [data.id, openLoginModal, user]);
 
   return (
     <div 
       onClick={() => onSelect?.()}
-      className="group bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-navy-950/5 hover:-translate-y-1 border border-navy-200 flex flex-col h-full"
+      className="group bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-navy-950/5 hover:-translate-y-1 border border-navy-200 flex flex-col h-full [content-visibility:auto] [contain-intrinsic-size:420px]"
     >
       {/* Image Container */}
       <div className="relative aspect-[5/4] w-full overflow-hidden bg-navy-100">
@@ -176,11 +175,6 @@ export const ListingCard = ({ data, onSelect }) => {
                 </div>
              )}
              
-             {data.verified && !isOwner && (
-                <div className="bg-white/95 text-navy-900 px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm flex items-center gap-1.5 text-xs font-bold border border-navy-200">
-                     <MdVerified className="text-terracotta-500 text-sm" /> Verified
-                </div>
-             )}
         </div>
 
         {/* Match Score */}
@@ -240,7 +234,7 @@ export const ListingCard = ({ data, onSelect }) => {
              {data.title}
            </h3>
            <div className="flex flex-col items-end shrink-0">
-             <span className="text-xl font-extrabold text-terracotta-600">{getPriceLabel()}</span>
+             <span className="text-xl font-extrabold text-terracotta-600">{priceLabel}</span>
              <span className="text-[10px] text-navy-500 font-medium uppercase tracking-wide">{data.period === 'monthly' ? 'per month' : data.period}</span>
            </div>
         </div>
@@ -318,4 +312,4 @@ export const ListingCard = ({ data, onSelect }) => {
       </div>
     </div>
   );
-};
+});
