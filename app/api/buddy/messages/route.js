@@ -147,7 +147,7 @@ export async function POST(request) {
             group_id: groupId,
             sender_id: user.id,
             content: sanitizedContent,
-            attachment_type: attachmentType && ['image', 'video', 'file'].includes(attachmentType) ? attachmentType : 'text',
+            attachment_type: attachmentType && ['image', 'video', 'file', 'property'].includes(attachmentType) ? attachmentType : 'text',
             attachment_data: attachmentData || null
         })
         .select()

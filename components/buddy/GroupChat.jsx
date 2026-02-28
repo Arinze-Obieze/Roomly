@@ -70,9 +70,15 @@ export default function GroupChat({ groupId }) {
     setInput(''); // Optimistic clear
 
     try {
+      const csrfRes = await fetch('/api/csrf-token');
+      const { csrfToken } = await csrfRes.json();
+
       const res = await fetch('/api/buddy/messages', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'x-csrf-token': csrfToken,
+        },
         body: JSON.stringify({
            groupId,
            content

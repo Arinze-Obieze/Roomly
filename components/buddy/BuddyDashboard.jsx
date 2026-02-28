@@ -40,6 +40,38 @@ export default function BuddyDashboard({ group }) {
     }
   }, [activeTab, group?.id]);
 
+  // Real-time: when a property is shared in chat, update the Properties tab immediately
+  useEffect(() => {
+    if (!group?.id) return;
+    const supabaseClient = createClient();
+    const channel = supabaseClient
+      .channel(`buddy_property_shares:${group.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'buddy_messages',
+          filter: `group_id=eq.${group.id}`,
+        },
+        (payload) => {
+          const msg = payload.new;
+          if (msg.attachment_type === 'property' && msg.attachment_data) {
+            setSharedProperties(prev => {
+              const seen = new Set(prev.map(p => p.id));
+              if (seen.has(msg.attachment_data.id)) return prev;
+              return [{ ...msg.attachment_data, shared_at: msg.created_at }, ...prev];
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabaseClient.removeChannel(channel);
+    };
+  }, [group?.id]);
+
   useEffect(() => {
     if (!group?.id || !user?.id) return;
 
