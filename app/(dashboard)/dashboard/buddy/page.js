@@ -8,6 +8,7 @@ import BuddyDashboard from '@/components/buddy/BuddyDashboard';
 import BuddyInviteCard from '@/components/dashboard/widgets/BuddyInviteCard';
 import CreateGroupModal from '@/components/buddy/CreateGroupModal';
 import { useRouter } from 'next/navigation';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export default function BuddyPage() {
   const { user } = useAuthContext();
@@ -60,7 +61,7 @@ export default function BuddyPage() {
   if (loading) {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">
-            <div className="w-8 h-8 border-4 border-slate-200 border-t-cyan-500 rounded-full animate-spin"></div>
+            <GlobalSpinner size="md" color="slate" />
         </div>
     );
   }

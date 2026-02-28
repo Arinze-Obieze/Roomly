@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { 
   MdLocationOn, 
   MdFavorite, 
@@ -220,7 +221,7 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
                     disabled={sharing}
                     className="w-8 h-8 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-full shadow-sm hover:bg-white text-navy-400 hover:text-navy-950 transition-all active:scale-90"
                 >
-                    {sharing ? <div className="w-3 h-3 border-2 border-navy-200 border-t-navy-900 rounded-full animate-spin" /> : <MdGroupAdd className="text-base" />}
+                    {sharing ? <GlobalSpinner size="sm" color="slate" /> : <MdGroupAdd className="text-base" />}
                 </button>
             </>
             )}

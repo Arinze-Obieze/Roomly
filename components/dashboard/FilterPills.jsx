@@ -125,7 +125,7 @@ export default function FilterPills({ onOpenFilters }) {
   })();
 
   return (
-    <div className="relative z-[160]" ref={pillsRef}>
+    <div className="relative static max-md:static z-[250]" ref={pillsRef}>
       <div className="flex flex-wrap items-center gap-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0">
         {/* All Filters Button */}
         <motion.button 
@@ -138,7 +138,7 @@ export default function FilterPills({ onOpenFilters }) {
         </motion.button>
 
         {/* Location Pill */}
-        <div className="relative">
+        <div className="relative max-md:static">
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -161,8 +161,11 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute left-0 top-full mt-2 w-[320px] z-[400]"
+                className="filter-pill-content absolute left-0 mt-2 z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-sm max-md:mt-0 md:top-full md:w-[320px]"
               >
+                {/* Mobile Overlay */}
+                <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />
+                
                 <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-4">
                   <h3 className="font-heading font-bold text-navy-950 mb-3">Where to?</h3>
                   <form onSubmit={handleLocationSubmit} className="relative">
@@ -237,7 +240,7 @@ export default function FilterPills({ onOpenFilters }) {
         </div>
 
         {/* Price Pill */}
-        <div className="relative">
+        <div className="relative max-md:static">
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -260,8 +263,10 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute left-0 top-full mt-2 w-[340px] z-[400]"
+                className="filter-pill-content absolute z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-md md:mt-2 md:top-full md:left-1/2 md:-translate-x-1/2 md:w-[340px]"
               >
+                {/* Mobile Overlay */}
+                <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />
                 <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-5">
                   <div className="flex justify-between items-center mb-5">
                     <h3 className="font-heading font-bold text-navy-950">Price Range</h3>
@@ -339,7 +344,7 @@ export default function FilterPills({ onOpenFilters }) {
         </div>
 
         {/* Property Type Pill */}
-        <div className="relative">
+        <div className="relative max-md:static">
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -362,8 +367,11 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute left-0 top-full mt-2 w-[300px] z-[400]"
+                className="filter-pill-content absolute mt-2 z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-sm max-md:mt-0 md:top-full md:left-1/2 md:-translate-x-1/2 md:w-[300px]"
               >
+                {/* Mobile Overlay */}
+                <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />
+
                 <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-3">
                   <div className="space-y-1">
                     <button
@@ -431,7 +439,7 @@ export default function FilterPills({ onOpenFilters }) {
         </div>
 
         {/* Beds Pill */}
-        <div className="relative">
+        <div className="relative max-md:static">
           <motion.button 
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
@@ -454,8 +462,11 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute left-0 top-full mt-2 w-[340px] z-[400]"
+                className="filter-pill-content absolute z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-md md:mt-2 md:top-full md:left-1/2 md:-translate-x-1/2 md:w-[340px]"
               >
+                {/* Mobile Overlay */}
+                <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />
+
                 <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-5">
                   <div className="flex justify-between items-center mb-5">
                     <h3 className="font-heading font-bold text-navy-950">Beds & Baths</h3>

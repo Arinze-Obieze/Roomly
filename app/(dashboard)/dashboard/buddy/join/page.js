@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { MdGroupAdd, MdKey, MdCheckCircle } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import { useAuthContext } from '@/core/contexts/AuthContext';
@@ -80,7 +81,7 @@ function BuddyJoinContent() {
   if (authLoading || !user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-terracotta-500 rounded-full animate-spin" />
+        <GlobalSpinner size="md" color="primary" />
       </div>
     );
   }
@@ -130,7 +131,7 @@ export default function BuddyJoinPage() {
     <Suspense
       fallback={
         <div className="flex items-center justify-center min-h-[60vh]">
-          <div className="w-8 h-8 border-4 border-slate-200 border-t-terracotta-500 rounded-full animate-spin" />
+          <GlobalSpinner size="lg" color="primary" />
         </div>
       }
     >

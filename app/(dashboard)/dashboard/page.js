@@ -11,6 +11,7 @@ import {
 } from "@/components/dashboard";
 import BuddyWidget from "@/components/buddy/BuddyWidget";
 import ProfileStrengthWidget from "@/components/dashboard/widgets/ProfileStrengthWidget";
+import GlobalSpinner from "@/components/ui/GlobalSpinner";
 import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
@@ -69,7 +70,7 @@ export default function HomeDashboard() {
             {/* Main Content - Property Grid */}
             <main className="lg:col-span-9 min-w-0">
               {/* Mobile/Tablet Filter Pills */}
-              <div className="sticky top-0 z-[140] bg-navy-50/95 backdrop-blur-md pt-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 lg:relative lg:top-0 lg:bg-transparent lg:backdrop-blur-none lg:pt-0">
+              <div className="sticky top-0 bg-navy-50/95 pt-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 lg:relative lg:top-0 lg:bg-transparent lg:pt-0">
                 <FilterPills onOpenFilters={() => setIsFilterModalOpen(true)} />
               </div>
 
@@ -107,7 +108,7 @@ export default function HomeDashboard() {
               {/* Infinite Scroll Loader */}
               {hasMore && (
                 <div ref={loadMoreRef} className="h-24 flex items-center justify-center">
-                  <div className="w-8 h-8 border-4 border-navy-200 border-t-terracotta-500 rounded-full animate-spin" />
+                  <GlobalSpinner size="md" color="primary" />
                 </div>
               )}
             </main>

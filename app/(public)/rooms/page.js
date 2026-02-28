@@ -13,6 +13,7 @@ import FilterBar from "@/components/public/FilterBar";
 // UI Components
 import { PropertyGrid, ErrorState } from "@/components/dashboard";
 import { MdRefresh } from "react-icons/md";
+import GlobalSpinner from "@/components/ui/GlobalSpinner";
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -48,6 +49,8 @@ export default function RoomsPage() {
     
     if (key === 'priceRange') {
         updateFilters({ minPrice: value.min, maxPrice: value.max });
+    } else if (key === 'propertyTypes') {
+        updateFilters({ propertyTypes: value, propertyType: value.length === 1 ? value[0] : 'any' });
     } else {
         updateFilters({ [key]: value });
     }
@@ -142,7 +145,7 @@ export default function RoomsPage() {
 
         {hasMore && (
            <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
-             {loading && <div className="w-8 h-8 border-4 border-slate-200 border-t-terracotta-500 rounded-full animate-spin"></div>}
+             {loading && <GlobalSpinner size="md" color="primary" />}
            </div>
         )}
       </main>

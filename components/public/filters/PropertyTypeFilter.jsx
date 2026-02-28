@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { MdCheck, MdOutlineClose } from 'react-icons/md';
 import { PROPERTY_CATEGORIES } from '@/data/listingOptions';
 
-export default function PropertyTypeFilter({ value, onChange }) {
+export default function PropertyTypeFilter({ values = [], onChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
   const OPTIONS = PROPERTY_CATEGORIES.map((category) => ({
@@ -23,26 +23,29 @@ export default function PropertyTypeFilter({ value, onChange }) {
   }, []);
 
   const handleSelect = (id) => {
-      // Toggle logic if we want multi-select, but let's stick to single select for now as per previous implementation 
-      // OR switch to multi-select? Proposal said "Dropdown with simple checkboxes or pill selection".
-      // Let's allow multi-select for better UX? "Apartment OR House" is common. 
-      // BUT backend implementation might need adjustment. Previous was 'any' or single string.
-      // Let's stick to single select + 'any' for now to match current backend capabilities safely, 
-      // or implement multi specific logic.
-      // Let's stick to single select based on "Private Room, Studio, Apartment, House" proposal.
+      if (id === 'any') {
+          onChange([]);
+          setIsOpen(false);
+          return;
+      }
       
-      const newVal = value === id ? 'any' : id;
-      onChange(newVal);
-      setIsOpen(false);
+      const newValues = values.includes(id) 
+        ? values.filter(v => v !== id)
+        : [...values, id];
+        
+      onChange(newValues);
   };
 
   const getLabel = () => {
-     if (!value || value === 'any') return 'Any type';
-     const opt = OPTIONS.find(o => o.id === value);
-     return opt ? opt.label : 'Any type';
+     if (!values || values.length === 0) return 'Any type';
+     if (values.length === 1) {
+         const opt = OPTIONS.find(o => o.id === values[0]);
+         return opt ? opt.label : 'Any type';
+     }
+     return `${values.length} Types`;
   };
 
-  const isActive = value && value !== 'any';
+  const isActive = values && values.length > 0;
 
   return (
     <div ref={containerRef} className="relative group">
@@ -69,22 +72,22 @@ export default function PropertyTypeFilter({ value, onChange }) {
              <button
                onClick={() => handleSelect('any')}
                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between transition-colors ${
-                  !value || value === 'any' ? 'bg-slate-50 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
+                  !values || values.length === 0 ? 'bg-slate-50 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
                }`}
              >
                 Any Type
-                {(!value || value === 'any') && <MdCheck className="text-terracotta-600" />}
+                {(!values || values.length === 0) && <MdCheck className="text-terracotta-600" />}
              </button>
              {OPTIONS.map((opt) => (
                 <button
                   key={opt.id}
                   onClick={() => handleSelect(opt.id)}
                   className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between transition-colors ${
-                     value === opt.id ? 'bg-slate-50 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
+                     values.includes(opt.id) ? 'bg-slate-50 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                    {opt.label}
-                   {value === opt.id && <MdCheck className="text-cyan-600" />}
+                   {values.includes(opt.id) && <MdCheck className="text-cyan-600" />}
                 </button>
              ))}
           </div>

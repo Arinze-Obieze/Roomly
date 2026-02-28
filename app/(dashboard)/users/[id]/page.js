@@ -7,6 +7,7 @@ import { createClient } from '@/core/utils/supabase/client';
 import { MdPerson, MdLocationOn, MdCalendarToday, MdArrowBack, MdCheckCircle } from 'react-icons/md';
 import { ListingCard } from '@/components/dashboard/ui/ListingCard';
 import toast from 'react-hot-toast';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export default function HostProfilePage() {
   const params = useParams();
@@ -104,7 +105,7 @@ export default function HostProfilePage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-navy-50 flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-navy-200 border-t-terracotta-500 rounded-full animate-spin" />
+        <GlobalSpinner size="md" color="primary" />
       </div>
     );
   }

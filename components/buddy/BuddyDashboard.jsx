@@ -223,7 +223,7 @@ export default function BuddyDashboard({ group }) {
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-navy-900 to-navy-950 rounded-[2.5rem] shadow-xl p-8 mb-8 text-white">
+      <div className="relative overflow-hidden bg-linear-to-br from-navy-900 to-navy-950 rounded-[2.5rem] shadow-xl p-8 mb-8 text-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-terracotta-500/20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-navy-700/30 rounded-full blur-2xl transform -translate-x-1/4 translate-y-1/4"></div>
         
@@ -245,7 +245,7 @@ export default function BuddyDashboard({ group }) {
                             {m.user.profile_picture ? (
                                 <img src={m.user.profile_picture} className="w-full h-full object-cover" />
                             ) : (
-                                <div className="w-full h-full flex items-center justify-center font-bold text-white text-xs bg-gradient-to-br from-terracotta-500 to-terracotta-600">
+                                <div className="w-full h-full flex items-center justify-center font-bold text-white text-xs bg-linear-to-br from-terracotta-500 to-terracotta-600">
                                     {m.user.full_name[0]}
                                 </div>
                             )}
@@ -289,7 +289,7 @@ export default function BuddyDashboard({ group }) {
         <div className="lg:hidden col-span-1 bg-white rounded-2xl border border-navy-100 p-2 mb-4 overflow-x-auto flex gap-2 no-scrollbar shadow-sm">
              <button 
                 onClick={() => setActiveTab('chat')}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
+                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
                     activeTab === 'chat' ? 'bg-navy-900 text-white shadow-md' : 'text-navy-600 hover:bg-navy-50'
                 }`}
             >
@@ -298,7 +298,7 @@ export default function BuddyDashboard({ group }) {
             </button>
             <button 
                 onClick={() => setActiveTab('properties')}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
+                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
                     activeTab === 'properties' ? 'bg-navy-900 text-white shadow-md' : 'text-navy-600 hover:bg-navy-50'
                 }`}
             >
@@ -307,7 +307,7 @@ export default function BuddyDashboard({ group }) {
             </button>
             <button 
                 onClick={() => setActiveTab('members')}
-                className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
+                className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
                     activeTab === 'members' ? 'bg-navy-900 text-white shadow-md' : 'text-navy-600 hover:bg-navy-50'
                 }`}
             >
@@ -317,7 +317,7 @@ export default function BuddyDashboard({ group }) {
             {isAdmin && (
               <button 
                   onClick={() => setActiveTab('settings')}
-                  className={`flex-shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
+                  className={`shrink-0 flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-sm transition-all whitespace-nowrap ${
                       activeTab === 'settings' ? 'bg-navy-900 text-white shadow-md' : 'text-navy-600 hover:bg-navy-50'
                   }`}
               >
@@ -329,7 +329,7 @@ export default function BuddyDashboard({ group }) {
 
         {/* Desktop Sidebar / Tabs */}
         <div className="hidden lg:block lg:col-span-1 space-y-6">
-            <div className="bg-white rounded-[2rem] border border-navy-100 p-3 shadow-sm">
+            <div className="bg-white rounded-[4xl border border-navy-100 p-3 shadow-sm">
                 <button 
                     onClick={() => setActiveTab('chat')}
                     className={`w-full flex items-center gap-3 px-5 py-4 rounded-3xl font-bold transition-all ${
@@ -379,7 +379,7 @@ export default function BuddyDashboard({ group }) {
             </div>
 
             {/* Members List (Sidebar Summary) */}
-             <div className="bg-white rounded-[2rem] border border-navy-100 p-6 shadow-sm">
+             <div className="bg-white rounded-4xl border border-navy-100 p-6 shadow-sm">
                 <h3 className="font-heading font-bold text-navy-900 mb-4 flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-terracotta-500"></span>
                     Members
@@ -414,14 +414,14 @@ export default function BuddyDashboard({ group }) {
         {/* Main Content */}
         <div className="lg:col-span-2">
              {activeTab === 'chat' && (
-                <div className="bg-white rounded-[2rem] border border-navy-100 shadow-sm overflow-hidden">
+                <div className="bg-white rounded-4xl border border-navy-100 shadow-sm overflow-hidden">
                     <GroupChat groupId={group.id} />
                 </div>
              )}
              
              {activeTab === 'properties' && (
                 sharedProperties.length > 0 ? (
-                    <div className="bg-white rounded-[2rem] border border-navy-100 p-6 min-h-[500px]">
+                    <div className="bg-white rounded-4xl border border-navy-100 p-6 min-h-[500px]">
                         <h3 className="font-heading font-bold text-navy-900 mb-6 text-xl">Shared Properties</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                             {sharedProperties.map((prop, i) => (
@@ -430,7 +430,7 @@ export default function BuddyDashboard({ group }) {
                                     href={`/rooms/${prop.id}`}
                                     className="block group border border-navy-100 rounded-3xl overflow-hidden hover:shadow-xl hover:shadow-navy-900/5 transition-all bg-white"
                                 >
-                                    <div className="aspect-[4/3] bg-navy-50 relative overflow-hidden">
+                                    <div className="aspect-4/3 bg-navy-50 relative overflow-hidden">
                                         <img src={prop.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                         <div className="absolute top-3 left-3 bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-bold shadow-sm flex items-center gap-1">
                                             <span className="w-1.5 h-1.5 rounded-full bg-terracotta-500"></span>
@@ -455,7 +455,7 @@ export default function BuddyDashboard({ group }) {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-[2rem] border border-navy-100 p-12 text-center h-[500px] flex flex-col items-center justify-center">
+                    <div className="bg-white rounded-4xl border border-navy-100 p-12 text-center h-[500px] flex flex-col items-center justify-center">
                         <div className="w-24 h-24 bg-navy-50 rounded-full flex items-center justify-center mb-6">
                             <MdHomeWork className="text-navy-200 text-5xl" />
                         </div>
@@ -468,7 +468,7 @@ export default function BuddyDashboard({ group }) {
              )}
 
              {activeTab === 'members' && (
-                  <div className="bg-white rounded-[2rem] border border-navy-100 p-8">
+                  <div className="bg-white rounded-4xl border border-navy-100 p-8">
                     <h3 className="font-heading font-bold text-navy-900 mb-8 text-xl">Manage Members</h3>
                     <div className="space-y-4">
                         {members.map(m => (
@@ -514,7 +514,7 @@ export default function BuddyDashboard({ group }) {
              )}
 
              {activeTab === 'settings' && isAdmin && (
-                  <div className="bg-white rounded-[2rem] border border-navy-100 p-8">
+                  <div className="bg-white rounded-4xl border border-navy-100 p-8">
                     <h3 className="font-heading font-bold text-navy-900 mb-2 text-xl">Group Settings</h3>
                     <p className="text-sm text-navy-500 mb-8">Update your group name.</p>
                     <div className="max-w-xl space-y-4">

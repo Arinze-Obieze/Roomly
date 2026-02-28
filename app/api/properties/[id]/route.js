@@ -40,7 +40,7 @@ const normalizeMediaPath = (value) => {
 export async function GET(request, { params }) {
   try {
     const supabase = await createClient();
-    const { id } = params;
+    const { id } = await params;
 
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || 'anon';
@@ -158,7 +158,7 @@ async function fetchPropertyFromDB(supabase, id, user) {
 export async function PUT(request, { params }) {
   try {
     const supabase = await createClient();
-    const { id } = params;
+    const { id } = await params;
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -409,7 +409,7 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const supabase = await createClient();
-    const { id } = params;
+    const { id } = await params;
 
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {

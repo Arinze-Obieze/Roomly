@@ -88,11 +88,14 @@ export default function LandlordSection() {
                             <div className="text-xs font-bold text-slate-400 uppercase mb-3">Incoming Messages Preview</div>
                             <div className="space-y-2">
                                 {[
-                                    { name: "John D.", match: "91% Match 🎯", badgeClass: "bg-emerald-100 text-emerald-700" },
-                                    { name: "Sarah M.", match: "85% Match ✅", badgeClass: "bg-emerald-50 text-emerald-600" }
+                                    { name: "John D.", match: "91% Match 🎯", badgeClass: "bg-emerald-100 text-emerald-700", avatar: "https://randomuser.me/api/portraits/men/32.jpg" },
+                                    { name: "Sarah M.", match: "85% Match ✅", badgeClass: "bg-emerald-50 text-emerald-600", avatar: "https://randomuser.me/api/portraits/women/44.jpg" }
                                 ].map((msg, i) => (
                                     <div key={i} className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm border border-slate-100">
-                                        <span className="font-bold text-navy-900 text-sm">{msg.name}</span>
+                                        <div className="flex items-center gap-3">
+                                            <img src={msg.avatar} alt={msg.name} className="w-8 h-8 rounded-lg object-cover bg-slate-100" />
+                                            <span className="font-bold text-navy-900 text-sm">{msg.name}</span>
+                                        </div>
                                         <span className={`${msg.badgeClass} text-xs font-bold px-2 py-1 rounded-full`}>{msg.match}</span>
                                     </div>
                                 ))}

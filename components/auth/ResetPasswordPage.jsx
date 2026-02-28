@@ -9,6 +9,7 @@ import SubmitButton from '../forms/SubmitButton';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/core/hooks/useAuth';
 import AuthHeader from '../layout/AuthHeader';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -109,7 +110,7 @@ export default function ResetPasswordPage() {
   if (!isRecoveryMode) {
     return (
       <div className="w-full max-w-md mx-auto lg:mx-0 flex items-center justify-center min-h-[400px]">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-cyan-500 rounded-full animate-spin"></div>
+        <GlobalSpinner size="lg" color="primary" />
       </div>
     );
   }

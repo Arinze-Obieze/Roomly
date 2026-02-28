@@ -36,6 +36,7 @@ export default function VibeMatchCard({ property }) {
         setLoading(false);
         return;
       }
+      await supabase.auth.getSession();
       const { data } = await supabase
         .from('user_lifestyles')
         .select('*')

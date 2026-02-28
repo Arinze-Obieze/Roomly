@@ -6,6 +6,7 @@ import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdSave, MdCameraAlt, MdCheckCircle } from 'react-icons/md';
 import { createClient } from '@/core/utils/supabase/client';
 import toast from 'react-hot-toast';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export default function ProfileForm({ onCancel }) {
   const { user, updateProfile } = useAuthContext();
@@ -251,7 +252,7 @@ export default function ProfileForm({ onCancel }) {
           className="flex items-center gap-2 px-6 py-2 bg-terracotta-500 text-white rounded-xl text-sm font-heading font-medium hover:bg-terracotta-600 disabled:opacity-50 transition-all shadow-lg shadow-terracotta-500/20"
         >
           {loading ? (
-            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <GlobalSpinner size="sm" color="white" />
           ) : saveSuccess ? (
             <>
               <MdCheckCircle className="text-white" />

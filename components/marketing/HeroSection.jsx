@@ -60,10 +60,12 @@ export default function HeroSection() {
                 <div className="flex-1 w-full max-w-lg lg:max-w-none relative animate-in fade-in slide-in-from-bottom-8 duration-1000 delay-200">
                     <div className="relative z-10 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden transform lg:rotate-2 hover:rotate-0 transition-transform duration-500">
                         {/* Fake Listing Header */}
-                        <div className="h-48 bg-slate-200 relative mb-4">
-                            <div className="absolute inset-0 flex items-center justify-center text-slate-400 font-medium bg-slate-100">
-                                [Room Image Placeholder]
-                            </div>
+                        <div className="h-48 bg-slate-200 relative mb-4 overflow-hidden">
+                            <img 
+                                src="/images/rooms/room.jpeg" 
+                                alt="Room in Dublin 2" 
+                                className="w-full h-full object-cover absolute inset-0"
+                            />
                             <div className="absolute bottom-4 left-4">
                                 <span className="bg-navy-950 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">
                                     private room

@@ -6,6 +6,7 @@ import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdSend, MdMoreVert, MdArrowBack, MdCheckCircle, MdDoneAll } from 'react-icons/md';
 import { format } from 'date-fns';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export const ChatWindow = () => {
     const { 
@@ -227,7 +228,7 @@ export const ChatWindow = () => {
                                 className="absolute right-2 bottom-2 p-2 bg-terracotta-500 text-white rounded-xl hover:bg-terracotta-600 disabled:opacity-50 disabled:hover:bg-terracotta-500 transition-all shadow-lg shadow-terracotta-500/20"
                             >
                                 {sending ? (
-                                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                                    <GlobalSpinner size="sm" color="white" />
                                 ) : (
                                     <MdSend size={18} />
                                 )}

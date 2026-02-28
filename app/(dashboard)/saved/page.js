@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { ListingCard } from '@/components/dashboard/ui/ListingCard';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { useRouter } from 'next/navigation';
 import { MdFavoriteBorder, MdFavorite, MdHome } from 'react-icons/md';
 
@@ -16,7 +17,7 @@ export default function SavedPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    if (authLoading) return;
+    if (authLoading) return; // Still waiting for auth — spinner shown by the check below
     if (!user) {
       router.push('/login');
       return;
@@ -97,13 +98,13 @@ export default function SavedPage() {
     };
 
     fetchSaved();
-  }, [user, authLoading, router]);
+  }, [user, authLoading]);
 
   if (loading || authLoading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="relative">
-          <div className="w-12 h-12 border-4 border-navy-200 border-t-terracotta-500 rounded-full animate-spin" />
+          <GlobalSpinner size="lg" color="primary" />
           <motion.div 
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}

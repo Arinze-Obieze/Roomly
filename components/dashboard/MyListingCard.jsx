@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { MdEdit, MdDelete, MdLocationOn, MdOutlineBed, MdBathtub, MdShare, MdFavorite, MdFavoriteBorder } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import { useSavedProperties } from '@/core/contexts/SavedPropertiesContext';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export default function MyListingCard({ property, onEdit, onDelete }) {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -99,7 +100,7 @@ export default function MyListingCard({ property, onEdit, onDelete }) {
             title="Delete Listing"
           >
             {isDeleting ? (
-              <div className="w-4 h-4 border-2 border-red-200 border-t-red-500 rounded-full animate-spin" />
+              <GlobalSpinner size="sm" color="primary" />
             ) : (
               <MdDelete size={18} />
             )}

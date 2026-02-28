@@ -11,6 +11,7 @@ import ProfileForm from '@/components/profile/ProfileForm';
 import LifestyleWizard from '@/components/profile/LifestyleWizard';
 import MatchPreferencesForm from '@/components/profile/MatchPreferencesForm';
 import { MdPerson, MdStyle, MdTune, MdCheckCircle } from 'react-icons/md';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export default function ProfilePage() {
   const { user, loading } = useAuthContext();
@@ -66,7 +67,7 @@ export default function ProfilePage() {
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-navy-200 border-t-terracotta-500 rounded-full animate-spin" />
+        <GlobalSpinner size="md" color="primary" />
       </div>
     );
   }

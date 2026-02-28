@@ -86,7 +86,7 @@ const DropdownMenu = ({ isOpen, onItemClick, onLogout }) => (
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-lg border border-[#BCCCDC] py-1 overflow-hidden z-[260]"
+      className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-lg border border-[#BCCCDC] py-1 overflow-hidden z-[300]"
     >
       {DROPDOWN_MENU_ITEMS.map((item, index) => (
         <div key={item.label}>
@@ -303,7 +303,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
       </header>
 
       {/* Mobile Header */}
-      <header className={`lg:hidden sticky top-0 z-[220] bg-white/80 backdrop-blur-md border-b border-[#BCCCDC] transition-shadow ${isScrolled ? 'shadow-sm' : ''}`}>
+      <header className={`lg:hidden sticky top-0 z-[200] bg-white/80 backdrop-blur-md border-b border-[#BCCCDC] transition-shadow ${isScrolled ? 'shadow-sm' : ''}`}>
         <div className="px-4 py-3 flex items-center justify-between">
           <Logo />
           
@@ -326,7 +326,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
                     onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                   />
                   {isNotificationsOpen && (
-                    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#BCCCDC] overflow-hidden z-60 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-[#BCCCDC] overflow-hidden z-[300] animate-in fade-in zoom-in-95 duration-200">
                       <NotificationList onClose={() => setIsNotificationsOpen(false)} />
                     </div>
                   )}

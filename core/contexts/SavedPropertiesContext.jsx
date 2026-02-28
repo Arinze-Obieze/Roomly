@@ -3,7 +3,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from './AuthContext';
-import { toast } from 'sonner';
+import toast from 'react-hot-toast';
 
 const SavedPropertiesContext = createContext(null);
 

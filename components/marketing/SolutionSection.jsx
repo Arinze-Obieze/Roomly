@@ -32,7 +32,7 @@ export default function SolutionSection() {
                                 <h3 className="text-2xl font-bold">Sarah M., 26</h3>
                                 <p className="text-slate-300">Room in Dublin 4 • €850/month</p>
                             </div>
-                            <div className="w-16 h-16 rounded-full bg-slate-700 border-2 border-white"></div>
+                            <img src="https://randomuser.me/api/portraits/women/44.jpg" alt="Sarah M." className="w-16 h-16 rounded-2xl object-cover border-2 border-white shadow-sm" />
                         </div>
                         
                         <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10 flex items-center justify-between">

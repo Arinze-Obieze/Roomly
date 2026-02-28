@@ -7,6 +7,7 @@ import { useAuthContext } from '@/core/contexts/AuthContext';
 import PostCard from './PostCard';
 import CreatePostModal from './CreatePostModal';
 import toast from 'react-hot-toast';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 const FILTERS = [
   { value: 'all', label: 'All Posts' },
@@ -201,7 +202,7 @@ export default function CommunityFeed() {
             animate={{ opacity: 1 }}
             className="flex justify-center py-8"
           >
-            <div className="w-8 h-8 border-2 border-navy-200 border-t-terracotta-500 rounded-full animate-spin"></div>
+            <GlobalSpinner size="lg" color="primary" />
           </motion.div>
         )}
 

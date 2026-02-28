@@ -23,7 +23,7 @@ export default function FilterBar({ filters = {}, onFilterChange, className = ''
   };
 
   const handleTypeChange = (val) => {
-      onFilterChange('propertyType', val);
+      onFilterChange('propertyTypes', val);
   };
 
   return (
@@ -44,7 +44,7 @@ export default function FilterBar({ filters = {}, onFilterChange, className = ''
           {/* Property Type */}
           <div className="w-full md:w-auto md:border-l-0 border-t md:border-t-0 border-slate-100">
              <PropertyTypeFilter 
-               value={filters.propertyType} 
+               values={filters.propertyTypes?.length > 0 ? filters.propertyTypes : (filters.propertyType && filters.propertyType !== 'any' ? [filters.propertyType] : [])} 
                onChange={handleTypeChange} 
              />
           </div>

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { MdPeopleAlt, MdRefresh, MdHomeWork, MdLocationOn } from 'react-icons/md';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import toast from 'react-hot-toast';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export default function FindPeoplePage() {
   const router = useRouter();
@@ -88,7 +89,7 @@ export default function FindPeoplePage() {
   if (loading || !user) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin" />
+        <GlobalSpinner size="md" color="slate" />
       </div>
     );
   }

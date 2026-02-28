@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { createClient } from '@/core/utils/supabase/client';
+import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { MdLocationOn, MdCheckCircle } from 'react-icons/md';
 import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
@@ -170,7 +171,7 @@ export default function PropertyDetailsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-         <div className="w-8 h-8 border-4 border-slate-200 border-t-terracotta-500 rounded-full animate-spin"></div>
+         <GlobalSpinner size="md" color="primary" />
       </div>
     );
   }
