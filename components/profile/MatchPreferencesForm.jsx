@@ -51,6 +51,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
   useEffect(() => {
     if (initialData) {
       setFormData(prev => ({ ...prev, ...initialData }));
+      setMode('view');
     }
   }, [initialData]);
 
@@ -111,13 +112,13 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                  <div>
                     <div className="flex items-center gap-2 mb-4">
                        <MdLocationOn className="text-terracotta-600 text-xl" />
-                       <h3 className="font-bold text-slate-800">Location & Timing</h3>
+                       <h3 className="font-bold text-navy-900">Location & Timing</h3>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy-50 p-4 rounded-xl border border-navy-100">
                        {/* Location Multi-Select */}
                        <div>
-                         <label className="block text-sm font-semibold mb-2 text-slate-700">Where do you want to live?</label>
+                         <label className="block text-sm font-semibold mb-2 text-navy-700">Where do you want to live?</label>
                          <div className="relative">
                             <select 
                               onChange={(e) => {
@@ -127,7 +128,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                                 }
                                 e.target.value = ''; // Reset
                               }}
-                              className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:border-terracotta-500 focus:outline-none"
+                              className="w-full p-2.5 rounded-xl border border-navy-200 bg-white text-sm focus:border-terracotta-500 focus:outline-none"
                             >
                               <option value="">Add a city/town...</option>
                               {CITIES_TOWNS.map(city => (
@@ -151,13 +152,13 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
 
                        {/* Move In Window */}
                        <div>
-                         <label className="block text-sm font-semibold mb-2 text-slate-700">When do you want to move?</label>
+                         <label className="block text-sm font-semibold mb-2 text-navy-700">When do you want to move?</label>
                          <div className="space-y-2">
                             {MOVE_IN_OPTIONS.map((opt) => (
                               <label key={opt.value} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
                                  formData.move_in_window === opt.value 
                                    ? 'border-terracotta-500 bg-terracotta-50 ring-1 ring-terracotta-500' 
-                                   : 'border-slate-200 hover:border-slate-300'
+                                   : 'border-navy-200 hover:border-navy-300'
                               }`}>
                                  <input 
                                     type="radio" 
@@ -167,45 +168,45 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                                     onChange={(e) => handleChange('move_in_window', e.target.value)}
                                     className="text-terracotta-600 focus:ring-terracotta-500"
                                  />
-                                 <span className="text-sm font-medium text-slate-700">{opt.label}</span>
+                                 <span className="text-sm font-medium text-navy-700">{opt.label}</span>
                               </label>
                             ))}
                          </div>
                        </div>
                     </div>
-                    <div className="h-px bg-slate-100 my-6" />
+                    <div className="h-px bg-navy-100 my-6" />
                  </div>
                )}
 
                {/* Budget - Always Shown */}
                <div>
-                  <label className=" text-sm font-semibold mb-3 text-slate-700 flex items-center gap-2">
+                  <label className=" text-sm font-semibold mb-3 text-navy-700 flex items-center gap-2">
                     <MdAttachMoney /> Budget Range (Monthly)
                   </label>
-                  <div className="bg-slate-50 p-6 rounded-xl border border-slate-100">
+                  <div className="bg-navy-50 p-6 rounded-xl border border-navy-100">
                     <div className="flex items-center gap-4">
                        <div className="flex-1">
-                         <label className="text-xs text-slate-500 mb-1 block">Min Price</label>
+                         <label className="text-xs text-navy-500 mb-1 block">Min Price</label>
                          <div className="relative">
-                           <span className="absolute left-3 top-2.5 text-slate-400 text-sm">€</span>
+                           <span className="absolute left-3 top-2.5 text-navy-400 text-sm">€</span>
                            <input 
                              type="number"
                              value={formData.budget_min}
                              onChange={(e) => handleChange('budget_min', e.target.value)}
-                             className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:border-terracotta-500 focus:outline-none"
+                             className="w-full pl-7 pr-3 py-2 border border-navy-200 rounded-xl text-sm focus:border-terracotta-500 focus:outline-none"
                            />
                          </div>
                        </div>
-                       <div className="text-slate-300 font-light text-2xl">-</div>
+                       <div className="text-navy-300 font-light text-2xl">-</div>
                        <div className="flex-1">
-                         <label className="text-xs text-slate-500 mb-1 block">Max Price</label>
+                         <label className="text-xs text-navy-500 mb-1 block">Max Price</label>
                           <div className="relative">
-                           <span className="absolute left-3 top-2.5 text-slate-400 text-sm">€</span>
+                           <span className="absolute left-3 top-2.5 text-navy-400 text-sm">€</span>
                            <input 
                              type="number"
                              value={formData.budget_max}
                              onChange={(e) => handleChange('budget_max', e.target.value)}
-                             className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:border-terracotta-500 focus:outline-none"
+                             className="w-full pl-7 pr-3 py-2 border border-navy-200 rounded-xl text-sm focus:border-terracotta-500 focus:outline-none"
                            />
                          </div>
                        </div>
@@ -224,7 +225,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
               </div>
 
               <div>
-                <label className="block text-sm font-semibold mb-3 text-slate-700">Preferred Occupations</label>
+                <label className="block text-sm font-semibold mb-3 text-navy-700">Preferred Occupations</label>
                 <div className="flex flex-wrap gap-2">
                   {OCCUPATION_OPTIONS.map(occ => (
                     <button
@@ -234,7 +235,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                       className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
                         (formData.occupation_preference || []).includes(occ)
                           ? 'bg-navy-900 text-white border-navy-900 shadow-md transform scale-105'
-                          : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                          : 'bg-white border-navy-200 text-navy-600 hover:bg-navy-50'
                       }`}
                     >
                       {occ}
@@ -245,36 +246,36 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  <div>
-                   <label className="block text-sm font-semibold mb-3 text-slate-700">Age Range</label>
-                   <div className="flex items-center gap-3 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                   <label className="block text-sm font-heading font-semibold mb-3 text-navy-700">Age Range</label>
+                   <div className="flex items-center gap-3 bg-navy-50 p-3 rounded-2xl border border-navy-100">
                      <input 
                        type="number" 
                        value={formData.age_min}
                        onChange={(e) => handleChange('age_min', parseInt(e.target.value))}
-                       className="w-16 p-2 border border-slate-200 rounded-lg text-center text-sm focus:border-terracotta-500 focus:outline-none"
+                       className="w-16 p-2 border border-navy-200 rounded-xl text-center text-sm focus:border-terracotta-500 focus:outline-none"
                      />
-                     <span className="text-slate-400 text-sm">to</span>
+                     <span className="text-navy-400 text-sm">to</span>
                      <input 
                        type="number" 
                        value={formData.age_max}
                        onChange={(e) => handleChange('age_max', parseInt(e.target.value))}
-                       className="w-16 p-2 border border-slate-200 rounded-lg text-center text-sm focus:border-terracotta-500 focus:outline-none"
+                       className="w-16 p-2 border border-navy-200 rounded-xl text-center text-sm focus:border-terracotta-500 focus:outline-none"
                      />
                    </div>
                  </div>
 
                  <div>
-                   <label className="block text-sm font-semibold mb-3 text-slate-700">Gender Preference</label>
+                   <label className="block text-sm font-heading font-semibold mb-3 text-navy-700">Gender Preference</label>
                    <div className="flex flex-wrap gap-2">
                      {['any', 'male', 'female'].map((opt) => (
                        <button
                          key={opt}
                          type="button"
                          onClick={() => handleChange('gender_preference', opt)}
-                         className={`px-3 py-2 rounded-lg text-sm font-medium transition-all ${
+                         className={`px-4 py-2 rounded-xl text-sm font-heading font-medium transition-all ${
                            formData.gender_preference === opt
-                             ? 'bg-slate-800 text-white'
-                             : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                             ? 'bg-navy-900 text-white shadow-sm'
+                             : 'bg-navy-50 text-navy-600 hover:bg-navy-100 border border-navy-200'
                          }`}
                        >
                          {opt === 'any' ? 'Any' : opt.charAt(0).toUpperCase() + opt.slice(1)}
@@ -291,29 +292,29 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
              <div className="space-y-6 animate-fadeIn">
                 <div className="space-y-6">
                     <div>
-                       <label className="block text-sm font-semibold mb-2 text-slate-700">Smoking</label>
+                       <label className="block text-sm font-semibold mb-2 text-navy-700">Smoking</label>
                        <div className="space-y-2">
                          {[
                            { val: 'no', label: 'Non-smoker' },
                            { val: 'outside', label: 'Outside smoker' },
                            { val: 'inside', label: 'Inside smoker' }
                          ].map((opt) => (
-                           <label key={opt.val} className="flex items-center gap-2.5 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer transition-colors">
+                           <label key={opt.val} className="flex items-center gap-2.5 p-3 border border-navy-200 rounded-xl hover:bg-navy-50 cursor-pointer transition-colors">
                              <input 
                                type="checkbox"
                                checked={(formData.accepted_smoking || []).includes(opt.val)}
                                onChange={() => handleCheckboxGroup('accepted_smoking', opt.val)}
                                className="rounded text-terracotta-600 focus:ring-terracotta-600 w-4 h-4"
                              />
-                             <span className="text-sm font-medium text-slate-700">{opt.label}</span>
+                             <span className="text-sm font-medium text-navy-700">{opt.label}</span>
                            </label>
                          ))}
                        </div>
                     </div>
 
                     <div>
-                       <label className="block text-sm font-semibold mb-2 text-slate-700">Pets</label>
-                       <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                       <label className="block text-sm font-semibold mb-2 text-navy-700">Pets</label>
+                       <div className="p-4 bg-navy-50 rounded-xl border border-navy-100">
                           <label className="flex items-center gap-3 cursor-pointer">
                             <input 
                               type="checkbox"
@@ -322,8 +323,8 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                               className="rounded text-terracotta-600 focus:ring-terracotta-600 h-5 w-5"
                             />
                             <div>
-                               <div className="font-medium text-sm text-slate-900">I accept pets</div>
-                               <div className="text-xs text-slate-500">Only check if you are okay living with animals</div>
+                               <div className="font-medium text-sm text-navy-950">I accept pets</div>
+                               <div className="text-xs text-navy-500">Only check if you are okay living with animals</div>
                             </div>
                           </label>
                        </div>
@@ -336,20 +337,20 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
   };
 
   const renderSummaryCard = () => (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 animate-fadeIn">
+    <div className="bg-white rounded-3xl border border-navy-100 p-6 animate-fadeIn">
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-terracotta-50 text-terracotta-600 rounded-lg">
+          <div className="p-2.5 bg-terracotta-50 text-terracotta-600 rounded-xl">
              <MdFilterList className="text-xl" />
           </div>
           <div>
-            <h2 className="text-lg font-bold text-slate-900">Your Roommate Preferences</h2>
-            <p className="text-slate-500 text-sm">We use this to find your best matches.</p>
+            <h2 className="text-lg font-heading font-bold text-navy-950">Your Roommate Preferences</h2>
+            <p className="text-navy-500 text-sm">We use this to find your best matches.</p>
           </div>
         </div>
         <button 
           onClick={() => setMode('edit')}
-          className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-navy-50 hover:bg-navy-100 text-navy-700 rounded-xl text-sm font-heading font-medium transition-colors border border-navy-200"
         >
           <MdEdit /> Edit Preferences
         </button>
@@ -358,11 +359,11 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
 
         {/* Card 1: Budget & Location */}
-        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">
+        <div className="p-4 bg-navy-50 rounded-2xl border border-navy-100">
+           <h3 className="text-xs font-heading font-bold text-navy-400 uppercase tracking-wider mb-2">
               {userRole === 'seeker' ? 'Budget & Location' : 'Budget'}
            </h3>
-           <div className="text-xl font-bold text-slate-900 mb-1">
+           <div className="text-xl font-heading font-bold text-navy-950 mb-1">
              €{formData.budget_min} - €{formData.budget_max}
            </div>
            
@@ -370,51 +371,51 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
              <div className="mt-3 flex flex-wrap gap-1">
                {(formData.location_areas || []).length > 0 ? (
                   (formData.location_areas || []).slice(0, 3).map(loc => (
-                    <span key={loc} className="text-xs px-2 py-1 bg-white border border-slate-200 rounded-md text-slate-600">
+                    <span key={loc} className="text-xs px-2.5 py-1 bg-white border border-navy-200 rounded-full text-navy-600">
                       {loc}
                     </span>
                   ))
-               ) : <span className="text-xs text-slate-400">Any Location</span>}
-               {(formData.location_areas || []).length > 3 && <span className="text-xs text-slate-400">+{(formData.location_areas || []).length - 3} more</span>}
+               ) : <span className="text-xs text-navy-400">Any Location</span>}
+               {(formData.location_areas || []).length > 3 && <span className="text-xs text-navy-400">+{(formData.location_areas || []).length - 3} more</span>}
              </div>
            )}
         </div>
 
         {/* Card 2: Demographics & Move-in */}
-        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Requirements</h3>
+        <div className="p-4 bg-navy-50 rounded-2xl border border-navy-100">
+           <h3 className="text-xs font-heading font-bold text-navy-400 uppercase tracking-wider mb-2">Requirements</h3>
            <div className="space-y-2">
              {userRole === 'seeker' && (
-               <div className="flex items-center gap-2 text-sm text-slate-700">
-                 <MdCalendarToday className="text-slate-400" />
+               <div className="flex items-center gap-2 text-sm text-navy-700">
+                 <MdCalendarToday className="text-navy-400" />
                  <span className="capitalize">{formData.move_in_window?.replace('-', ' ') || 'Flexible'}</span>
                </div>
              )}
-             <div className="flex items-center gap-2 text-sm text-slate-700">
-               <MdWork className="text-slate-400" />
+             <div className="flex items-center gap-2 text-sm text-navy-700">
+               <MdWork className="text-navy-400" />
                <span>
                   {(formData.occupation_preference || []).length > 0 
                     ? (formData.occupation_preference || []).join(', ') 
                     : 'Any Occupation'}
                </span>
              </div>
-             <div className="text-sm text-slate-600">
+             <div className="text-sm text-navy-600">
                {formData.age_min}-{formData.age_max} yrs • {formData.gender_preference === 'any' ? 'Any Gender' : formData.gender_preference}
              </div>
            </div>
         </div>
 
         {/* Card 3: Dealbreakers */}
-        <div className="p-4 bg-slate-50 rounded-lg border border-slate-100">
-           <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Filters</h3>
+        <div className="p-4 bg-navy-50 rounded-2xl border border-navy-100">
+           <h3 className="text-xs font-bold text-navy-400 uppercase tracking-wider mb-2">Filters</h3>
            <ul className="space-y-1.5 text-sm">
-             <li className="flex items-center gap-2 text-slate-700">
+             <li className="flex items-center gap-2 text-navy-700">
                {formData.accepted_pets ? <MdCheck className="text-green-500" /> : <span className="text-red-400">✕</span>}
                <span>Pets: {formData.accepted_pets ? 'Accepted' : 'Not preferred'}</span>
              </li>
-             <li className="flex items-center gap-2 text-slate-700">
+             <li className="flex items-center gap-2 text-navy-700">
                 <span className="font-medium">Smoking:</span>
-                <span className="text-slate-600">
+                <span className="text-navy-600">
                    {(formData.accepted_smoking || []).length > 0 
                      ? (formData.accepted_smoking || []).join(', ') 
                      : 'None'}
@@ -431,14 +432,14 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-navy-200 overflow-hidden">
         {/* Progress Header */}
-        <div className="bg-slate-50 border-b border-slate-100 p-5">
+        <div className="bg-navy-50 border-b border-navy-100 p-5">
            <div className="flex justify-between items-center mb-3">
              <h2 className="text-lg font-bold">{STEPS[currentStep].title}</h2>
-             <span className="text-xs font-medium text-slate-500">Step {currentStep + 1} of {STEPS.length}</span>
+             <span className="text-xs font-medium text-navy-500">Step {currentStep + 1} of {STEPS.length}</span>
            </div>
-           <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+           <div className="h-1.5 bg-navy-200 rounded-full overflow-hidden">
              <div 
                className="h-full bg-terracotta-500 transition-all duration-500 ease-out"
                style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
@@ -452,13 +453,13 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
         </div>
 
         {/* Footer */}
-        <div className="p-5 border-t border-slate-100 flex justify-between bg-white">
+        <div className="p-5 border-t border-navy-100 flex justify-between bg-white">
            <button
              onClick={() => {
                 if(currentStep === 0) setMode('view'); // Cancel if on step 1
                 else setCurrentStep(c => c - 1);
              }}
-             className="px-4 py-2 rounded-xl font-medium text-slate-600 hover:bg-slate-50 transition-colors text-sm"
+             className="px-4 py-2 rounded-xl font-medium text-navy-600 hover:bg-navy-50 transition-colors text-sm"
            >
              {currentStep === 0 ? 'Cancel' : 'Back'}
            </button>

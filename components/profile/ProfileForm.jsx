@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdSave, MdCameraAlt, MdCheckCircle } from 'react-icons/md';
@@ -21,6 +21,21 @@ export default function ProfileForm({ onCancel }) {
     date_of_birth: user?.date_of_birth || '',
     privacy_setting: user?.privacy_setting || 'public',
   });
+
+  // Re-populate form when the full user profile loads from AuthContext.
+  // On client navigation, the context provides auth-only data first, then fetches
+  // the full profile (full_name, bio, etc.) asynchronously — so we must sync.
+  useEffect(() => {
+    if (!user) return;
+    setFormData({
+      full_name: user.full_name || '',
+      phone_number: user.phone_number || '',
+      bio: user.bio || '',
+      date_of_birth: user.date_of_birth || '',
+      privacy_setting: user.privacy_setting || 'public',
+    });
+  }, [user?.full_name, user?.phone_number, user?.bio, user?.date_of_birth, user?.privacy_setting]);
+
 
   const handleChange = (e) => {
     const { name, value } = e.target;

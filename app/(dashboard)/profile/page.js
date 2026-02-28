@@ -10,7 +10,8 @@ import ProfileView from '@/components/profile/ProfileView';
 import ProfileForm from '@/components/profile/ProfileForm';
 import LifestyleWizard from '@/components/profile/LifestyleWizard';
 import MatchPreferencesForm from '@/components/profile/MatchPreferencesForm';
-import { MdPerson, MdStyle, MdTune, MdCheckCircle } from 'react-icons/md';
+import SettingsPanel from '@/components/profile/SettingsPanel';
+import { MdPerson, MdStyle, MdTune, MdCheckCircle, MdSettings } from 'react-icons/md';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export default function ProfilePage() {
@@ -26,30 +27,39 @@ export default function ProfilePage() {
 
   const supabase = createClient();
 
+  // Redirect if not authenticated
   useEffect(() => {
     if (!loading && !user) {
       router.push('/login');
-      return;
     }
+  }, [loading, user, router]);
 
-    if (user) {
-      const fetchData = async () => {
-        setFetchingData(true);
+  // Fetch lifestyle + preferences data whenever user changes
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const fetchData = async () => {
+      setFetchingData(true);
+      try {
         const [lifestyleRes, prefsRes] = await Promise.all([
           supabase.from('user_lifestyles').select('*').eq('user_id', user.id).single(),
           supabase.from('match_preferences').select('*').eq('user_id', user.id).single()
         ]);
-        
         setData({
-          lifestyle: lifestyleRes.data,
-          preferences: prefsRes.data
+          lifestyle: lifestyleRes.data ?? null,
+          preferences: prefsRes.data ?? null
         });
+      } catch (err) {
+        console.error('[profile] fetchData error:', err);
+      } finally {
         setFetchingData(false);
-      };
-      
-      fetchData();
-    }
-  }, [user, loading, router]);
+      }
+    };
+
+    fetchData();
+  // Re-run only when actual user ID changes (stable across re-renders)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   const refreshData = async () => {
       if (!user) return;
@@ -90,6 +100,12 @@ export default function ProfilePage() {
       label: 'Ideal Roommate', 
       icon: MdTune,
       completed: !!data.preferences
+    },
+    {
+      id: 'settings',
+      label: 'Settings',
+      icon: MdSettings,
+      completed: false
     }
   ];
 
@@ -162,20 +178,40 @@ export default function ProfilePage() {
           )}
 
           {activeTab === 'lifestyle' && (
-            <LifestyleWizard 
-              user={user} 
-              initialData={data.lifestyle} 
-              onComplete={refreshData}
-            />
+            fetchingData ? (
+              <div className="space-y-4 animate-pulse">
+                <div className="h-8 bg-navy-100 rounded-2xl w-1/3" />
+                <div className="h-40 bg-navy-50 rounded-3xl border border-navy-100" />
+                <div className="h-24 bg-navy-50 rounded-3xl border border-navy-100" />
+              </div>
+            ) : (
+              <LifestyleWizard 
+                user={user} 
+                initialData={data.lifestyle} 
+                onComplete={refreshData}
+              />
+            )
           )}
 
           {activeTab === 'preferences' && (
-            <MatchPreferencesForm 
-              user={user} 
-              initialData={data.preferences} 
-              role={data.lifestyle?.primary_role}
-              onComplete={refreshData}
-            />
+            fetchingData ? (
+              <div className="space-y-4 animate-pulse">
+                <div className="h-8 bg-navy-100 rounded-2xl w-1/3" />
+                <div className="h-40 bg-navy-50 rounded-3xl border border-navy-100" />
+                <div className="h-24 bg-navy-50 rounded-3xl border border-navy-100" />
+              </div>
+            ) : (
+              <MatchPreferencesForm 
+                user={user} 
+                initialData={data.preferences} 
+                role={data.lifestyle?.primary_role}
+                onComplete={refreshData}
+              />
+            )
+          )}
+
+          {activeTab === 'settings' && (
+            <SettingsPanel />
           )}
         </motion.div>
       </AnimatePresence>

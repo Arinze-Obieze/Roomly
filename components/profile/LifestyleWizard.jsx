@@ -121,15 +121,15 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
   };
 
   const renderSummaryCard = () => (
-    <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm animate-fadeIn">
+    <div className="bg-white rounded-3xl border border-navy-100 p-6 shadow-sm animate-fadeIn">
       <div className="flex justify-between items-start mb-6">
         <div>
-          <h2 className="text-xl font-bold text-slate-900">Your Lifestyle Profile</h2>
-          <p className="text-slate-500 text-sm">This is how you appear to potential rentmates.</p>
+          <h2 className="text-xl font-heading font-bold text-navy-950">Your Lifestyle Profile</h2>
+          <p className="text-navy-400 text-sm">This is how you appear to potential rentmates.</p>
         </div>
         <button 
           onClick={() => setMode('edit')}
-          className="flex items-center gap-2 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-sm font-medium transition-colors"
+          className="flex items-center gap-2 px-4 py-2 bg-navy-50 hover:bg-navy-100 text-navy-700 rounded-xl text-sm font-heading font-medium transition-colors border border-navy-200"
         >
           <MdEdit /> Edit Profile
         </button>
@@ -138,51 +138,51 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Key Stats */}
         <div className="space-y-4">
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
-             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Daily Rhythm</h3>
+          <div className="bg-navy-50 rounded-2xl p-4 border border-navy-100">
+             <h3 className="text-xs font-heading font-bold text-navy-400 uppercase tracking-wider mb-3">Daily Rhythm</h3>
              <ul className="space-y-2 text-sm">
                <li className="flex items-center gap-2">
                  <span className="text-lg">📅</span>
-                 <span className="font-medium text-slate-700 capitalize">{formData.schedule_type} Schedule</span>
+                 <span className="font-medium text-navy-700 capitalize">{formData.schedule_type} Schedule</span>
                </li>
                <li className="flex items-center gap-2">
                  <span className="text-lg">🚬</span>
-                 <span className="font-medium text-slate-700 capitalize">
+                 <span className="font-medium text-navy-700 capitalize">
                    {formData.smoking_status === 'no' ? 'Non-smoker' : formData.smoking_status === 'outside' ? 'Outdoor Smoker' : 'Indoor Smoker'}
                  </span>
                </li>
                <li className="flex items-center gap-2">
                  <span className="text-lg">🥂</span>
-                 <span className="font-medium text-slate-700 capitalize">{formData.drinking_habits} Drinker</span>
+                 <span className="font-medium text-navy-700 capitalize">{formData.drinking_habits} Drinker</span>
                </li>
                {formData.cannabis_friendly && (
                  <li className="flex items-center gap-2">
                    <span className="text-lg text-green-600"><FaCannabis /></span>
-                   <span className="font-medium text-slate-700">Cannabis Friendly</span>
+                   <span className="font-medium text-navy-700">Cannabis Friendly</span>
                  </li>
                )}
              </ul>
           </div>
 
-          <div className="bg-slate-50 rounded-lg p-4 border border-slate-100">
-             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Logistics</h3>
+          <div className="bg-navy-50 rounded-2xl p-4 border border-navy-100">
+             <h3 className="text-xs font-heading font-bold text-navy-400 uppercase tracking-wider mb-3">Logistics</h3>
              <ul className="space-y-2 text-sm">
                <li className="flex items-center gap-2">
                  <span className="text-lg">🛌</span>
-                 <span className="font-medium text-slate-700">Guests: <span className="capitalize">{formData.overnight_guests}</span></span>
+                 <span className="font-medium text-navy-700">Guests: <span className="capitalize">{formData.overnight_guests}</span></span>
                </li>
                <li className="flex items-center gap-2">
                  <span className="text-lg">🥗</span>
-                 <span className="font-medium text-slate-700 capitalize">{formData.dietary_preference}</span>
+                 <span className="font-medium text-navy-700 capitalize">{formData.dietary_preference}</span>
                </li>
                <li className="flex items-center gap-2">
                  <span className="text-lg">🐶</span>
-                 <span className="font-medium text-slate-700">
+                 <span className="font-medium text-navy-700">
                    {formData.pets.has_pets ? `Has Pets: ${formData.pets.description}` : 'No Pets'}
                  </span>
                </li>
                <li className="flex items-center gap-2">
-                 <span className="font-medium text-slate-700">
+                 <span className="font-medium text-navy-700">
                    Property: {(formData.preferred_property_types || []).map(pt => {
                      const cat = PROPERTY_CATEGORIES.find(c => c.value === pt);
                      return cat?.label || pt;
@@ -191,7 +191,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                </li>
                <li className="flex items-center gap-2">
                  <span className="text-lg">📅</span>
-                 <span className="font-medium text-slate-700">
+                 <span className="font-medium text-navy-700">
                    Stay Duration: {formData.min_stay} - {formData.max_stay} months
                  </span>
                </li>
@@ -209,10 +209,10 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
               ].map((stat) => (
                 <div key={stat.label}>
                   <div className="flex justify-between mb-1">
-                    <span className="font-medium flex items-center gap-2 text-slate-700 text-sm">{stat.icon} {stat.label}</span>
-                    <span className="text-slate-400 text-xs">{stat.val}/3</span>
+                    <span className="font-medium flex items-center gap-2 text-navy-700 text-sm">{stat.icon} {stat.label}</span>
+                    <span className="text-navy-400 text-xs">{stat.val}/3</span>
                   </div>
-                  <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-1.5 bg-navy-100 rounded-full overflow-hidden">
                     <div className="h-full bg-terracotta-500" style={{ width: `${(stat.val / 3) * 100}%` }} />
                   </div>
                 </div>
@@ -220,16 +220,16 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
            </div>
 
            <div>
-             <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">Interests</h3>
+             <h3 className="text-xs font-heading font-bold text-navy-400 uppercase tracking-wider mb-3">Interests</h3>
              <div className="flex flex-wrap gap-1.5">
                {formData.interests && formData.interests.length > 0 ? (
                  formData.interests.map(tag => (
-                   <span key={tag} className="px-2.5 py-1 bg-terracotta-50 text-terracotta-700 rounded-lg text-xs font-medium border border-terracotta-100">
+                   <span key={tag} className="px-2.5 py-1 bg-terracotta-50 text-terracotta-700 rounded-full text-xs font-medium border border-terracotta-100">
                      {tag}
                    </span>
                  ))
                ) : (
-                 <span className="text-slate-400 text-sm italic">No interests added yet</span>
+                 <span className="text-navy-400 text-sm italic">No interests added yet</span>
                )}
              </div>
            </div>
@@ -252,8 +252,8 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
         return (
           <div className="space-y-6 animate-fadeIn text-center py-4">
              <div className="mb-8">
-               <h3 className="text-xl font-bold text-slate-900">What brings you to RoomFind?</h3>
-               <p className="text-slate-500">Select your primary goal to help us personalize your experience.</p>
+               <h3 className="text-xl font-bold text-navy-950">What brings you to RoomFind?</h3>
+               <p className="text-navy-500">Select your primary goal to help us personalize your experience.</p>
              </div>
              
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -262,15 +262,15 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                   className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${
                     formData.primary_role === 'host'
                       ? 'border-terracotta-500 bg-terracotta-50 shadow-lg shadow-terracotta-100'
-                      : 'border-slate-200 hover:border-slate-300'
+                      : 'border-navy-200 hover:border-navy-300'
                   }`}
                 >
                   <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm">
                     🏠
                   </div>
                   <div>
-                    <div className="font-bold text-lg text-slate-800">I have a place</div>
-                    <div className="text-sm text-slate-500">I'm looking for a roommate</div>
+                    <div className="font-bold text-lg text-navy-900">I have a place</div>
+                    <div className="text-sm text-navy-500">I'm looking for a roommate</div>
                   </div>
                 </button>
 
@@ -279,15 +279,15 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                   className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${
                     formData.primary_role === 'seeker'
                       ? 'border-terracotta-500 bg-terracotta-50 shadow-lg shadow-terracotta-100'
-                      : 'border-slate-200 hover:border-slate-300'
+                      : 'border-navy-200 hover:border-navy-300'
                   }`}
                 >
                   <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center text-3xl shadow-sm">
                     🔍
                   </div>
                   <div>
-                    <div className="font-bold text-lg text-slate-800">I need a place</div>
-                    <div className="text-sm text-slate-500">I'm looking for a room</div>
+                    <div className="font-bold text-lg text-navy-900">I need a place</div>
+                    <div className="text-sm text-navy-500">I'm looking for a room</div>
                   </div>
                 </button>
              </div>
@@ -307,10 +307,10 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                     className={`p-3 rounded-xl border text-left transition-all text-sm ${
                       formData.schedule_type === type 
                         ? 'border-terracotta-500 bg-terracotta-50 ring-1 ring-terracotta-500' 
-                        : 'border-slate-200 hover:border-slate-300'
+                        : 'border-navy-200 hover:border-navy-300'
                     }`}
                   >
-                    <div className="font-medium capitalise text-slate-700">{type === 'wfh' ? 'Work From Home' : type.charAt(0).toUpperCase() + type.slice(1)}</div>
+                    <div className="font-heading font-medium capitalize text-navy-800">{type === 'wfh' ? 'Work From Home' : type.charAt(0).toUpperCase() + type.slice(1)}</div>
                   </button>
                 ))}
               </div>
@@ -330,8 +330,8 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                       onClick={() => handleChange('smoking_status', opt.val)}
                       className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-sm ${
                         formData.smoking_status === opt.val
-                          ? 'border-terracotta-500 bg-terracotta-50 ring-1 ring-terracotta-500 text-slate-800'
-                          : 'border-slate-200 hover:border-slate-300 text-slate-600'
+                          ? 'border-terracotta-500 bg-terracotta-50 ring-1 ring-terracotta-500 text-navy-900'
+                          : 'border-navy-200 hover:border-navy-300 text-navy-600'
                       }`}
                     >
                       <span className="text-lg">{opt.icon}</span>
@@ -347,22 +347,22 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                   <select 
                     value={formData.drinking_habits}
                     onChange={(e) => handleChange('drinking_habits', e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 focus:outline-none"
+                    className="w-full p-2.5 rounded-xl border border-navy-200 bg-white text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 focus:outline-none"
                   >
                     <option value="non-drinker">Not really a drinker</option>
                     <option value="social">Social drinker</option>
                     <option value="frequent">Regular drinker</option>
                   </select>
 
-                   <label className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${formData.cannabis_friendly ? 'bg-terracotta-50 border-terracotta-500' : 'border-slate-200 hover:bg-slate-50'}`}>
+                   <label className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${formData.cannabis_friendly ? 'bg-terracotta-50 border-terracotta-500' : 'border-navy-200 hover:bg-navy-50'}`}>
                     <input 
                       type="checkbox"
                       checked={formData.cannabis_friendly}
                       onChange={(e) => handleChange('cannabis_friendly', e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-terracotta-600 focus:ring-terracotta-500"
+                      className="w-4 h-4 rounded border-navy-300 text-terracotta-600 focus:ring-terracotta-500"
                     />
                     <FaCannabis className="text-terracotta-600 text-lg" />
-                    <span className="font-medium text-sm text-slate-700">Cannabis Friendly / User</span>
+                    <span className="font-heading font-medium text-sm text-navy-700">Cannabis Friendly / User</span>
                   </label>
                 </div>
               </div>
@@ -373,7 +373,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                  <select 
                     value={formData.dietary_preference}
                     onChange={(e) => handleChange('dietary_preference', e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 focus:outline-none"
+                    className="w-full p-2.5 rounded-xl border border-navy-200 bg-white text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 focus:outline-none"
                   >
                     <option value="omnivore">Everything / Omnivore</option>
                     <option value="vegetarian">Vegetarian</option>
@@ -385,7 +385,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
 
             <div>
               <label className="block text-base font-semibold mb-3">Preferred Property Types</label>
-              <p className="text-slate-500 text-sm mb-4">Select the type(s) of properties you prefer</p>
+              <p className="text-navy-500 text-sm mb-4">Select the type(s) of properties you prefer</p>
               <div className="grid grid-cols-2 gap-2">
                 {PROPERTY_CATEGORIES.map((prop) => (
                   <button
@@ -394,14 +394,14 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                     className={`p-3 rounded-xl border transition-all text-left flex flex-col items-start gap-2 ${
                       (formData.preferred_property_types || []).includes(prop.value)
                         ? 'border-navy-600 bg-navy-50 ring-1 ring-navy-300'
-                        : 'border-slate-200 hover:border-navy-300'
+                        : 'border-navy-200 hover:border-navy-300'
                     }`}
                   >
-                    <span className={`text-2xl ${(formData.preferred_property_types || []).includes(prop.value) ? 'text-navy-700' : 'text-slate-400'}`}>
+                    <span className={`text-2xl ${(formData.preferred_property_types || []).includes(prop.value) ? 'text-navy-700' : 'text-navy-400'}`}>
                       <prop.icon />
                     </span>
                     <div className="flex-1">
-                      <div className={`font-medium text-sm ${(formData.preferred_property_types || []).includes(prop.value) ? 'text-navy-900' : 'text-slate-700'}`}>
+                      <div className={`font-medium text-sm ${(formData.preferred_property_types || []).includes(prop.value) ? 'text-navy-900' : 'text-navy-700'}`}>
                         {prop.label}
                       </div>
                     </div>
@@ -488,31 +488,31 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
           <div className="space-y-6 animate-fadeIn">
             {/* Seeker Specific Fields */}
             {formData.primary_role === 'seeker' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy-50 p-4 rounded-xl border border-navy-100">
                  <div>
-                   <label className="block text-sm font-semibold mb-2 text-slate-700">Current City/Town</label>
+                   <label className="block text-sm font-semibold mb-2 text-navy-700">Current City/Town</label>
                    <div className="relative">
                       <select
                         value={formData.current_city || ''}
                         onChange={(e) => handleChange('current_city', e.target.value)}
-                        className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white appearance-none"
+                        className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white appearance-none"
                       >
                         <option value="">Select your city...</option>
                         {CITIES_TOWNS.map(city => (
                           <option key={city} value={city}>{city}</option>
                         ))}
                       </select>
-                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-slate-500">
+                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-navy-500">
                         <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
                       </div>
                    </div>
                  </div>
                  <div>
-                   <label className="block text-sm font-semibold mb-2 text-slate-700">Move-in Urgency</label>
+                   <label className="block text-sm font-semibold mb-2 text-navy-700">Move-in Urgency</label>
                    <select
                      value={formData.move_in_urgency || 'flexible'}
                      onChange={(e) => handleChange('move_in_urgency', e.target.value)}
-                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
+                     className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
                    >
                      <option value="immediately">Immediately</option>
                      <option value="1-month">Within 1 month</option>
@@ -533,7 +533,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                     className={`p-2.5 rounded-xl border transition-all text-center text-sm ${
                       formData.overnight_guests === freq
                         ? 'border-terracotta-600 bg-terracotta-600 text-white shadow-md'
-                        : 'border-slate-200 hover:border-slate-300'
+                        : 'border-navy-200 hover:border-navy-300'
                     }`}
                   >
                     {freq.charAt(0).toUpperCase() + freq.slice(1)}
@@ -543,13 +543,13 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
             </div>
 
             {/* Min and Max Stay */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy-50 p-4 rounded-xl border border-navy-100">
                <div>
-                  <label className="block text-sm font-semibold mb-2 text-slate-700">Minimum Stay (Months)</label>
+                  <label className="block text-sm font-semibold mb-2 text-navy-700">Minimum Stay (Months)</label>
                   <select
                      value={formData.min_stay || 6}
                      onChange={(e) => handleChange('min_stay', parseInt(e.target.value))}
-                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
+                     className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
                   >
                      <option value={1}>1 Month</option>
                      <option value={3}>3 Months</option>
@@ -560,11 +560,11 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                   </select>
                </div>
                <div>
-                  <label className="block text-sm font-semibold mb-2 text-slate-700">Maximum Stay (Months)</label>
+                  <label className="block text-sm font-semibold mb-2 text-navy-700">Maximum Stay (Months)</label>
                   <select
                      value={formData.max_stay || 12}
                      onChange={(e) => handleChange('max_stay', parseInt(e.target.value))}
-                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
+                     className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
                   >
                      <option value={3}>3 Months</option>
                      <option value={6}>6 Months</option>
@@ -576,8 +576,8 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                </div>
             </div>
 
-            <div className="p-5 bg-slate-50 rounded-xl border border-slate-100">
-               <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+            <div className="p-5 bg-navy-50 rounded-2xl border border-navy-100">
+               <h3 className="text-base font-heading font-semibold mb-3 flex items-center gap-2">
                  <MdPets /> Pets
                </h3>
                
@@ -587,9 +587,9 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                      type="checkbox"
                      checked={formData.pets.has_pets}
                      onChange={(e) => handleChange('pets', { ...formData.pets, has_pets: e.target.checked })}
-                     className="w-4 h-4 rounded border-slate-300 text-terracotta-600 focus:ring-terracotta-500"
+                     className="w-4 h-4 rounded border-navy-300 text-terracotta-600 focus:ring-terracotta-500"
                    />
-                   <span className="font-medium text-sm text-slate-700">I have pets</span>
+                   <span className="font-heading font-medium text-sm text-navy-700">I have pets</span>
                  </label>
 
                  {formData.pets.has_pets && (
@@ -597,21 +597,21 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                      value={formData.pets.description}
                      onChange={(e) => handleChange('pets', { ...formData.pets, description: e.target.value })}
                      placeholder="Tell us about your pet (e.g., 2 year old Golden Retriever, very friendly)"
-                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 focus:outline-none"
+                     className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 focus:outline-none"
                      rows={2}
                    />
                  )}
                  
-                 <div className="h-px bg-slate-200 my-2" />
+                 <div className="h-px bg-navy-200 my-2" />
                  
                  <label className="flex items-center gap-3 cursor-pointer">
                    <input 
                      type="checkbox"
                      checked={formData.pets.accepts_pets}
                      onChange={(e) => handleChange('pets', { ...formData.pets, accepts_pets: e.target.checked })}
-                     className="w-4 h-4 rounded border-slate-300 text-terracotta-600 focus:ring-terracotta-500"
+                     className="w-4 h-4 rounded border-navy-300 text-terracotta-600 focus:ring-terracotta-500"
                    />
-                   <span className="font-medium text-sm text-slate-700">I'm comfortable living with pets</span>
+                   <span className="font-medium text-sm text-navy-700">I'm comfortable living with pets</span>
                  </label>
                </div>
             </div>
@@ -623,17 +623,17 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
           <div className="space-y-6 animate-fadeIn">
             <div>
               <label className="block text-base font-semibold mb-1">Interests & Hobbies</label>
-              <p className="text-slate-500 text-sm mb-4">Select everything that you enjoy!</p>
+              <p className="text-navy-500 text-sm mb-4">Select everything that you enjoy!</p>
               
               <div className="flex flex-wrap gap-2">
                 {INTEREST_TAGS.map((tag) => (
                   <button
                     key={tag}
                     onClick={() => toggleInterest(tag)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all transform hover:scale-105 active:scale-95 ${
+                    className={`px-3 py-1.5 rounded-full text-sm font-heading font-medium transition-all transform hover:scale-105 active:scale-95 ${
                       (formData.interests || []).includes(tag)
                         ? 'bg-terracotta-600 text-white shadow-md'
-                        : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-400'
+                        : 'bg-white border border-navy-200 text-navy-600 hover:border-navy-400'
                     }`}
                   >
                     {tag}
@@ -660,14 +660,14 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
   }
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+    <div className="bg-white rounded-2xl border border-navy-200 overflow-hidden">
       {/* Progress Bar */}
-      <div className="bg-slate-50 border-b border-slate-100 p-5">
+      <div className="bg-navy-50 border-b border-navy-100 p-5">
         <div className="flex justify-between items-center mb-3">
           <h2 className="text-lg font-bold">{STEPS[currentStep].title}</h2>
-          <span className="text-xs font-medium text-slate-500">Step {currentStep + 1} of {STEPS.length}</span>
+          <span className="text-xs font-medium text-navy-500">Step {currentStep + 1} of {STEPS.length}</span>
         </div>
-        <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
+        <div className="h-1.5 bg-navy-200 rounded-full overflow-hidden">
           <div 
             className="h-full bg-terracotta-600 transition-all duration-500 ease-out"
             style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
@@ -681,14 +681,14 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
       </div>
 
       {/* Footer / Navigation */}
-      <div className="p-5 border-t border-slate-100 flex justify-between bg-white">
+      <div className="p-5 border-t border-navy-100 flex justify-between bg-white">
         <button
           onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
           disabled={currentStep === 0}
           className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors text-sm ${
             currentStep === 0 
-              ? 'text-slate-300 cursor-not-allowed' 
-              : 'text-slate-600 hover:bg-slate-50'
+              ? 'text-navy-300 cursor-not-allowed' 
+              : 'text-navy-600 hover:bg-navy-50'
           }`}
         >
           <MdArrowBack /> Back

@@ -12,9 +12,9 @@ export default function ProfileView() {
   const InfoItem = ({ icon: Icon, label, value }) => (
     <motion.div 
       whileHover={{ y: -2 }}
-      className="flex items-start gap-4 p-4 rounded-xl bg-navy-50 border border-navy-200 transition-all hover:shadow-md hover:shadow-navy-950/5"
+      className="flex items-start gap-4 p-4 rounded-2xl bg-navy-50 border border-navy-100 transition-all hover:shadow-md hover:shadow-navy-950/5"
     >
-      <div className="p-2 bg-white rounded-lg text-terracotta-600 shadow-sm border border-navy-100">
+      <div className="p-2 bg-white rounded-xl text-terracotta-600 shadow-sm border border-navy-100">
         <Icon size={20} />
       </div>
       <div>
@@ -83,7 +83,7 @@ export default function ProfileView() {
 
       <motion.div variants={item}>
         <h3 className="text-sm font-heading font-medium text-navy-500 uppercase tracking-wider mb-3">About Me</h3>
-        <div className="p-6 bg-navy-50 rounded-xl border border-navy-200 text-navy-700 leading-relaxed font-sans">
+        <div className="p-5 bg-navy-50 rounded-2xl border border-navy-100 text-navy-700 leading-relaxed font-sans">
           {user.bio ? (
             <p className="whitespace-pre-wrap">{user.bio}</p>
           ) : (
