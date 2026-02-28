@@ -30,6 +30,7 @@ export default function PostCard({ post, onVote, onDelete }) {
   const [currentVote, setCurrentVote] = useState(post.user_vote);
   const [score, setScore] = useState(post.score);
   const [isVoting, setIsVoting] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const categoryStyle = CATEGORY_STYLES[post.category] || CATEGORY_STYLES.general;
   const categoryLabel = CATEGORY_LABELS[post.category] || 'General';
@@ -65,6 +66,34 @@ export default function PostCard({ post, onVote, onDelete }) {
   };
 
   const isOwner = user?.id === post.user_id;
+
+  const handleShare = async () => {
+    const shareUrl = `${window.location.origin}/dashboard/community#post-${post.id}`;
+    const shareData = {
+      title: post.title,
+      text: `Check out this community post: "${post.title}" in ${post.city}`,
+      url: shareUrl,
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          toast.error('Could not share post');
+        }
+      }
+    } else {
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setShared(true);
+        toast.success('Link copied to clipboard!');
+        setTimeout(() => setShared(false), 2500);
+      } catch {
+        toast.error('Could not copy link');
+      }
+    }
+  };
 
   return (
     <motion.div 
@@ -189,10 +218,13 @@ export default function PostCard({ post, onVote, onDelete }) {
               <motion.button 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                className="flex items-center gap-1.5 text-navy-500 hover:text-terracotta-500 transition-colors text-sm font-heading font-medium"
+                onClick={handleShare}
+                className={`flex items-center gap-1.5 transition-colors text-sm font-heading font-medium ${
+                  shared ? 'text-teal-500' : 'text-navy-500 hover:text-terracotta-500'
+                }`}
               >
-                <MdShare size={18} />
-                <span className="hidden sm:inline">Share</span>
+                {shared ? <MdCheckCircle size={18} /> : <MdShare size={18} />}
+                <span className="hidden sm:inline">{shared ? 'Copied!' : 'Share'}</span>
               </motion.button>
             </div>
 

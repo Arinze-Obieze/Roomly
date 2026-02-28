@@ -1,6 +1,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export async function updateSession(request) {
   let supabaseResponse = NextResponse.next({
     request,
@@ -28,18 +30,50 @@ export async function updateSession(request) {
     }
   );
 
-  // IMPORTANT: Avoid writing any logic between createServerClient and
-  // supabase.auth.getUser(). A simple mistake could make it very hard to debug
-  // issues with users being randomly logged out.
+  // Retry getUser() up to 3 times on transient network failures.
+  // This prevents intermittent Supabase fetch timeouts from incorrectly
+  // redirecting authenticated users to /login.
+  const MAX_RETRIES = 3;
+  let user = null;
+  let networkError = false;
 
-  try {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      const { data } = await supabase.auth.getUser();
+      user = data.user;
+      networkError = false;
+      break;
+    } catch (error) {
+      const isNetworkErr =
+        error?.message?.includes('fetch failed') ||
+        error?.cause?.code === 'ECONNRESET' ||
+        error?.cause?.code === 'ENOTFOUND';
 
-    return { supabaseResponse, user };
-  } catch (error) {
-    console.error('[middleware] Failed to refresh Supabase session:', error?.message || error);
-    return { supabaseResponse, user: null };
+      console.error(
+        `[middleware] getUser attempt ${attempt}/${MAX_RETRIES} failed:`,
+        error?.message
+      );
+
+      if (isNetworkErr && attempt < MAX_RETRIES) {
+        // Exponential backoff: 200ms, 400ms
+        await sleep(200 * attempt);
+        networkError = true;
+        continue;
+      }
+
+      networkError = isNetworkErr;
+      break;
+    }
   }
+
+  // If Supabase was completely unreachable on all retries, pass through
+  // WITHOUT redirecting — avoids false logout of authenticated users.
+  if (networkError) {
+    console.warn(
+      '[middleware] Supabase unreachable after all retries — allowing request through.'
+    );
+    return { supabaseResponse, user: null, networkError: true };
+  }
+
+  return { supabaseResponse, user };
 }

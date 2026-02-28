@@ -6,7 +6,7 @@ export async function middleware(request) {
   const isApiRoute = pathname.startsWith('/api');
 
   // Get user session and refresh tokens
-  const { supabaseResponse, user } = await updateSession(request);
+  const { supabaseResponse, user, networkError } = await updateSession(request);
 
   // Define route types
   const isAuthPage = pathname === '/login' || pathname === '/signup' || 
@@ -25,7 +25,8 @@ export async function middleware(request) {
   }
 
   // Protect routes that require authentication
-  if (isProtectedRoute && !user) {
+  // Skip if the failure was a network error — don't redirect authenticated users on Supabase downtime
+  if (isProtectedRoute && !user && !networkError) {
     if (isApiRoute) {
       return NextResponse.json(
         { error: 'Unauthorized', redirectTo: '/login' },

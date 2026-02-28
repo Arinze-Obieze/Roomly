@@ -16,10 +16,11 @@ export default function HostProfilePage() {
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const supabase = createClient();
+
 
   useEffect(() => {
     const fetchHostData = async () => {
+      const supabase = createClient();
       try {
         const userId = params.id;
         
@@ -209,8 +210,8 @@ export default function HostProfilePage() {
                     <div className="text-xs font-sans text-navy-500">Listings</div>
                   </div>
                   <div className="text-center p-3 bg-navy-50 rounded-xl border border-navy-200">
-                    <div className="text-xl font-heading font-bold text-teal-600">100%</div>
-                    <div className="text-xs font-sans text-navy-500">Response</div>
+                    <div className="text-xl font-heading font-bold text-teal-600">{listings.length > 0 ? 'Active' : '—'}</div>
+                    <div className="text-xs font-sans text-navy-500">Status</div>
                   </div>
                 </div>
               </div>

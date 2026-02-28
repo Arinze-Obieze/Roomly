@@ -61,10 +61,11 @@ export default function PropertyDetailsPage() {
     }
   };
 
-  const supabase = createClient();
+
 
   useEffect(() => {
     const fetchProperty = async () => {
+      const supabase = createClient();
       try {
         const { data, error } = await supabase
           .from('properties')
@@ -108,7 +109,7 @@ export default function PropertyDetailsPage() {
                 }
                 return {
                     url,
-                    type: m.media_type || 'image', // Default to image
+                    type: m.media_type || 'image',
                     id: m.id
                 };
             }) || [];
@@ -170,7 +171,7 @@ export default function PropertyDetailsPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+      <div className="min-h-screen bg-navy-50 flex items-center justify-center">
          <GlobalSpinner size="md" color="primary" />
       </div>
     );
@@ -178,7 +179,7 @@ export default function PropertyDetailsPage() {
 
   if (!property) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+      <div className="min-h-screen bg-navy-50 flex flex-col items-center justify-center p-4">
         <h2 className="text-xl font-bold text-navy-950 mb-2">Property Not Found</h2>
         <button onClick={() => router.back()} className="text-terracotta-600 font-medium hover:underline">
           Go back
@@ -188,7 +189,7 @@ export default function PropertyDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-navy-50 pb-20">
        <PropertyHeader 
          title={property.title}
          onBack={() => router.back()}
@@ -206,15 +207,15 @@ export default function PropertyDetailsPage() {
                 <div>
                    <div className="flex justify-between items-start mb-4">
                      <div>
-                       <h2 className="text-2xl font-bold text-slate-900 mb-2">{property.title}</h2>
-                       <div className="flex items-center gap-2 text-slate-500">
+                       <h2 className="text-2xl font-bold text-navy-950 mb-2">{property.title}</h2>
+                       <div className="flex items-center gap-2 text-navy-500">
                          <MdLocationOn className="text-terracotta-600 text-lg" />
                          <span>{property.city}, {property.state}</span>
                        </div>
                      </div>
                      <div className="text-right">
                        <div className="text-2xl font-bold text-terracotta-600">€{property.price_per_month}</div>
-                       <div className="text-slate-500 text-sm">per month</div>
+                       <div className="text-navy-500 text-sm">per month</div>
                      </div>
                    </div>
 
@@ -240,45 +241,45 @@ export default function PropertyDetailsPage() {
 
                 {/* Rental Details & Preferences */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="bg-slate-50 p-4 rounded-xl">
+                    <div className="bg-navy-50 p-4 rounded-xl border border-navy-100">
                         <h4 className="font-bold text-navy-950 mb-2">Rental Details</h4>
                         <dl className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <dt className="text-slate-500">Deposit</dt>
-                                <dd className="font-medium text-slate-900">€{property.deposit || '0'}</dd>
+                                <dt className="text-navy-500">Deposit</dt>
+                                <dd className="font-medium text-navy-950">€{property.deposit || '0'}</dd>
                             </div>
                             <div className="flex justify-between">
-                                <dt className="text-slate-500">Rental Type</dt>
-                                <dd className="font-medium text-slate-900 capitalize">{(property.rental_type || 'monthly').replaceAll('_', ' ')}</dd>
+                                <dt className="text-navy-500">Rental Type</dt>
+                                <dd className="font-medium text-navy-950 capitalize">{(property.rental_type || 'monthly').replaceAll('_', ' ')}</dd>
                             </div>
                             <div className="flex justify-between">
-                                <dt className="text-slate-500">Bills</dt>
-                                <dd className="font-medium text-slate-900 capitalize">{property.bills_option}</dd>
+                                <dt className="text-navy-500">Bills</dt>
+                                <dd className="font-medium text-navy-950 capitalize">{property.bills_option}</dd>
                             </div>
                              <div className="flex justify-between">
-                                <dt className="text-slate-500">Minimum Stay</dt>
-                                <dd className="font-medium text-slate-900">{property.min_stay_months} months</dd>
+                                <dt className="text-navy-500">Minimum Stay</dt>
+                                <dd className="font-medium text-navy-950">{property.min_stay_months} months</dd>
                             </div>
                         </dl>
                     </div>
-                    <div className="bg-slate-50 p-4 rounded-xl">
+                    <div className="bg-navy-50 p-4 rounded-xl border border-navy-100">
                         <h4 className="font-bold text-navy-950 mb-2">Household Preferences</h4>
                         <dl className="space-y-2 text-sm">
                             <div className="flex justify-between">
-                                <dt className="text-slate-500">Gender</dt>
-                                <dd className="font-medium text-slate-900 capitalize">{property.gender_preference}</dd>
+                                <dt className="text-navy-500">Gender</dt>
+                                <dd className="font-medium text-navy-950 capitalize">{property.gender_preference}</dd>
                             </div>
                              <div className="flex justify-between">
-                                <dt className="text-slate-500">Occupation</dt>
-                                <dd className="font-medium text-slate-900 capitalize">{property.occupation_preference}</dd>
+                                <dt className="text-navy-500">Occupation</dt>
+                                <dd className="font-medium text-navy-950 capitalize">{property.occupation_preference}</dd>
                             </div>
                             <div className="flex justify-between">
-                                <dt className="text-slate-500">Age Range</dt>
-                                <dd className="font-medium text-slate-900">{property.age_min} - {property.age_max}</dd>
+                                <dt className="text-navy-500">Age Range</dt>
+                                <dd className="font-medium text-navy-950">{property.age_min} - {property.age_max}</dd>
                             </div>
                              <div className="flex justify-between">
-                                <dt className="text-slate-500">Couples</dt>
-                                <dd className="font-medium text-slate-900">{property.couples_allowed ? 'Allowed' : 'Not Allowed'}</dd>
+                                <dt className="text-navy-500">Couples</dt>
+                                <dd className="font-medium text-navy-950">{property.couples_allowed ? 'Allowed' : 'Not Allowed'}</dd>
                             </div>
                         </dl>
                     </div>
@@ -288,7 +289,7 @@ export default function PropertyDetailsPage() {
                    <h3 className="text-lg font-bold text-navy-950 mb-4">Amenities</h3>
                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                      {property.amenities && property.amenities.map((am, i) => (
-                       <div key={i} className="flex items-center gap-3 p-3 bg-slate-50 rounded-xl text-sm font-medium text-slate-700">
+                       <div key={i} className="flex items-center gap-3 p-3 bg-navy-50 rounded-xl border border-navy-100 text-sm font-medium text-navy-700">
                          <MdCheckCircle className="text-terracotta-500" />
                          <span className="capitalize">{am.label || am}</span>
                        </div>

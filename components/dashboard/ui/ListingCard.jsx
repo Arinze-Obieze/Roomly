@@ -89,9 +89,16 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
             return;
         }
 
+        // Fetch CSRF token — required by the buddy messages API
+        const csrfRes = await fetch('/api/csrf-token');
+        const { csrfToken } = await csrfRes.json();
+
         const res = await fetch('/api/buddy/messages', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'x-csrf-token': csrfToken,
+            },
             body: JSON.stringify({
                 groupId: member.group_id,
                 content: `Check out this room: ${data.title}`,
@@ -110,7 +117,8 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
             toast.success('Shared to group chat!');
             router.push('/dashboard/buddy');
         } else {
-            throw new Error('Failed to share');
+            const payload = await res.json();
+            throw new Error(payload.error || 'Failed to share');
         }
 
     } catch (error) {
