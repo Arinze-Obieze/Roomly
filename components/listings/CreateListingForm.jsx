@@ -114,6 +114,7 @@ export default function CreateListingForm({ onClose, initialData = null }) {
       is_immediate: false,
       min_stay_months: 6,
       accept_viewings: true,
+      is_public: true,
     };
   });
 

@@ -1,4 +1,4 @@
-import { MdCalendarToday, MdOutlineEventAvailable, MdVideoCameraBack } from 'react-icons/md';
+import { MdCalendarToday, MdOutlineEventAvailable, MdVideoCameraBack, MdLock, MdPublic } from 'react-icons/md';
 import InputField from '../InputField';
 
 export default function AvailabilityForm({ formData, handleChange, handleFileChange, removeFile }) {
@@ -83,7 +83,7 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
         {formData.videos && formData.videos.length > 0 && (
              <div className="mt-4 space-y-2">
                 {formData.videos.map((vid, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-navy-50 rounded-lg border border-navy-200">
+                    <div key={idx} className="flex items-center justify-between p-3 bg-navy-50 rounded-xl border border-navy-200">
                         <div className="flex items-center gap-3">
                             <MdVideoCameraBack className="text-navy-400" />
                             <span className="text-sm font-heading font-medium text-navy-700 truncate max-w-[200px]">
@@ -102,24 +102,58 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
         )}
       </div>
 
-      {/* Private Viewings Toggle */}
-      <div className="p-4 rounded-xl bg-navy-50 border border-navy-200 flex items-center justify-between">
-            <div>
-                <div className="font-heading font-bold text-navy-950">
-                  Accept Private Viewings? <span className="text-xs font-sans font-medium text-navy-500">(Optional)</span>
-                </div>
-                <div className="text-xs text-navy-500 font-sans">Allow users to request specific viewing slots</div>
+      {/* Toggles */}
+      <div className="space-y-3">
+
+        {/* Private Viewings Toggle */}
+        <div className="p-4 rounded-xl bg-navy-50 border border-navy-200 flex items-center justify-between">
+              <div>
+                  <div className="font-heading font-bold text-navy-950">
+                    Accept Private Viewings? <span className="text-xs font-sans font-medium text-navy-500">(Optional)</span>
+                  </div>
+                  <div className="text-xs text-navy-500 font-sans">Allow users to request specific viewing slots</div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                  <input 
+                      type="checkbox" 
+                      className="sr-only peer"
+                      checked={formData.accept_viewings}
+                      onChange={(e) => handleChange('accept_viewings', e.target.checked)}
+                  />
+                  <div className="w-11 h-6 bg-navy-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-navy-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-navy-950"></div>
+              </label>
+        </div>
+
+        {/* Visibility Toggle */}
+        <div className="p-4 rounded-xl border-2 flex items-center justify-between transition-all border-navy-200 bg-navy-50">
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-xl transition-colors ${formData.is_public !== false ? 'bg-teal-50 text-teal-600' : 'bg-terracotta-50 text-terracotta-500'}`}>
+              {formData.is_public !== false ? <MdPublic size={20} /> : <MdLock size={20} />}
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-                <input 
-                    type="checkbox" 
-                    className="sr-only peer"
-                    checked={formData.accept_viewings}
-                    onChange={(e) => handleChange('accept_viewings', e.target.checked)}
-                />
-                <div className="w-11 h-6 bg-navy-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-navy-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-navy-950"></div>
-            </label>
-       </div>
+            <div>
+              <div className="font-heading font-bold text-navy-950">
+                {formData.is_public !== false ? 'Public Listing' : 'Private Listing'}
+                <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
+              </div>
+              <div className="text-xs text-navy-500 font-sans">
+                {formData.is_public !== false
+                  ? 'Visible to everyone in search results'
+                  : 'Only accessible via direct link — hidden from search'}
+              </div>
+            </div>
+          </div>
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              className="sr-only peer"
+              checked={formData.is_public !== false}
+              onChange={(e) => handleChange('is_public', e.target.checked)}
+            />
+            <div className="w-11 h-6 bg-navy-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-navy-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-500"></div>
+          </label>
+        </div>
+
+      </div>
 
     </div>
   );

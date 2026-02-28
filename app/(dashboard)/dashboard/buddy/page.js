@@ -11,7 +11,7 @@ import { useRouter } from 'next/navigation';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export default function BuddyPage() {
-  const { user } = useAuthContext();
+  const { user, loading: authLoading } = useAuthContext();
   const [group, setGroup] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -19,10 +19,14 @@ export default function BuddyPage() {
   const supabase = createClient();
 
   useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+      return;
+    }
     if (user) {
       fetchGroup();
     }
-  }, [user]);
+  }, [user, authLoading, router]);
 
   const fetchGroup = async () => {
     try {
@@ -58,7 +62,7 @@ export default function BuddyPage() {
     setGroup(newGroup);
   };
 
-  if (loading) {
+  if (loading || authLoading) {
     return (
         <div className="flex items-center justify-center min-h-[60vh]">
             <GlobalSpinner size="md" color="slate" />

@@ -67,8 +67,11 @@ export default function MyPropertiesPage() {
   };
 
   useEffect(() => {
-    fetchProperties();
-  }, [user]);
+    if (loading) return;
+    if (user) {
+      fetchProperties();
+    }
+  }, [user, loading]);
 
   const handleDelete = (deletedId) => {
     setProperties(prev => prev.filter(p => p.id !== deletedId));

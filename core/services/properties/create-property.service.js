@@ -214,6 +214,7 @@ export async function handleCreateProperty(req) {
       accept_viewings: readBool(form, 'accept_viewings'),
       listed_by_user_id: user.id,
       is_active: true,
+      is_public: form.get('is_public') !== null ? readBool(form, 'is_public') : true,
       status: 'available',
     };
 

@@ -35,13 +35,15 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
     gender_preference: 'any',
     accepted_smoking: [],
     accepted_pets: false,
+    cleanliness_tolerance: null,   // seeker: what cleanliness standard they need
+    guests_tolerance: null,         // seeker: how often host brings guests is ok
     ...initialData
   });
 
   const STEPS = [
     { id: 'logistics', title: 'Start with the Basics' },
     { id: 'demographics', title: 'Who are they?' },
-    { id: 'habits', title: 'Lifestyle & Habits' }
+    { id: 'habits', title: userRole === 'seeker' ? 'Your Dealbreakers' : 'Lifestyle & Habits' }
   ];
 
   useEffect(() => {
@@ -112,7 +114,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                  <div>
                     <div className="flex items-center gap-2 mb-4">
                        <MdLocationOn className="text-terracotta-600 text-xl" />
-                       <h3 className="font-bold text-navy-900">Location & Timing</h3>
+                       <h3 className="font-heading font-bold text-navy-900">Preferred Locations</h3>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy-50 p-4 rounded-xl border border-navy-100">
@@ -287,19 +289,28 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
             </div>
           );
 
-        case 2: // Habits
+         case 2: // Habits / Dealbreakers
           return (
              <div className="space-y-6 animate-fadeIn">
+                {/* Context note for seekers */}
+                {userRole === 'seeker' && (
+                  <div className="p-3 bg-terracotta-50 rounded-2xl border border-terracotta-100">
+                    <p className="text-xs text-terracotta-700 font-medium">These are your dealbreakers — we'll filter out hosts/spaces that don't match.</p>
+                  </div>
+                )}
+
                 <div className="space-y-6">
                     <div>
-                       <label className="block text-sm font-semibold mb-2 text-navy-700">Smoking</label>
+                       <label className="block text-sm font-heading font-semibold mb-2 text-navy-700">
+                         {userRole === 'seeker' ? 'Smoking — what can you live with?' : 'Smoking'}
+                       </label>
                        <div className="space-y-2">
                          {[
-                           { val: 'no', label: 'Non-smoker' },
-                           { val: 'outside', label: 'Outside smoker' },
-                           { val: 'inside', label: 'Inside smoker' }
+                           { val: 'no', label: userRole === 'seeker' ? 'Non-smoker only' : 'Non-smoker' },
+                           { val: 'outside', label: 'Outside smoking is fine' },
+                           { val: 'inside', label: 'Indoor smoking is fine' }
                          ].map((opt) => (
-                           <label key={opt.val} className="flex items-center gap-2.5 p-3 border border-navy-200 rounded-xl hover:bg-navy-50 cursor-pointer transition-colors">
+                           <label key={opt.val} className="flex items-center gap-2.5 p-3 border border-navy-200 rounded-2xl hover:bg-navy-50 cursor-pointer transition-colors">
                              <input 
                                type="checkbox"
                                checked={(formData.accepted_smoking || []).includes(opt.val)}
@@ -312,9 +323,67 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                        </div>
                     </div>
 
+                    {/* Seeker: Cleanliness tolerance */}
+                    {userRole === 'seeker' && (
+                      <div>
+                        <label className="block text-sm font-heading font-semibold mb-2 text-navy-700">Minimum cleanliness standard</label>
+                        <div className="space-y-2">
+                          {[
+                            { val: 'relaxed', label: 'Relaxed — some mess is fine', emoji: '🧺' },
+                            { val: 'moderate', label: 'Moderate — common areas kept tidy', emoji: '🧹' },
+                            { val: 'high', label: 'High — everything kept clean', emoji: '✨' },
+                          ].map((opt) => (
+                            <button
+                              key={opt.val}
+                              type="button"
+                              onClick={() => handleChange('cleanliness_tolerance', opt.val)}
+                              className={`w-full flex items-center gap-3 p-3 rounded-2xl border text-left transition-all ${
+                                formData.cleanliness_tolerance === opt.val
+                                  ? 'border-terracotta-500 bg-terracotta-50 ring-1 ring-terracotta-500'
+                                  : 'border-navy-200 hover:border-navy-300'
+                              }`}
+                            >
+                              <span className="text-lg">{opt.emoji}</span>
+                              <span className="text-sm font-medium text-navy-800">{opt.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Seeker: Overnight guests tolerance */}
+                    {userRole === 'seeker' && (
+                      <div>
+                        <label className="block text-sm font-heading font-semibold mb-2 text-navy-700">How often can the host have overnight guests?</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { val: 'never', label: 'Never' },
+                            { val: 'rarely', label: 'Rarely' },
+                            { val: 'occasionally', label: 'Occasionally' },
+                            { val: 'any', label: "I don't mind" },
+                          ].map(opt => (
+                            <button
+                              key={opt.val}
+                              type="button"
+                              onClick={() => handleChange('guests_tolerance', opt.val)}
+                              className={`p-2.5 rounded-2xl border transition-all text-center text-sm font-medium ${
+                                formData.guests_tolerance === opt.val
+                                  ? 'border-terracotta-600 bg-terracotta-600 text-white shadow-md'
+                                  : 'border-navy-200 text-navy-700 hover:border-navy-300'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     <div>
-                       <label className="block text-sm font-semibold mb-2 text-navy-700">Pets</label>
-                       <div className="p-4 bg-navy-50 rounded-xl border border-navy-100">
+                       <label className="block text-sm font-heading font-semibold mb-2 text-navy-700">
+                         {userRole === 'seeker' ? 'Pets — can you live with them?' : 'Pets'}
+                       </label>
+                       <div className="p-4 bg-navy-50 rounded-2xl border border-navy-100">
                           <label className="flex items-center gap-3 cursor-pointer">
                             <input 
                               type="checkbox"
@@ -323,8 +392,8 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                               className="rounded text-terracotta-600 focus:ring-terracotta-600 h-5 w-5"
                             />
                             <div>
-                               <div className="font-medium text-sm text-navy-950">I accept pets</div>
-                               <div className="text-xs text-navy-500">Only check if you are okay living with animals</div>
+                               <div className="font-medium text-sm text-navy-950">{userRole === 'seeker' ? "Yes, I can live with pets" : "I accept pets"}</div>
+                               <div className="text-xs text-navy-500">{userRole === 'seeker' ? "Check if you're okay with a host/space that has pets" : "Only check if you are okay living with animals"}</div>
                             </div>
                           </label>
                        </div>
@@ -407,7 +476,9 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
 
         {/* Card 3: Dealbreakers */}
         <div className="p-4 bg-navy-50 rounded-2xl border border-navy-100">
-           <h3 className="text-xs font-bold text-navy-400 uppercase tracking-wider mb-2">Filters</h3>
+           <h3 className="text-xs font-heading font-bold text-navy-400 uppercase tracking-wider mb-2">
+             {userRole === 'seeker' ? 'Dealbreakers' : 'Filters'}
+           </h3>
            <ul className="space-y-1.5 text-sm">
              <li className="flex items-center gap-2 text-navy-700">
                {formData.accepted_pets ? <MdCheck className="text-green-500" /> : <span className="text-red-400">✕</span>}
@@ -415,12 +486,24 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
              </li>
              <li className="flex items-center gap-2 text-navy-700">
                 <span className="font-medium">Smoking:</span>
-                <span className="text-navy-600">
+                <span className="text-navy-600 capitalize">
                    {(formData.accepted_smoking || []).length > 0 
                      ? (formData.accepted_smoking || []).join(', ') 
                      : 'None'}
                 </span>
              </li>
+             {userRole === 'seeker' && formData.cleanliness_tolerance && (
+               <li className="flex items-center gap-2 text-navy-700">
+                 <span className="font-medium">Cleanliness:</span>
+                 <span className="text-navy-600 capitalize">{formData.cleanliness_tolerance}</span>
+               </li>
+             )}
+             {userRole === 'seeker' && formData.guests_tolerance && (
+               <li className="flex items-center gap-2 text-navy-700">
+                 <span className="font-medium">Host guests:</span>
+                 <span className="text-navy-600 capitalize">{formData.guests_tolerance === 'any' ? "No preference" : formData.guests_tolerance}</span>
+               </li>
+             )}
            </ul>
         </div>
       </div>

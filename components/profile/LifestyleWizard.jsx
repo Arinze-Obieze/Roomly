@@ -486,40 +486,20 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
       case 3: // Logistics
         return (
           <div className="space-y-6 animate-fadeIn">
-            {/* Seeker Specific Fields */}
+            {/* Seeker Specific: Move-in Urgency only — location is in Ideal Roommate */}
             {formData.primary_role === 'seeker' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy-50 p-4 rounded-xl border border-navy-100">
-                 <div>
-                   <label className="block text-sm font-semibold mb-2 text-navy-700">Current City/Town</label>
-                   <div className="relative">
-                      <select
-                        value={formData.current_city || ''}
-                        onChange={(e) => handleChange('current_city', e.target.value)}
-                        className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white appearance-none"
-                      >
-                        <option value="">Select your city...</option>
-                        {CITIES_TOWNS.map(city => (
-                          <option key={city} value={city}>{city}</option>
-                        ))}
-                      </select>
-                      <div className="absolute inset-y-0 right-3 flex items-center pointer-events-none text-navy-500">
-                        <svg className="w-4 h-4 fill-current" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/></svg>
-                      </div>
-                   </div>
-                 </div>
-                 <div>
-                   <label className="block text-sm font-semibold mb-2 text-navy-700">Move-in Urgency</label>
-                   <select
-                     value={formData.move_in_urgency || 'flexible'}
-                     onChange={(e) => handleChange('move_in_urgency', e.target.value)}
-                     className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
-                   >
-                     <option value="immediately">Immediately</option>
-                     <option value="1-month">Within 1 month</option>
-                     <option value="2-months">Within 2 months</option>
-                     <option value="flexible">Flexible</option>
-                   </select>
-                 </div>
+              <div className="bg-navy-50 p-4 rounded-2xl border border-navy-100">
+                <label className="block text-sm font-heading font-semibold mb-2 text-navy-700">Move-in Urgency</label>
+                <select
+                  value={formData.move_in_urgency || 'flexible'}
+                  onChange={(e) => handleChange('move_in_urgency', e.target.value)}
+                  className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
+                >
+                  <option value="immediately">Immediately</option>
+                  <option value="1-month">Within 1 month</option>
+                  <option value="2-months">Within 2 months</option>
+                  <option value="flexible">Flexible</option>
+                </select>
               </div>
             )}
 
