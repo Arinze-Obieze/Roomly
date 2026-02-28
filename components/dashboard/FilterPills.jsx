@@ -125,7 +125,7 @@ export default function FilterPills({ onOpenFilters }) {
   })();
 
   return (
-    <div className="relative static max-md:static z-[250]" ref={pillsRef}>
+    <div className="relative z-[250]" ref={pillsRef}>
       <div className="flex flex-wrap items-center gap-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0">
         {/* All Filters Button */}
         <motion.button 
@@ -161,7 +161,7 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute left-0 mt-2 z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-sm max-md:mt-0 md:top-full md:w-[320px]"
+                className="filter-pill-content absolute md:left-0 md:mt-2 z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-sm md:top-full md:w-[320px]"
               >
                 {/* Mobile Overlay */}
                 <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />
@@ -367,7 +367,7 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute mt-2 z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-sm max-md:mt-0 md:top-full md:left-1/2 md:-translate-x-1/2 md:w-[300px]"
+                className="filter-pill-content absolute md:mt-2 z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-sm md:top-full md:left-1/2 md:-translate-x-1/2 md:w-[300px]"
               >
                 {/* Mobile Overlay */}
                 <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />

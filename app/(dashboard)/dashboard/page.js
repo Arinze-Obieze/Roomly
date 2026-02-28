@@ -70,12 +70,12 @@ export default function HomeDashboard() {
             {/* Main Content - Property Grid */}
             <main className="lg:col-span-9 min-w-0">
               {/* Mobile/Tablet Filter Pills */}
-              <div className="sticky top-0 bg-navy-50/95 pt-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 lg:relative lg:top-0 lg:bg-transparent lg:pt-0">
+              <div className="sticky top-0 z-50 bg-navy-50/95 pt-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0 lg:relative lg:top-0 lg:bg-transparent lg:pt-0">
                 <FilterPills onOpenFilters={() => setIsFilterModalOpen(true)} />
               </div>
 
               {/* Desktop Filter Tabs */}
-              <div className="hidden lg:block mb-6">
+              <div className="hidden lg:block mb-6 relative z-40">
                 <DashboardFilters />
               </div>
 

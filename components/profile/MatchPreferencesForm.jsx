@@ -110,7 +110,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                {userRole === 'seeker' && (
                  <div>
                     <div className="flex items-center gap-2 mb-4">
-                       <MdLocationOn className="text-cyan-600 text-xl" />
+                       <MdLocationOn className="text-terracotta-600 text-xl" />
                        <h3 className="font-bold text-slate-800">Location & Timing</h3>
                     </div>
                     
@@ -127,7 +127,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                                 }
                                 e.target.value = ''; // Reset
                               }}
-                              className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:border-cyan-500 focus:outline-none"
+                              className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:border-terracotta-500 focus:outline-none"
                             >
                               <option value="">Add a city/town...</option>
                               {CITIES_TOWNS.map(city => (
@@ -139,9 +139,9 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                          </div>
                          <div className="flex flex-wrap gap-2 mt-3">
                            {(formData.location_areas || []).map(loc => (
-                             <span key={loc} className="inline-flex items-center gap-1 px-3 py-1 bg-cyan-50 text-cyan-700 rounded-full text-sm font-medium border border-cyan-100">
+                             <span key={loc} className="inline-flex items-center gap-1 px-3 py-1 bg-terracotta-50 text-terracotta-700 rounded-full text-sm font-medium border border-terracotta-100">
                                {loc}
-                               <button onClick={() => handleCheckboxGroup('location_areas', loc)} className="hover:text-cyan-900">
+                               <button onClick={() => handleCheckboxGroup('location_areas', loc)} className="hover:text-terracotta-900">
                                  <MdClose />
                                </button>
                              </span>
@@ -156,7 +156,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                             {MOVE_IN_OPTIONS.map((opt) => (
                               <label key={opt.value} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
                                  formData.move_in_window === opt.value 
-                                   ? 'border-cyan-500 bg-cyan-50 ring-1 ring-cyan-500' 
+                                   ? 'border-terracotta-500 bg-terracotta-50 ring-1 ring-terracotta-500' 
                                    : 'border-slate-200 hover:border-slate-300'
                               }`}>
                                  <input 
@@ -165,7 +165,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                                     value={opt.value}
                                     checked={formData.move_in_window === opt.value}
                                     onChange={(e) => handleChange('move_in_window', e.target.value)}
-                                    className="text-cyan-600 focus:ring-cyan-500"
+                                    className="text-terracotta-600 focus:ring-terracotta-500"
                                  />
                                  <span className="text-sm font-medium text-slate-700">{opt.label}</span>
                               </label>
@@ -192,7 +192,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                              type="number"
                              value={formData.budget_min}
                              onChange={(e) => handleChange('budget_min', e.target.value)}
-                             className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:border-cyan-500 focus:outline-none"
+                             className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:border-terracotta-500 focus:outline-none"
                            />
                          </div>
                        </div>
@@ -205,7 +205,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                              type="number"
                              value={formData.budget_max}
                              onChange={(e) => handleChange('budget_max', e.target.value)}
-                             className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:border-cyan-500 focus:outline-none"
+                             className="w-full pl-7 pr-3 py-2 border border-slate-200 rounded-xl text-sm focus:border-terracotta-500 focus:outline-none"
                            />
                          </div>
                        </div>
@@ -218,9 +218,9 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
         case 1: // Demographics
           return (
             <div className="space-y-6 animate-fadeIn">
-              <div className="p-4 bg-purple-50 rounded-xl border border-purple-100 mb-6">
-                 <h3 className="text-sm font-bold text-purple-900 mb-1">Ideally, who are they?</h3>
-                 <p className="text-xs text-purple-700">We don't strictly enforce these, but we prioritize matches that fit.</p>
+              <div className="p-4 bg-navy-50 rounded-xl border border-navy-100 mb-6">
+                 <h3 className="text-sm font-bold text-navy-900 mb-1">Ideally, who are they?</h3>
+                 <p className="text-xs text-navy-700">We don't strictly enforce these, but we prioritize matches that fit.</p>
               </div>
 
               <div>
@@ -233,7 +233,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                       onClick={() => handleCheckboxGroup('occupation_preference', occ)}
                       className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
                         (formData.occupation_preference || []).includes(occ)
-                          ? 'bg-purple-600 text-white border-purple-600 shadow-md transform scale-105'
+                          ? 'bg-navy-900 text-white border-navy-900 shadow-md transform scale-105'
                           : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                       }`}
                     >
@@ -251,14 +251,14 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                        type="number" 
                        value={formData.age_min}
                        onChange={(e) => handleChange('age_min', parseInt(e.target.value))}
-                       className="w-16 p-2 border border-slate-200 rounded-lg text-center text-sm focus:border-cyan-500 focus:outline-none"
+                       className="w-16 p-2 border border-slate-200 rounded-lg text-center text-sm focus:border-terracotta-500 focus:outline-none"
                      />
                      <span className="text-slate-400 text-sm">to</span>
                      <input 
                        type="number" 
                        value={formData.age_max}
                        onChange={(e) => handleChange('age_max', parseInt(e.target.value))}
-                       className="w-16 p-2 border border-slate-200 rounded-lg text-center text-sm focus:border-cyan-500 focus:outline-none"
+                       className="w-16 p-2 border border-slate-200 rounded-lg text-center text-sm focus:border-terracotta-500 focus:outline-none"
                      />
                    </div>
                  </div>
@@ -303,7 +303,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                                type="checkbox"
                                checked={(formData.accepted_smoking || []).includes(opt.val)}
                                onChange={() => handleCheckboxGroup('accepted_smoking', opt.val)}
-                               className="rounded text-cyan-600 focus:ring-cyan-600 w-4 h-4"
+                               className="rounded text-terracotta-600 focus:ring-terracotta-600 w-4 h-4"
                              />
                              <span className="text-sm font-medium text-slate-700">{opt.label}</span>
                            </label>
@@ -319,7 +319,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                               type="checkbox"
                               checked={formData.accepted_pets}
                               onChange={(e) => handleChange('accepted_pets', e.target.checked)}
-                              className="rounded text-cyan-600 focus:ring-cyan-600 h-5 w-5"
+                              className="rounded text-terracotta-600 focus:ring-terracotta-600 h-5 w-5"
                             />
                             <div>
                                <div className="font-medium text-sm text-slate-900">I accept pets</div>
@@ -339,7 +339,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
     <div className="bg-white rounded-xl border border-slate-200 p-6 animate-fadeIn">
       <div className="flex justify-between items-start mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-cyan-50 text-cyan-600 rounded-lg">
+          <div className="p-2.5 bg-terracotta-50 text-terracotta-600 rounded-lg">
              <MdFilterList className="text-xl" />
           </div>
           <div>
@@ -440,7 +440,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
            </div>
            <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
              <div 
-               className="h-full bg-indigo-600 transition-all duration-500 ease-out"
+               className="h-full bg-terracotta-500 transition-all duration-500 ease-out"
                style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
              />
            </div>
@@ -465,7 +465,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
 
            <button
              onClick={handleNext}
-             className="flex items-center gap-2 px-6 py-2.5 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition-colors shadow-lg active:scale-95 text-sm"
+             className="flex items-center gap-2 px-6 py-2.5 bg-terracotta-500 text-white rounded-xl font-bold hover:bg-terracotta-600 transition-colors shadow-lg active:scale-95 text-sm"
            >
              {currentStep === STEPS.length - 1 ? (loading ? 'Saving...' : 'Finish') : 'Next'}
              {currentStep < STEPS.length - 1 && <MdWork className="text-white" />} 

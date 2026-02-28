@@ -41,7 +41,9 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
     noise_tolerance: 2,
     overnight_guests: 'occasionally',
     pets: { has_pets: false, accepts_pets: true, description: '' },
-    interests: []
+    interests: [],
+    min_stay: 6,
+    max_stay: 12
   });
 
   const supabase = createClient();
@@ -180,12 +182,17 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                  </span>
                </li>
                <li className="flex items-center gap-2">
-                 <span className="text-lg">�️</span>
                  <span className="font-medium text-slate-700">
                    Property: {(formData.preferred_property_types || []).map(pt => {
                      const cat = PROPERTY_CATEGORIES.find(c => c.value === pt);
                      return cat?.label || pt;
                    }).join(', ')}
+                 </span>
+               </li>
+               <li className="flex items-center gap-2">
+                 <span className="text-lg">📅</span>
+                 <span className="font-medium text-slate-700">
+                   Stay Duration: {formData.min_stay} - {formData.max_stay} months
                  </span>
                </li>
              </ul>
@@ -206,7 +213,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                     <span className="text-slate-400 text-xs">{stat.val}/3</span>
                   </div>
                   <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                    <div className="h-full bg-cyan-500" style={{ width: `${(stat.val / 3) * 100}%` }} />
+                    <div className="h-full bg-terracotta-500" style={{ width: `${(stat.val / 3) * 100}%` }} />
                   </div>
                 </div>
               ))}
@@ -217,7 +224,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
              <div className="flex flex-wrap gap-1.5">
                {formData.interests && formData.interests.length > 0 ? (
                  formData.interests.map(tag => (
-                   <span key={tag} className="px-2.5 py-1 bg-cyan-50 text-cyan-700 rounded-lg text-xs font-medium border border-cyan-100">
+                   <span key={tag} className="px-2.5 py-1 bg-terracotta-50 text-terracotta-700 rounded-lg text-xs font-medium border border-terracotta-100">
                      {tag}
                    </span>
                  ))
@@ -254,7 +261,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                   onClick={() => handleChange('primary_role', 'host')}
                   className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${
                     formData.primary_role === 'host'
-                      ? 'border-cyan-500 bg-cyan-50 shadow-lg shadow-cyan-100'
+                      ? 'border-terracotta-500 bg-terracotta-50 shadow-lg shadow-terracotta-100'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
@@ -271,7 +278,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                   onClick={() => handleChange('primary_role', 'seeker')}
                   className={`p-6 rounded-2xl border-2 transition-all flex flex-col items-center justify-center gap-3 ${
                     formData.primary_role === 'seeker'
-                      ? 'border-cyan-500 bg-cyan-50 shadow-lg shadow-cyan-100'
+                      ? 'border-terracotta-500 bg-terracotta-50 shadow-lg shadow-terracotta-100'
                       : 'border-slate-200 hover:border-slate-300'
                   }`}
                 >
@@ -299,7 +306,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                     onClick={() => handleChange('schedule_type', type)}
                     className={`p-3 rounded-xl border text-left transition-all text-sm ${
                       formData.schedule_type === type 
-                        ? 'border-cyan-500 bg-cyan-50 ring-1 ring-cyan-500' 
+                        ? 'border-terracotta-500 bg-terracotta-50 ring-1 ring-terracotta-500' 
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
@@ -323,7 +330,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                       onClick={() => handleChange('smoking_status', opt.val)}
                       className={`w-full flex items-center gap-3 p-2.5 rounded-xl border transition-all text-sm ${
                         formData.smoking_status === opt.val
-                          ? 'border-cyan-500 bg-cyan-50 ring-1 ring-cyan-500 text-slate-800'
+                          ? 'border-terracotta-500 bg-terracotta-50 ring-1 ring-terracotta-500 text-slate-800'
                           : 'border-slate-200 hover:border-slate-300 text-slate-600'
                       }`}
                     >
@@ -340,21 +347,21 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                   <select 
                     value={formData.drinking_habits}
                     onChange={(e) => handleChange('drinking_habits', e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 focus:outline-none"
                   >
                     <option value="non-drinker">Not really a drinker</option>
                     <option value="social">Social drinker</option>
                     <option value="frequent">Regular drinker</option>
                   </select>
 
-                   <label className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${formData.cannabis_friendly ? 'bg-cyan-50 border-cyan-500' : 'border-slate-200 hover:bg-slate-50'}`}>
+                   <label className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${formData.cannabis_friendly ? 'bg-terracotta-50 border-terracotta-500' : 'border-slate-200 hover:bg-slate-50'}`}>
                     <input 
                       type="checkbox"
                       checked={formData.cannabis_friendly}
                       onChange={(e) => handleChange('cannabis_friendly', e.target.checked)}
-                      className="w-4 h-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                      className="w-4 h-4 rounded border-slate-300 text-terracotta-600 focus:ring-terracotta-500"
                     />
-                    <FaCannabis className="text-cyan-600 text-lg" />
+                    <FaCannabis className="text-terracotta-600 text-lg" />
                     <span className="font-medium text-sm text-slate-700">Cannabis Friendly / User</span>
                   </label>
                 </div>
@@ -366,7 +373,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                  <select 
                     value={formData.dietary_preference}
                     onChange={(e) => handleChange('dietary_preference', e.target.value)}
-                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+                    className="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 focus:outline-none"
                   >
                     <option value="omnivore">Everything / Omnivore</option>
                     <option value="vegetarian">Vegetarian</option>
@@ -488,7 +495,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                       <select
                         value={formData.current_city || ''}
                         onChange={(e) => handleChange('current_city', e.target.value)}
-                        className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-cyan-500 focus:outline-none bg-white appearance-none"
+                        className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white appearance-none"
                       >
                         <option value="">Select your city...</option>
                         {CITIES_TOWNS.map(city => (
@@ -505,7 +512,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                    <select
                      value={formData.move_in_urgency || 'flexible'}
                      onChange={(e) => handleChange('move_in_urgency', e.target.value)}
-                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-cyan-500 focus:outline-none bg-white"
+                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
                    >
                      <option value="immediately">Immediately</option>
                      <option value="1-month">Within 1 month</option>
@@ -525,7 +532,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                     onClick={() => handleChange('overnight_guests', freq)}
                     className={`p-2.5 rounded-xl border transition-all text-center text-sm ${
                       formData.overnight_guests === freq
-                        ? 'border-cyan-600 bg-cyan-600 text-white shadow-md'
+                        ? 'border-terracotta-600 bg-terracotta-600 text-white shadow-md'
                         : 'border-slate-200 hover:border-slate-300'
                     }`}
                   >
@@ -533,6 +540,40 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Min and Max Stay */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-slate-50 p-4 rounded-xl border border-slate-100">
+               <div>
+                  <label className="block text-sm font-semibold mb-2 text-slate-700">Minimum Stay (Months)</label>
+                  <select
+                     value={formData.min_stay || 6}
+                     onChange={(e) => handleChange('min_stay', parseInt(e.target.value))}
+                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
+                  >
+                     <option value={1}>1 Month</option>
+                     <option value={3}>3 Months</option>
+                     <option value={6}>6 Months</option>
+                     <option value={9}>9 Months</option>
+                     <option value={12}>1 Year</option>
+                     <option value={24}>2+ Years</option>
+                  </select>
+               </div>
+               <div>
+                  <label className="block text-sm font-semibold mb-2 text-slate-700">Maximum Stay (Months)</label>
+                  <select
+                     value={formData.max_stay || 12}
+                     onChange={(e) => handleChange('max_stay', parseInt(e.target.value))}
+                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
+                  >
+                     <option value={3}>3 Months</option>
+                     <option value={6}>6 Months</option>
+                     <option value={9}>9 Months</option>
+                     <option value={12}>1 Year</option>
+                     <option value={24}>2 Years</option>
+                     <option value={36}>3+ Years</option>
+                  </select>
+               </div>
             </div>
 
             <div className="p-5 bg-slate-50 rounded-xl border border-slate-100">
@@ -546,7 +587,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                      type="checkbox"
                      checked={formData.pets.has_pets}
                      onChange={(e) => handleChange('pets', { ...formData.pets, has_pets: e.target.checked })}
-                     className="w-4 h-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                     className="w-4 h-4 rounded border-slate-300 text-terracotta-600 focus:ring-terracotta-500"
                    />
                    <span className="font-medium text-sm text-slate-700">I have pets</span>
                  </label>
@@ -556,7 +597,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                      value={formData.pets.description}
                      onChange={(e) => handleChange('pets', { ...formData.pets, description: e.target.value })}
                      placeholder="Tell us about your pet (e.g., 2 year old Golden Retriever, very friendly)"
-                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 focus:outline-none"
+                     className="w-full p-2.5 rounded-xl border border-slate-200 text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 focus:outline-none"
                      rows={2}
                    />
                  )}
@@ -568,7 +609,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                      type="checkbox"
                      checked={formData.pets.accepts_pets}
                      onChange={(e) => handleChange('pets', { ...formData.pets, accepts_pets: e.target.checked })}
-                     className="w-4 h-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                     className="w-4 h-4 rounded border-slate-300 text-terracotta-600 focus:ring-terracotta-500"
                    />
                    <span className="font-medium text-sm text-slate-700">I'm comfortable living with pets</span>
                  </label>
@@ -591,7 +632,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                     onClick={() => toggleInterest(tag)}
                     className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all transform hover:scale-105 active:scale-95 ${
                       (formData.interests || []).includes(tag)
-                        ? 'bg-cyan-600 text-white shadow-md'
+                        ? 'bg-terracotta-600 text-white shadow-md'
                         : 'bg-white border border-slate-200 text-slate-600 hover:border-slate-400'
                     }`}
                   >
@@ -628,7 +669,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
         </div>
         <div className="h-1.5 bg-slate-200 rounded-full overflow-hidden">
           <div 
-            className="h-full bg-cyan-600 transition-all duration-500 ease-out"
+            className="h-full bg-terracotta-600 transition-all duration-500 ease-out"
             style={{ width: `${((currentStep + 1) / STEPS.length) * 100}%` }}
           />
         </div>
@@ -656,7 +697,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
         <button
           onClick={handleNext}
           disabled={loading}
-          className="flex items-center gap-2 px-6 py-2.5 bg-cyan-600 text-white rounded-xl font-medium shadow-lg hover:bg-cyan-700 active:scale-95 transition-all disabled:opacity-50 text-sm"
+          className="flex items-center gap-2 px-6 py-2.5 bg-terracotta-600 text-white rounded-xl font-medium shadow-lg hover:bg-terracotta-700 active:scale-95 transition-all disabled:opacity-50 text-sm"
         >
           {loading ? 'Saving...' : currentStep === STEPS.length - 1 ? 'Complete Profile' : 'Next Step'}
           {!loading && currentStep < STEPS.length - 1 && <MdArrowForward />}
