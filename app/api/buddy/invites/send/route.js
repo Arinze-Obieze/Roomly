@@ -60,6 +60,11 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid email format' }, { status: 400 });
     }
 
+    // Prevent inviting oneself
+    if (email.toLowerCase() === user.email?.toLowerCase()) {
+      return NextResponse.json({ error: 'You cannot invite yourself to the group' }, { status: 400 });
+    }
+
     // Rate limiting
     if (!checkInviteRateLimit(user.id, email)) {
       return NextResponse.json(

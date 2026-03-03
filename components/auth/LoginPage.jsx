@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import InputField from '../forms/InputField';
 import PasswordField from '../forms/PasswordField';
 import AuthHeader from '../layout/AuthHeader';
@@ -21,6 +21,9 @@ const loginSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+  
   const { login, signInWithGoogle, loading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
 
@@ -44,12 +47,12 @@ export default function LoginPage() {
       toast.error(error);
     } else {
       toast.success('Successfully logged in!');
-      router.push('/dashboard');
+      router.push(redirectTo);
     }
   };
 
   const handleGoogleSignIn = async () => {
-    const { error } = await signInWithGoogle();
+    const { error } = await signInWithGoogle({ redirectTo: `${window.location.origin}${redirectTo}` });
     if (error) {
         toast.error(error.message);
     }
@@ -141,7 +144,7 @@ export default function LoginPage() {
 
       <p className="mt-8 text-center text-muted">
         Don't have an account?{' '}
-        <a href="/signup" className="link font-semibold">
+        <a href={`/signup${searchParams.get('redirectTo') ? `?redirectTo=${encodeURIComponent(searchParams.get('redirectTo'))}` : ''}`} className="link font-semibold">
           Sign up
         </a>
       </p>

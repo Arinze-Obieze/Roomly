@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import InputField from '../forms/InputField';
 import PasswordField from '../forms/PasswordField';
 import AuthHeader from '../layout/AuthHeader';
@@ -32,6 +32,9 @@ const signupSchema = z.object({
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirectTo') || '';
+  
   const { signup, signInWithGoogle, loading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -95,10 +98,15 @@ export default function SignupPage() {
     } else {
       if (requiresEmailConfirmation) {
         toast.success('Account created! Please check your email to confirm.');
+        router.push('/login');
       } else {
         toast.success('Account created successfully!');
+        if (redirectTo) {
+          router.push(redirectTo);
+        } else {
+          router.push('/dashboard');
+        }
       }
-      router.push('/login');
     }
   };
 
@@ -111,7 +119,8 @@ export default function SignupPage() {
 
         <button
             onClick={async () => {
-                const { error } = await signInWithGoogle();
+                const options = redirectTo ? { redirectTo: `${window.location.origin}${redirectTo}` } : undefined;
+                const { error } = await signInWithGoogle(options);
                 if (error) toast.error(error.message);
             }}
             type="button"
@@ -235,7 +244,7 @@ export default function SignupPage() {
       <p className="mt-8 text-center text-muted">
         Already have an account?{' '}
         <a
-          href="/login"
+          href={`/login${redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ''}`}
           className="text-emerald-500 text-sm font-semibold"
         >
           Log in

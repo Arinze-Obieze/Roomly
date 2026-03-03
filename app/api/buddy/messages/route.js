@@ -137,8 +137,27 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Not a member of this group' }, { status: 403 });
     }
 
-    // 3. Sanitize content
+    // 3. Sanitize content and attachment data
     let sanitizedContent = content ? sanitizeText(sanitizeLength(content, 5000)) : null;
+    
+    let sanitizedAttachmentData = null;
+    if (attachmentData && typeof attachmentData === 'object') {
+        const urlToValidate = attachmentData.url || attachmentData.image;
+        if (urlToValidate) {
+            try {
+                const parsedUrl = new URL(urlToValidate);
+                if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                    return NextResponse.json({ error: 'Invalid URL protocol' }, { status: 400 });
+                }
+            } catch (e) {
+                // Allow relative URLs starting with '/'
+                if (!urlToValidate.startsWith('/')) {
+                    return NextResponse.json({ error: 'Invalid attachment URL' }, { status: 400 });
+                }
+            }
+        }
+        sanitizedAttachmentData = { ...attachmentData };
+    }
 
     // 4. Insert Message
     const { data: message, error } = await supabase
@@ -148,7 +167,7 @@ export async function POST(request) {
             sender_id: user.id,
             content: sanitizedContent,
             attachment_type: attachmentType && ['image', 'video', 'file', 'property'].includes(attachmentType) ? attachmentType : 'text',
-            attachment_data: attachmentData || null
+            attachment_data: sanitizedAttachmentData
         })
         .select()
         .single();

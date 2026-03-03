@@ -1,5 +1,5 @@
-
 import { createClient } from '@/core/utils/supabase/server';
+import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 
@@ -15,6 +15,8 @@ export async function POST(request) {
     }
 
     const supabase = await createClient();
+    const adminSupabase = createAdminClient();
+
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -27,22 +29,29 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Token is required' }, { status: 400 });
     }
 
-    // 1. Find Invite - with explicit NULL check for expires_at
-    const { data: invite, error: inviteError } = await supabase
+    // 1. Find Invite without strict filtering to provide accurate error messages
+    const { data: invite, error: inviteError } = await adminSupabase
       .from('buddy_invites')
       .select('*')
       .eq('token', token)
-      .eq('status', 'pending')
-      .not('expires_at', 'is', null) // Explicit NULL check
-      .gt('expires_at', new Date().toISOString())
       .single();
 
     if (inviteError || !invite) {
-        return NextResponse.json({ error: 'Invalid or expired invite' }, { status: 404 });
+        return NextResponse.json({ error: 'Invite not found. Make sure the link is correct.' }, { status: 404 });
     }
 
-    // 2. Check if already member - idempotent response
-    const { data: existingMember } = await supabase
+    // 2. Validate email match
+    if (invite.email.toLowerCase() !== user.email?.toLowerCase()) {
+        return NextResponse.json({ error: `This invite was sent to ${invite.email}. Please login with that account to join.` }, { status: 403 });
+    }
+
+    // 3. Check expiration
+    if (invite.status === 'expired' || (invite.expires_at && new Date(invite.expires_at) < new Date())) {
+        return NextResponse.json({ error: 'This invite has expired.' }, { status: 400 });
+    }
+
+    // 4. Check if already member
+    const { data: existingMember } = await adminSupabase
         .from('buddy_group_members')
         .select('id, status')
         .eq('group_id', invite.group_id)
@@ -59,7 +68,8 @@ export async function POST(request) {
             });
         }
 
-        const { error: reactivateError } = await supabase
+        // If they left, reactivate them
+        const { error: reactivateError } = await adminSupabase
             .from('buddy_group_members')
             .update({
               status: 'active',
@@ -72,31 +82,38 @@ export async function POST(request) {
           throw reactivateError;
         }
     } else {
-      // 3. Add to Group
-      const { error: joinError } = await supabase
-          .from('buddy_group_members')
-          .insert({
-              group_id: invite.group_id,
-              user_id: user.id,
-              role: 'member',
-              status: 'active'
-          });
+        // Only allow join if not already accepted by someone else
+        // (Though we verify email now, it's a good safety check)
+        if (invite.status === 'accepted') {
+            return NextResponse.json({ error: 'This invite has already been used.' }, { status: 400 });
+        }
 
-      if (joinError) {
-          console.error('Join group error:', joinError);
-          throw joinError;
-      }
+        // Add to Group
+        const { error: joinError } = await adminSupabase
+            .from('buddy_group_members')
+            .insert({
+                group_id: invite.group_id,
+                user_id: user.id,
+                role: 'member',
+                status: 'active'
+            });
+
+        if (joinError) {
+            console.error('Join group error:', joinError);
+            throw joinError;
+        }
     }
 
-    // 4. Update Invite Status (mark as accepted)
-    const { error: updateError } = await supabase
-        .from('buddy_invites')
-        .update({ status: 'accepted' })
-        .eq('id', invite.id);
+    // 5. Update Invite Status to accepted if it wasn't already
+    if (invite.status !== 'accepted') {
+        const { error: updateError } = await adminSupabase
+            .from('buddy_invites')
+            .update({ status: 'accepted' })
+            .eq('id', invite.id);
 
-    if (updateError) {
-        console.error('Update invite error:', updateError);
-        // Continue anyway - user was added to group
+        if (updateError) {
+            console.error('Update invite error:', updateError);
+        }
     }
 
     return NextResponse.json({ 
