@@ -59,6 +59,11 @@ async function fetchPropertiesFromDB(searchParams) {
   const location = searchParams.get('location');
   const search = searchParams.get('search');
   const sortBy = searchParams.get('sortBy');
+  // ── New filter params ──────────────────────────────────────────────────────
+  const moveInDate = searchParams.get('moveInDate');
+  const roomType = searchParams.get('roomType');
+  const houseRules = searchParams.get('houseRules')?.split(',').filter(Boolean);
+  const billsIncluded = searchParams.get('billsIncluded') === 'true';
 
   const supabase = await createClient();
 
@@ -129,6 +134,38 @@ async function fetchPropertiesFromDB(searchParams) {
 
   if (amenities && amenities.length > 0) {
     query = query.contains('amenities', amenities);
+  }
+
+  // ── New advanced filters ───────────────────────────────────────────────────
+  if (roomType) {
+    query = query.eq('room_type', roomType);
+  }
+
+  if (billsIncluded) {
+    query = query.eq('bills_included', true);
+  }
+
+  if (houseRules && houseRules.length > 0) {
+    query = query.contains('house_rules', houseRules);
+  }
+
+  if (moveInDate && moveInDate !== 'any') {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+    if (moveInDate === 'immediately') {
+      // available_from is today or earlier (already available)
+      query = query.lte('available_from', todayStr);
+    } else if (moveInDate === 'this_month') {
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      query = query.lte('available_from', endOfMonth.toISOString().split('T')[0]);
+    } else if (moveInDate === 'next_month') {
+      const startOfNext = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const endOfNext = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+      query = query
+        .gte('available_from', startOfNext.toISOString().split('T')[0])
+        .lte('available_from', endOfNext.toISOString().split('T')[0]);
+    }
+    // 'flexible' = no date filter, just no restriction
   }
 
   switch (sortBy) {

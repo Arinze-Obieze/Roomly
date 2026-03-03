@@ -189,29 +189,18 @@ export default function SettingsPanel() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id]);
 
-  const getCSRF = async () => {
-    const res = await fetch('/api/csrf-token');
-    const { csrfToken } = await res.json();
-    return csrfToken;
-  };
-
   const patchSetting = useCallback(async (field, value) => {
     // Optimistic update — toggle immediately for instant feedback
     setSettings(prev => ({ ...prev, [field]: value }));
     setSaving(true);
+    
     try {
-      const csrfToken = await getCSRF();
-      const res = await fetch('/api/profile/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-csrf-token': csrfToken },
-        body: JSON.stringify({ [field]: value }),
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        throw new Error(err.error || 'Failed to save');
+      // Use the global AuthContext update function so the UI stays in sync everywhere
+      const { success, error } = await updateProfile({ [field]: value });
+      
+      if (!success) {
+        throw new Error(error || 'Failed to save');
       }
-      // No refreshSession() here — that would re-fetch the user and overwrite
-      // our local optimistic state with stale DB values (missing columns).
     } catch (err) {
       toast.error(err.message || 'Could not save setting');
       // Rollback the optimistic update
@@ -219,7 +208,7 @@ export default function SettingsPanel() {
     } finally {
       setSaving(false);
     }
-  }, []);
+  }, [updateProfile]);
 
   const handleDeleteAccount = async () => {
     if (deleteInput.trim().toLowerCase() !== 'delete my account') {
@@ -275,7 +264,7 @@ export default function SettingsPanel() {
           </div>
         </div>
 
-        <p className="text-xs font-heading font-bold text-navy-400 uppercase tracking-wider mb-1">Activity Signals</p>
+        <p className="text-xs font-heroomfindfont-bold text-navy-400 uppercase tracking-wider mb-1">Activity Signals</p>
         <div className="divide-y divide-navy-50">
           <SettingRow
             label="Show online status"

@@ -109,6 +109,19 @@ export const PropertiesProvider = ({ children }) => {
       if (filters.sortBy) {
         params.append('sortBy', filters.sortBy);
       }
+      // ── New advanced filter params ─────────────────────────────────────────
+      if (filters.moveInDate && filters.moveInDate !== 'any') {
+        params.append('moveInDate', filters.moveInDate);
+      }
+      if (filters.roomType && filters.roomType !== 'any') {
+        params.append('roomType', filters.roomType);
+      }
+      if (filters.houseRules?.length > 0) {
+        params.append('houseRules', filters.houseRules.join(','));
+      }
+      if (filters.billsIncluded === true) {
+        params.append('billsIncluded', 'true');
+      }
 
       const response = await fetch(`/api/properties?${params.toString()}`, {
         signal: abortControllerRef.current.signal

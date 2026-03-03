@@ -173,6 +173,20 @@ export async function PUT(request, { params }) {
       const propertyType = formData.get('property_category') || formData.get('property_type');
       const squareMeters = formData.get('floor_area') || formData.get('square_meters');
 
+      // ─── Derive filter columns (same logic as create service) ──────────────
+      const billsOption = formData.get('bills_option') || 'some';
+      const billsIncluded = billsOption === 'box';
+
+      const dealBreakers = (() => {
+        try { const r = formData.get('deal_breakers'); return r ? JSON.parse(r) : []; } catch { return []; }
+      })();
+      const couplesAllowed = formData.get('couples_allowed') === 'true';
+      const houseRules = [];
+      if (!dealBreakers.includes('smokers'))  houseRules.push('no_smoking');
+      if (!dealBreakers.includes('pets'))     houseRules.push('pets_allowed');
+      if (couplesAllowed)                     houseRules.push('couples_welcome');
+      if (!dealBreakers.includes('students')) houseRules.push('students_welcome');
+
       updates = {
         title: formData.get('title'),
         description: formData.get('description'),
@@ -186,6 +200,11 @@ export async function PUT(request, { params }) {
         square_meters: squareMeters ? Number(squareMeters) : undefined,
         available_from: formData.get('available_from'),
         amenities: parseJsonArray(formData.get('amenities')),
+        bills_option: billsOption,
+        bills_included: billsIncluded,
+        deal_breakers: dealBreakers,
+        house_rules: houseRules,
+        room_type: formData.get('room_type') || null,
       };
       updates = Object.fromEntries(
         Object.entries(updates).filter(([, value]) => value !== undefined)

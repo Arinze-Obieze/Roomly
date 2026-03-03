@@ -27,7 +27,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    primary_role: 'seeker',
+    primary_role: 'host', // Changed default from 'seeker' to 'host'
     current_city: '',
     move_in_urgency: 'flexible',
     schedule_type: '9-5',
@@ -189,12 +189,14 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
                    }).join(', ')}
                  </span>
                </li>
-               <li className="flex items-center gap-2">
-                 <span className="text-lg">📅</span>
-                 <span className="font-medium text-navy-700">
-                   Stay Duration: {formData.min_stay} - {formData.max_stay} months
-                 </span>
-               </li>
+               {formData.primary_role === 'host' && (
+                 <li className="flex items-center gap-2">
+                   <span className="text-lg">📅</span>
+                   <span className="font-medium text-navy-700">
+                     Stay Duration: {formData.min_stay} - {formData.max_stay} months
+                   </span>
+                 </li>
+               )}
              </ul>
           </div>
         </div>
@@ -523,38 +525,40 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
             </div>
 
             {/* Min and Max Stay */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy-50 p-4 rounded-xl border border-navy-100">
-               <div>
-                  <label className="block text-sm font-semibold mb-2 text-navy-700">Minimum Stay (Months)</label>
-                  <select
-                     value={formData.min_stay || 6}
-                     onChange={(e) => handleChange('min_stay', parseInt(e.target.value))}
-                     className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
-                  >
-                     <option value={1}>1 Month</option>
-                     <option value={3}>3 Months</option>
-                     <option value={6}>6 Months</option>
-                     <option value={9}>9 Months</option>
-                     <option value={12}>1 Year</option>
-                     <option value={24}>2+ Years</option>
-                  </select>
-               </div>
-               <div>
-                  <label className="block text-sm font-semibold mb-2 text-navy-700">Maximum Stay (Months)</label>
-                  <select
-                     value={formData.max_stay || 12}
-                     onChange={(e) => handleChange('max_stay', parseInt(e.target.value))}
-                     className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
-                  >
-                     <option value={3}>3 Months</option>
-                     <option value={6}>6 Months</option>
-                     <option value={9}>9 Months</option>
-                     <option value={12}>1 Year</option>
-                     <option value={24}>2 Years</option>
-                     <option value={36}>3+ Years</option>
-                  </select>
-               </div>
-            </div>
+            {formData.primary_role === 'host' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 bg-navy-50 p-4 rounded-xl border border-navy-100">
+                 <div>
+                    <label className="block text-sm font-semibold mb-2 text-navy-700">Minimum Stay (Months)</label>
+                    <select
+                       value={formData.min_stay || 6}
+                       onChange={(e) => handleChange('min_stay', parseInt(e.target.value))}
+                       className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
+                    >
+                       <option value={1}>1 Month</option>
+                       <option value={3}>3 Months</option>
+                       <option value={6}>6 Months</option>
+                       <option value={9}>9 Months</option>
+                       <option value={12}>1 Year</option>
+                       <option value={24}>2+ Years</option>
+                    </select>
+                 </div>
+                 <div>
+                    <label className="block text-sm font-semibold mb-2 text-navy-700">Maximum Stay (Months)</label>
+                    <select
+                       value={formData.max_stay || 12}
+                       onChange={(e) => handleChange('max_stay', parseInt(e.target.value))}
+                       className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
+                    >
+                       <option value={3}>3 Months</option>
+                       <option value={6}>6 Months</option>
+                       <option value={9}>9 Months</option>
+                       <option value={12}>1 Year</option>
+                       <option value={24}>2 Years</option>
+                       <option value={36}>3+ Years</option>
+                    </select>
+                 </div>
+              </div>
+            )}
 
             <div className="p-5 bg-navy-50 rounded-2xl border border-navy-100">
                <h3 className="text-base font-heading font-semibold mb-3 flex items-center gap-2">

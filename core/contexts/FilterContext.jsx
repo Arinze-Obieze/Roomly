@@ -3,6 +3,7 @@
 import { useState, createContext } from "react";
 
 export const DEFAULT_FILTERS = {
+  // Existing
   minPrice: null,
   maxPrice: null,
   priceRange: 'all',
@@ -12,10 +13,15 @@ export const DEFAULT_FILTERS = {
   propertyType: 'any',
   propertyTypes: [],
   amenities: [],
-  moveInDate: 'any',
   sortBy: 'recommended',
   searchQuery: '',
   location: '',
+  // New advanced filters
+  moveInDate: 'any',       // 'any' | 'immediately' | 'this_month' | 'next_month' | 'flexible'
+  roomType: 'any',         // 'any' | 'single' | 'double' | 'ensuite'
+  houseRules: [],          // ['no_smoking', 'pets_allowed', 'couples_welcome', 'students_welcome']
+  billsIncluded: false,
+  minCompatibility: 60,    // 60–100, applied client-side only in V1
 };
 
 export const FilterContext = createContext();

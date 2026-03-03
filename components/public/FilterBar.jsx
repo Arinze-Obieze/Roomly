@@ -1,13 +1,17 @@
 'use client';
 
 import { useState, useCallback } from 'react';
-import { MdSearch } from 'react-icons/md';
 import LocationFilter from './filters/LocationFilter';
 import PriceFilter from './filters/PriceFilter';
 import BedsBathsFilter from './filters/BedsBathsFilter';
 import PropertyTypeFilter from './filters/PropertyTypeFilter';
+import AdvancedFilters from './AdvancedFilters';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+import { MdSearch, MdTune } from 'react-icons/md';
 
-export default function FilterBar({ filters = {}, onFilterChange, className = '', isSticky = true }) {
+export default function FilterBar({ filters = {}, onFilterChange, className = '', isSticky = true, publicMode = false }) {
+  const router = useRouter();
   
   const handleLocationChange = (val) => {
       onFilterChange('location', val);
@@ -26,6 +30,13 @@ export default function FilterBar({ filters = {}, onFilterChange, className = ''
       onFilterChange('propertyTypes', val);
   };
 
+  const handleAdvancedFilterApply = (newFilters) => {
+      // Advanced Filters returns a full filters object. We need to iterate and apply each.
+      Object.entries(newFilters).forEach(([key, value]) => {
+          onFilterChange(key, value);
+      });
+  };
+
   return (
     <div className={`${isSticky ? 'sticky top-[72px] z-40 border-b border-slate-200' : ''} bg-white shadow-sm ${className}`}>
       <div className="container mx-auto px-4 md:px-6 py-4">
@@ -42,7 +53,7 @@ export default function FilterBar({ filters = {}, onFilterChange, className = ''
           </div>
 
           {/* Property Type */}
-          <div className="w-full md:w-auto md:border-l-0 border-t md:border-t-0 border-slate-100">
+          <div className="w-full md:w-auto md:border-l-0 border-t md:border-t-0 border-slate-100 hidden md:block">
              <PropertyTypeFilter 
                values={filters.propertyTypes?.length > 0 ? filters.propertyTypes : (filters.propertyType && filters.propertyType !== 'any' ? [filters.propertyType] : [])} 
                onChange={handleTypeChange} 
@@ -50,7 +61,7 @@ export default function FilterBar({ filters = {}, onFilterChange, className = ''
           </div>
 
           {/* Beds & Baths */}
-          <div className="w-full md:w-auto border-t md:border-t-0 border-slate-100">
+          <div className="w-full md:w-auto border-t md:border-t-0 border-slate-100 hidden md:block">
              <BedsBathsFilter 
                beds={filters.minBedrooms} 
                baths={filters.minBathrooms} 
@@ -59,7 +70,7 @@ export default function FilterBar({ filters = {}, onFilterChange, className = ''
           </div>
 
           {/* Price */}
-          <div className="w-full md:w-auto border-t md:border-t-0 border-slate-100">
+          <div className="w-full md:w-auto border-t md:border-t-0 border-slate-100 hidden lg:block">
              <PriceFilter 
                minPrice={filters.minPrice} 
                maxPrice={filters.maxPrice} 
@@ -67,19 +78,60 @@ export default function FilterBar({ filters = {}, onFilterChange, className = ''
              />
           </div>
 
-          {/* Search Button (Visual Confirmation / Scroll) */}
-          <div className="p-2 w-full md:w-auto">
+          {/* Advanced Filters (Mobile: Modal | Desktop: Panel) */}
+          <div className="w-full md:w-auto border-t md:border-t-0 border-slate-100 flex items-center justify-between p-2 md:p-3">
+             {publicMode ? (
+               <button 
+                 onClick={() => {
+                   toast.error('Sign up to unlock advanced filters!', {
+                     icon: '🔒',
+                     style: { borderRadius: '12px', background: '#1e293b', color: '#fff' },
+                   });
+                   setTimeout(() => router.push('/signup'), 1500);
+                 }}
+                 className="flex items-center gap-2 px-4 py-2.5 rounded-full border border-slate-200 text-sm font-semibold text-slate-700 bg-white hover:bg-slate-50 transition-all"
+               >
+                 <MdTune size={18} />
+                 <span>Filters</span>
+               </button>
+             ) : (
+               <>
+                 <div className="md:hidden">
+                   <AdvancedFilters 
+                     filters={filters} 
+                     onApply={handleAdvancedFilterApply} 
+                     mode="modal" 
+                   />
+                 </div>
+                 <div className="hidden md:block">
+                   <AdvancedFilters 
+                     filters={filters} 
+                     onApply={handleAdvancedFilterApply} 
+                     mode="panel" 
+                   />
+                 </div>
+               </>
+             )}
+
              <button 
                onClick={() => {
-                   // Optional: Scroll to results or just trigger a "refresh" visual? 
-                   // Since filters apply on confirm, this is mostly symbolic or for location.
                    const listingSection = document.getElementById('listings');
                    if (listingSection) listingSection.scrollIntoView({ behavior: 'smooth' });
                }}
-               className="w-full md:w-auto bg-terracotta-500 hover:bg-terracotta-600 text-white p-4 rounded-full shadow-lg shadow-terracotta-200 transition-all active:scale-95 flex items-center justify-center"
+               className="md:hidden bg-terracotta-500 hover:bg-terracotta-600 text-white p-3 rounded-full shadow-lg shadow-terracotta-200 transition-all active:scale-95 flex items-center justify-center ml-2"
                aria-label="Search"
              >
-               <MdSearch size={28} />
+               <MdSearch size={24} />
+             </button>
+             <button 
+               onClick={() => {
+                   const listingSection = document.getElementById('listings');
+                   if (listingSection) listingSection.scrollIntoView({ behavior: 'smooth' });
+               }}
+               className="hidden md:flex ml-2 bg-terracotta-500 hover:bg-terracotta-600 text-white p-3.5 rounded-full shadow-lg shadow-terracotta-200 transition-all active:scale-95 items-center justify-center"
+               aria-label="Search"
+             >
+               <MdSearch size={22} />
              </button>
           </div>
 

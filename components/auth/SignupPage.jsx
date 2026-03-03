@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,7 +31,7 @@ const signupSchema = z.object({
   path: ["confirmPassword"],
 });
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirectTo') || '';
@@ -251,5 +252,13 @@ export default function SignupPage() {
         </a>
       </p>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-md mx-auto lg:mx-0 h-96 animate-pulse bg-slate-50 rounded-2xl" />}>
+      <SignupForm />
+    </Suspense>
   );
 }

@@ -5,7 +5,7 @@ import 'rc-slider/assets/index.css';
 import { useState, useRef, useEffect } from 'react';
 import { MdEuro, MdOutlineClose } from 'react-icons/md';
 
-export default function PriceFilter({ minPrice, maxPrice, onChange }) {
+export default function PriceFilter({ minPrice, maxPrice, onChange, inline = false }) {
   const [isOpen, setIsOpen] = useState(false);
   const [range, setRange] = useState([minPrice || 0, maxPrice || 5000]);
   const containerRef = useRef(null);
@@ -59,7 +59,7 @@ export default function PriceFilter({ minPrice, maxPrice, onChange }) {
         <div className="flex-1">
           <label className="block text-xs font-bold text-slate-800 cursor-pointer">Price</label>
           <span className="block text-sm text-slate-600 truncate">
-             {isActive ? `€${range[0]} - €${range[1]}+` : 'Add price'}
+             {isActive ? `€${range[0].toLocaleString('en-US')} - €${range[1].toLocaleString('en-US')}+` : 'Add price'}
           </span>
         </div>
       </button>
@@ -79,11 +79,14 @@ export default function PriceFilter({ minPrice, maxPrice, onChange }) {
                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
                <div className="absolute top-2 left-3 text-[10px] font-bold text-slate-500">Min</div>
                <input 
-                 type="number" 
-                 value={range[0]}
-                 min={MIN}
-                 max={range[1]}
-                 onChange={(e) => handleInputChange(0, e.target.value)}
+                 type="text" 
+                 inputMode="numeric"
+                 value={range[0].toLocaleString('en-US')}
+                 onChange={(e) => {
+                   const val = e.target.value.replace(/,/g, '');
+                   if (!isNaN(val) && val !== '') handleInputChange(0, val);
+                   else if (val === '') handleInputChange(0, 0);
+                 }}
                  className="w-full pt-6 pb-2 pl-7 pr-3 border border-slate-300 rounded-xl focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 outline-none font-bold text-slate-900"
                />
             </div>
@@ -92,11 +95,14 @@ export default function PriceFilter({ minPrice, maxPrice, onChange }) {
                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">€</span>
                <div className="absolute top-2 left-3 text-[10px] font-bold text-slate-500">Max</div>
                <input 
-                 type="number" 
-                 value={range[1]}
-                 min={range[0]}
-                 max={MAX}
-                 onChange={(e) => handleInputChange(1, e.target.value)}
+                 type="text" 
+                 inputMode="numeric"
+                 value={range[1].toLocaleString('en-US')}
+                 onChange={(e) => {
+                   const val = e.target.value.replace(/,/g, '');
+                   if (!isNaN(val) && val !== '') handleInputChange(1, val);
+                   else if (val === '') handleInputChange(1, 0);
+                 }}
                  className="w-full pt-6 pb-2 pl-7 pr-3 border border-slate-300 rounded-xl focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 outline-none font-bold text-slate-900"
                />
             </div>
@@ -119,8 +125,8 @@ export default function PriceFilter({ minPrice, maxPrice, onChange }) {
               ]}
             />
              <div className="flex justify-between mt-2 text-xs text-slate-500 font-medium">
-                <span>€{MIN}</span>
-                <span>€{MAX}+</span>
+                <span>€{MIN.toLocaleString('en-US')}</span>
+                <span>€{MAX.toLocaleString('en-US')}+</span>
              </div>
           </div>
 

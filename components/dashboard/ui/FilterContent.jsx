@@ -19,6 +19,12 @@ import { AMENITIES } from "@/data/amenities";
 import { DEAL_BREAKERS, LIFESTYLE_PRIORITIES, PROPERTY_CATEGORIES } from "@/data/listingOptions";
 import { COUNTIES, DUBLIN_AREAS, CITIES_TOWNS } from '@/data/locations';
 
+// External reusable filters
+import MoveInDateFilter from '@/components/public/filters/MoveInDateFilter';
+import RoomTypeFilter from '@/components/public/filters/RoomTypeFilter';
+import CompatibilityFilter from '@/components/public/filters/CompatibilityFilter';
+import BillsIncludedFilter from '@/components/public/filters/BillsIncludedFilter';
+
 export const FilterContent = ({ variant }) => {
   const { filters, updateFilters } = useFilters();
   const isSidebar = variant === 'sidebar';
@@ -225,6 +231,13 @@ export const FilterContent = ({ variant }) => {
          </div>
       </FilterSection>
 
+      <FilterSection title="Move-in Date" isSidebar={isSidebar} defaultOpen={!isSidebar}>
+        <MoveInDateFilter
+          value={filters.moveInDate}
+          onChange={(v) => updateFilters({ moveInDate: v })}
+        />
+      </FilterSection>
+
       <FilterSection title="Property Type" isSidebar={isSidebar} defaultOpen={true}>
          <div className="grid grid-cols-2 gap-2">
             <button
@@ -262,7 +275,14 @@ export const FilterContent = ({ variant }) => {
          </div>
       </FilterSection>
 
-      <FilterSection title="Bedrooms" isSidebar={isSidebar}>
+      <FilterSection title="Room Type" isSidebar={isSidebar} defaultOpen={false}>
+        <RoomTypeFilter
+          value={filters.roomType}
+          onChange={(v) => updateFilters({ roomType: v })}
+        />
+      </FilterSection>
+
+      <FilterSection title="Bedrooms" isSidebar={isSidebar} defaultOpen={false}>
         {/* Bedrooms */}
         <div className="mb-4">
             <label className="text-[10px] font-bold text-navy-500 uppercase mb-2 block">Minimum Beds</label>
@@ -304,7 +324,14 @@ export const FilterContent = ({ variant }) => {
         </div>
       </FilterSection>
 
-      <FilterSection title="House Rules" isSidebar={isSidebar}>
+      <FilterSection title="Minimum Compatibility" isSidebar={isSidebar} defaultOpen={false}>
+        <CompatibilityFilter
+          value={filters.minCompatibility ?? 60}
+          onChange={(v) => updateFilters({ minCompatibility: v })}
+        />
+      </FilterSection>
+
+      <FilterSection title="House Rules" isSidebar={isSidebar} defaultOpen={false}>
         <div className="space-y-4">
             <div>
                 <label className="text-xs font-bold text-navy-900 mb-2 block">Lifestyle Match</label>
@@ -333,7 +360,7 @@ export const FilterContent = ({ variant }) => {
         </div>
       </FilterSection>
 
-      <FilterSection title="Amenities" isSidebar={isSidebar}>
+      <FilterSection title="Amenities" isSidebar={isSidebar} defaultOpen={false}>
         <div className="space-y-2">
           {AMENITIES.map((amenity) => (
             <label key={amenity.value} className="flex items-center justify-between p-2 hover:bg-navy-50 rounded-lg cursor-pointer transition-colors group">
@@ -357,6 +384,13 @@ export const FilterContent = ({ variant }) => {
             </label>
           ))}
         </div>
+      </FilterSection>
+
+      <FilterSection title="Bills" isSidebar={isSidebar} defaultOpen={false}>
+        <BillsIncludedFilter
+          value={filters.billsIncluded || false}
+          onChange={(v) => updateFilters({ billsIncluded: v })}
+        />
       </FilterSection>
     </div>
   );

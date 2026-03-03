@@ -101,7 +101,7 @@ export default function RoomsPage() {
       </div>
 
       <div className="-mt-8"> {/* Negative margin to overlap/pull up */}
-         <FilterBar filters={filters} onFilterChange={handleFilterChange} />
+         <FilterBar filters={filters} onFilterChange={handleFilterChange} publicMode={true} />
       </div>
 
       <main id="listings" className="flex-1 container mx-auto px-4 md:px-6 py-8 md:py-12">

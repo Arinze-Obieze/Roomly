@@ -176,6 +176,22 @@ export async function handleCreateProperty(req) {
       }
     }
 
+    // ─── Derive filter-compatible fields from existing form data ──────────────
+    // bills_included: true only when landlord chose "Yes, All bills included"
+    const billsOption = form.get('bills_option') || 'some';
+    const billsIncluded = billsOption === 'box';
+
+    // house_rules: assemble from deal_breakers array + couples_allowed toggle
+    // The filter expects: 'no_smoking', 'pets_allowed', 'couples_welcome', 'students_welcome'
+    const dealBreakers = readJson(form, 'deal_breakers', []);
+    const couplesAllowed = readBool(form, 'couples_allowed');
+    const houseRules = [];
+    // deal_breakers are things NOT allowed — map to positive "allowed" rules
+    if (!dealBreakers.includes('smokers'))   houseRules.push('no_smoking');
+    if (!dealBreakers.includes('pets'))      houseRules.push('pets_allowed');
+    if (couplesAllowed)                      houseRules.push('couples_welcome');
+    if (!dealBreakers.includes('students'))  houseRules.push('students_welcome');
+
     const propertyData = {
       title: form.get('title'),
       description: form.get('description'),
@@ -197,9 +213,10 @@ export async function handleCreateProperty(req) {
       is_gaeltacht: readBool(form, 'is_gaeltacht'),
       price_per_month: pricePerMonth,
       deposit: readNumber(form, 'deposit'),
-      bills_option: form.get('bills_option') || 'some',
+      bills_option: billsOption,
+      bills_included: billsIncluded,        // ← NEW: derived for filter
       custom_bills: readJson(form, 'custom_bills', []),
-      couples_allowed: readBool(form, 'couples_allowed'),
+      couples_allowed: couplesAllowed,
       payment_methods: readJson(form, 'payment_methods', []),
       amenities: readJson(form, 'amenities', []),
       occupation_preference: form.get('occupation_preference') || 'any',
@@ -207,6 +224,7 @@ export async function handleCreateProperty(req) {
       age_min: readNumber(form, 'age_min') || 18,
       age_max: readNumber(form, 'age_max') || 99,
       lifestyle_priorities: readJson(form, 'lifestyle_priorities', {}),
+      deal_breakers: dealBreakers,
       partner_description: form.get('partner_description'),
       available_from: form.get('available_from') || null,
       is_immediate: readBool(form, 'is_immediate'),
@@ -216,6 +234,9 @@ export async function handleCreateProperty(req) {
       is_active: true,
       is_public: form.get('is_public') !== null ? readBool(form, 'is_public') : true,
       status: 'available',
+      // ── New filter columns ────────────────────────────────────────────────
+      room_type: form.get('room_type') || null,  // 'single' | 'double' | 'ensuite' | null
+      house_rules: houseRules,                    // derived from deal_breakers + couples_allowed
     };
 
     const { data: property, error: propertyInsertError } = await supabase

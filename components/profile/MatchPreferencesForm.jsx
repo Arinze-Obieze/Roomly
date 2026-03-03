@@ -37,6 +37,8 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
     accepted_pets: false,
     cleanliness_tolerance: null,   // seeker: what cleanliness standard they need
     guests_tolerance: null,         // seeker: how often host brings guests is ok
+    min_stay: 6,
+    max_stay: 12,
     ...initialData
   });
 
@@ -153,26 +155,61 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
                        </div>
 
                        {/* Move In Window */}
-                       <div>
-                         <label className="block text-sm font-semibold mb-2 text-navy-700">When do you want to move?</label>
-                         <div className="space-y-2">
-                            {MOVE_IN_OPTIONS.map((opt) => (
-                              <label key={opt.value} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                                 formData.move_in_window === opt.value 
-                                   ? 'border-terracotta-500 bg-terracotta-50 ring-1 ring-terracotta-500' 
-                                   : 'border-navy-200 hover:border-navy-300'
-                              }`}>
-                                 <input 
-                                    type="radio" 
-                                    name="move_in"
-                                    value={opt.value}
-                                    checked={formData.move_in_window === opt.value}
-                                    onChange={(e) => handleChange('move_in_window', e.target.value)}
-                                    className="text-terracotta-600 focus:ring-terracotta-500"
-                                 />
-                                 <span className="text-sm font-medium text-navy-700">{opt.label}</span>
-                              </label>
-                            ))}
+                       <div className="flex flex-col gap-6">
+                         <div>
+                           <label className="block text-sm font-semibold mb-2 text-navy-700">When do you want to move?</label>
+                           <div className="space-y-2">
+                              {MOVE_IN_OPTIONS.map((opt) => (
+                                <label key={opt.value} className={`flex items-center gap-3 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                                   formData.move_in_window === opt.value 
+                                     ? 'border-terracotta-500 bg-terracotta-50 ring-1 ring-terracotta-500' 
+                                     : 'border-navy-200 hover:border-navy-300'
+                                }`}>
+                                   <input 
+                                      type="radio" 
+                                      name="move_in"
+                                      value={opt.value}
+                                      checked={formData.move_in_window === opt.value}
+                                      onChange={(e) => handleChange('move_in_window', e.target.value)}
+                                      className="text-terracotta-600 focus:ring-terracotta-500"
+                                   />
+                                   <span className="text-sm font-medium text-navy-700">{opt.label}</span>
+                                </label>
+                              ))}
+                           </div>
+                         </div>
+                         <div>
+                           <label className="block text-sm font-semibold mb-2 text-navy-700">Stay Duration (Months)</label>
+                           <div className="flex items-center gap-3">
+                             <div className="flex-1">
+                               <select
+                                 value={formData.min_stay || 6}
+                                 onChange={(e) => handleChange('min_stay', parseInt(e.target.value))}
+                                 className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
+                               >
+                                 <option value={1}>1 Month (Min)</option>
+                                 <option value={3}>3 Months</option>
+                                 <option value={6}>6 Months</option>
+                                 <option value={9}>9 Months</option>
+                                 <option value={12}>1 Year</option>
+                               </select>
+                             </div>
+                             <span className="text-navy-400 text-sm font-medium">to</span>
+                             <div className="flex-1">
+                               <select
+                                 value={formData.max_stay || 12}
+                                 onChange={(e) => handleChange('max_stay', parseInt(e.target.value))}
+                                 className="w-full p-2.5 rounded-xl border border-navy-200 text-sm focus:border-terracotta-500 focus:outline-none bg-white"
+                               >
+                                 <option value={3}>3 Months</option>
+                                 <option value={6}>6 Months</option>
+                                 <option value={9}>9 Months</option>
+                                 <option value={12}>1 Year</option>
+                                 <option value={24}>2 Years</option>
+                                 <option value={36}>3+ Years (Max)</option>
+                               </select>
+                             </div>
+                           </div>
                          </div>
                        </div>
                     </div>
@@ -455,10 +492,16 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
            <h3 className="text-xs font-heading font-bold text-navy-400 uppercase tracking-wider mb-2">Requirements</h3>
            <div className="space-y-2">
              {userRole === 'seeker' && (
-               <div className="flex items-center gap-2 text-sm text-navy-700">
-                 <MdCalendarToday className="text-navy-400" />
-                 <span className="capitalize">{formData.move_in_window?.replace('-', ' ') || 'Flexible'}</span>
-               </div>
+               <>
+                 <div className="flex items-center gap-2 text-sm text-navy-700">
+                   <MdCalendarToday className="text-navy-400" />
+                   <span className="capitalize">{formData.move_in_window?.replace('-', ' ') || 'Flexible'}</span>
+                 </div>
+                 <div className="flex items-center gap-2 text-sm text-navy-700">
+                   <MdCalendarToday className="text-navy-400" />
+                   <span>Stay: {formData.min_stay}-{formData.max_stay} months</span>
+                 </div>
+               </>
              )}
              <div className="flex items-center gap-2 text-sm text-navy-700">
                <MdWork className="text-navy-400" />

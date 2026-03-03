@@ -132,7 +132,7 @@ export default function FilterPills({ onOpenFilters }) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onOpenFilters}
-          className="shrink-0 p-2.5 rounded-full border border-navy-200 bg-white text-navy-700 hover:bg-navy-50 transition-colors shadow-sm"
+          className="lg:hidden shrink-0 p-2.5 rounded-full border border-navy-200 bg-white text-navy-700 hover:bg-navy-50 transition-colors shadow-sm"
         >
           <MdTune size={20} />
         </motion.button>
