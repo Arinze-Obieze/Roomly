@@ -26,25 +26,27 @@ export const FilterModal = ({ isOpen, onClose, resultsCount = 0, isLoading = fal
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] bg-navy-50 lg:hidden">
-      <div className="h-full flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-navy-200 bg-white/95 backdrop-blur-md">
-          <button 
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-navy-50"
-          >
-            <MdArrowBack size={24} className="text-navy-700" />
-          </button>
-          <h2 className="text-lg font-heading font-bold text-navy-950">Filters</h2>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 md:p-6 lg:p-8 bg-navy-900/60 backdrop-blur-sm">
+      <div className="w-full md:max-w-3xl bg-white md:rounded-3xl shadow-2xl overflow-hidden flex flex-col h-full md:max-h-[85vh]">
+        <div className="flex items-center justify-between p-4 border-b border-navy-200 bg-white/95 backdrop-blur-md shrink-0">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={onClose}
+              className="p-2 rounded-lg hover:bg-navy-50 transition-colors"
+            >
+              <MdArrowBack size={24} className="text-navy-700" />
+            </button>
+            <h2 className="text-lg font-heading font-bold text-navy-950">Filters</h2>
+          </div>
           <button 
             onClick={resetFilters}
-            className="text-terracotta-600 font-heading font-bold text-sm"
+            className="text-terracotta-600 font-heading font-bold text-sm px-4 py-2 hover:bg-terracotta-50 rounded-lg transition-colors"
           >
-            Reset
+            Reset all
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto hidden-scrollbar bg-navy-50/30">
           <FilterContent variant="modal" />
         </div>
 

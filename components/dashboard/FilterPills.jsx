@@ -10,7 +10,7 @@ import { COUNTIES, DUBLIN_AREAS, CITIES_TOWNS } from '@/data/locations';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export default function FilterPills({ onOpenFilters }) {
-  const { filters, updateFilters } = useFilters();
+  const { filters, updateFilters, activeFilterCount } = useFilters();
   const [activePill, setActivePill] = useState(null);
   const pillsRef = useRef(null);
   const [draftPropertyTypes, setDraftPropertyTypes] = useState([]);
@@ -132,9 +132,15 @@ export default function FilterPills({ onOpenFilters }) {
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
           onClick={onOpenFilters}
-          className="lg:hidden shrink-0 p-2.5 rounded-full border border-navy-200 bg-white text-navy-700 hover:bg-navy-50 transition-colors shadow-sm"
+          className="lg:hidden relative shrink-0 flex items-center justify-center gap-2 p-2.5 sm:px-4 sm:py-2 rounded-full border bg-white text-navy-700 border-navy-200 hover:border-navy-300 hover:bg-navy-50 shadow-sm text-sm font-heading font-medium transition-all"
         >
-          <MdTune size={20} />
+          <MdTune size={20} className="sm:w-[18px] sm:h-[18px]" />
+          <span className="hidden sm:inline">Advanced Filters</span>
+          {activeFilterCount > 0 && (
+            <span className="bg-terracotta-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full font-bold absolute -top-1.5 -right-1.5 shadow-sm">
+              {activeFilterCount}
+            </span>
+          )}
         </motion.button>
 
         {/* Location Pill */}
@@ -161,12 +167,10 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute md:left-0 md:mt-2 z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-sm md:top-full md:w-[320px]"
+                className="filter-pill-content absolute top-full left-0 right-0 z-[400] mt-2 md:right-auto md:w-[320px] max-md:w-full"
               >
-                {/* Mobile Overlay */}
-                <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />
                 
-                <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-4">
+                <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-4 max-md:max-h-[calc(100vh-220px)] max-md:overflow-y-auto">
                   <h3 className="font-heading font-bold text-navy-950 mb-3">Where to?</h3>
                   <form onSubmit={handleLocationSubmit} className="relative">
                     <MdLocationOn className="absolute left-3 top-3 text-navy-400" size={18} />
@@ -263,11 +267,11 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-md md:mt-2 md:top-full md:left-1/2 md:-translate-x-1/2 md:w-[340px]"
+                className="filter-pill-content absolute top-full left-0 right-0 z-[400] mt-2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[340px]"
               >
                 {/* Mobile Overlay */}
                 <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />
-                <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-5">
+                <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-5 max-md:max-h-[calc(100vh-220px)] max-md:overflow-y-auto">
                   <div className="flex justify-between items-center mb-5">
                     <h3 className="font-heading font-bold text-navy-950">Price Range</h3>
                     <button onClick={() => setActivePill(null)} className="p-1 hover:bg-navy-50 rounded-full text-navy-400">
@@ -367,13 +371,11 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute md:mt-2 z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-sm md:top-full md:left-1/2 md:-translate-x-1/2 md:w-[300px]"
+                className="filter-pill-content absolute top-full left-0 right-0 z-[400] mt-2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[300px] max-md:w-full"
               >
-                {/* Mobile Overlay */}
-                <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />
 
-                <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-3">
-                  <div className="space-y-1">
+                <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-3 flex flex-col max-md:max-h-[calc(100vh-220px)]">
+                  <div className="space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-navy-200 flex-1 min-h-0 pr-1">
                     <button
                       onClick={() => {
                         setDraftPropertyTypes([]);
@@ -412,7 +414,7 @@ export default function FilterPills({ onOpenFilters }) {
                       </button>
                     ))}
                   </div>
-                  <div className="flex justify-between items-center pt-4 mt-3 border-t border-navy-100">
+                  <div className="flex justify-between items-center pt-3 mt-3 border-t border-navy-100 shrink-0">
                     <button
                       onClick={() => setActivePill(null)}
                       className="px-3 py-1.5 text-xs font-medium text-navy-500 hover:bg-navy-50 rounded-lg transition-colors"
@@ -462,12 +464,12 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute z-[400] max-md:fixed max-md:z-[999] max-md:inset-0 max-md:m-auto max-md:h-fit max-md:w-[calc(100vw-2rem)] max-md:max-w-md md:mt-2 md:top-full md:left-1/2 md:-translate-x-1/2 md:w-[340px]"
+                className="filter-pill-content absolute top-full left-0 right-0 z-[400] mt-2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[340px]"
               >
                 {/* Mobile Overlay */}
                 <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />
 
-                <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-5">
+                <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-5 max-md:max-h-[calc(100vh-220px)] max-md:overflow-y-auto">
                   <div className="flex justify-between items-center mb-5">
                     <h3 className="font-heading font-bold text-navy-950">Beds & Baths</h3>
                     <button onClick={() => setActivePill(null)} className="p-1 hover:bg-navy-50 rounded-full text-navy-400">

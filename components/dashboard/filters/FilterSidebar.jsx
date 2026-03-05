@@ -8,7 +8,7 @@ export const FilterSidebar = () => {
   const { resetFilters, activeFilterCount } = useFilters();
 
   return (
-    <div className="bg-white rounded-3xl border border-navy-200 overflow-hidden flex flex-col h-full shadow-sm">
+    <div className="bg-white rounded-3xl overflow-hidden flex flex-col h-[calc(100vh-2rem)] shadow-sm">
       <div className="flex items-center justify-between p-5 border-b border-navy-100">
         <div className="flex items-center gap-2">
           <h2 className="font-heading font-bold text-navy-950">Filters</h2>
@@ -32,7 +32,7 @@ export const FilterSidebar = () => {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-navy-200 hover:scrollbar-thumb-navy-300 p-5">
+      <div className="flex-1 overflow-y-auto hidden-scrollbar p-5 pb-10">
         <FilterContent variant="sidebar" />
       </div>
     </div>

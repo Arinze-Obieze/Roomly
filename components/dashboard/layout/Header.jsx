@@ -27,13 +27,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
 
-// ========== CONSTANTS (unchanged) ==========
 const NAV_ITEMS = {
   DISCOVER: { icon: MdHome, label: "Discover", path: "/dashboard", public: true },
   MY_LISTINGS: { icon: FaRegEdit, label: "My Listings", path: "/my-properties" },
   SAVED: { icon: MdFavoriteBorder, label: "Saved", path: "/saved" },
   FIND_PEOPLE: { icon: MdPeopleAlt, label: "Find People", path: "/find-people" },
   MESSAGES: { icon: MdChatBubbleOutline, label: "Messages", path: "/messages", badge: true },
+  BUDDY_UP: { icon: MdGroups, label: "Buddy-Up", path: "/dashboard/buddy-up" },
   COMMUNITY: { icon: MdGroups, label: "Community", path: "/dashboard/community" }
 };
 
@@ -183,7 +183,8 @@ export const Header = ({ showFilters, setShowFilters }) => {
     router.push('/login');
   };
 
-  const showSearchAndFilters = pathname === '/dashboard';
+  const showDesktopSearchInHeader = pathname !== '/dashboard' && pathname.startsWith('/dashboard');
+  const showMobileSearchInHeader = pathname.startsWith('/dashboard');
   const isActive = (path) => pathname === path;
 
   const firstName = user?.full_name?.split(' ')[0] || 'User';
@@ -202,6 +203,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
         NAV_ITEMS.SAVED,
         NAV_ITEMS.FIND_PEOPLE,
         NAV_ITEMS.MESSAGES,
+        NAV_ITEMS.BUDDY_UP,
         NAV_ITEMS.COMMUNITY
       );
     }
@@ -213,11 +215,24 @@ export const Header = ({ showFilters, setShowFilters }) => {
       {/* Desktop Header */}
       <header className="hidden lg:block sticky top-0 z-40 bg-white border-b border-[#BCCCDC]">
         {/* Top Bar */}
-        <div className="border-b border-[#F0F4F8] bg-white relative z-50">
-            <div className="flex items-center justify-between px-4 lg:px-8 py-4 max-w-[1920px] mx-auto">
+        <div className="bg-white relative z-50">
+            <div className="flex items-center justify-between px-4 lg:px-8 h-[73px] max-w-[1920px] mx-auto">
                 <Logo />
                 
-                <div className="flex items-center gap-4">
+                {/* Center Contextual Search */}
+                <div className="flex-1 max-w-xl mx-8">
+                   {showDesktopSearchInHeader && (
+                    <SearchBar 
+                        placeholder="Search spaces, community, or messages..."
+                        value={filters.searchQuery}
+                        onChange={(val) => updateFilters({ searchQuery: val })}
+                    />
+                    )}
+                </div>
+
+                <div className="flex items-center gap-4 shrink-0">
+                    <ListPropertyButton onClick={() => router.push('/listings/new')} />
+                    
                     {loading ? (
                     <div className="flex items-center gap-4">
                         <div className="w-8 h-8 bg-[#F0F4F8] rounded-xl animate-pulse"></div>
@@ -272,34 +287,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
             </div>
         </div>
 
-        {/* Navigation Bar */}
-        <div className="bg-[#F0F4F8]">
-            <div className="flex items-center justify-between px-4 lg:px-8 py-3 max-w-[1920px] mx-auto">
-                <nav className="flex items-center gap-1">
-                    {getNavItems().map((item) => (
-                    <HeaderNavItem 
-                        key={item.label}
-                        icon={item.icon}
-                        label={item.label}
-                        active={isActive(item.path)}
-                        badge={item.badge && chatUnreadCount > 0 ? chatUnreadCount : null}
-                        onClick={() => router.push(user ? item.path : '/rooms')}
-                    />
-                    ))}
-                </nav>
 
-                <div className="relative w-96">
-                    {showSearchAndFilters && (
-                    <SearchBar 
-                        value={filters.searchQuery}
-                        onChange={(val) => updateFilters({ searchQuery: val })}
-                    />
-                    )}
-                </div>
-
-                <ListPropertyButton onClick={() => router.push('/listings/new')} />
-            </div>
-        </div>
       </header>
 
       {/* Mobile Header */}
@@ -360,7 +348,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
           </div>
         </div>
 
-        {showSearchAndFilters && (
+        {showMobileSearchInHeader && (
           <div className="px-4 pb-4">
             <MobileSearchBar 
               value={filters.searchQuery}

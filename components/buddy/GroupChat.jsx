@@ -4,7 +4,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from '@/core/contexts/AuthContext';
-import { MdSend, MdAttachFile, MdClose, MdDescription } from 'react-icons/md';
+import { 
+    MdSend, MdAttachFile, MdClose, MdDescription, 
+    MdAccessTime, MdCheck, MdCloudUpload 
+} from 'react-icons/md';
 import { toast } from 'react-hot-toast';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -17,6 +20,7 @@ dayjs.extend(relativeTime);
 export default function GroupChat({ groupId }) {
   const { user } = useAuthContext();
   const [messages, setMessages] = useState([]);
+  const [optimisticMessages, setOptimisticMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
@@ -36,9 +40,21 @@ export default function GroupChat({ groupId }) {
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'buddy_messages', filter: `group_id=eq.${groupId}` },
         (payload) => {
-            // Direct subscription - add message to state instead of pollling
             const newMessage = payload.new;
             setMessages(prev => [...prev, newMessage]);
+            
+            if (newMessage.sender_id === user?.id) {
+                setOptimisticMessages(prev => {
+                    const matchIndex = prev.findIndex(opt => 
+                        opt.content === newMessage.content && 
+                        opt.attachment_type === newMessage.attachment_type
+                    );
+                    if (matchIndex !== -1) {
+                        return [...prev.slice(0, matchIndex), ...prev.slice(matchIndex + 1)];
+                    }
+                    return prev;
+                });
+            }
         }
       )
       .subscribe();
@@ -50,7 +66,7 @@ export default function GroupChat({ groupId }) {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, attachmentParams]);
+  }, [messages, optimisticMessages, attachmentParams]);
 
   const fetchMessages = async () => {
     try {
@@ -129,69 +145,113 @@ export default function GroupChat({ groupId }) {
     e.preventDefault();
     if (!input.trim() && !attachmentParams) return;
 
+    const content = input;
+    const prevAttachmentParams = attachmentParams;
+    const isFile = !!attachmentParams?.fileObj;
+    const tempId = uuidv4();
+
+    // Optimistically add message
+    const optimisticMsg = {
+        id: tempId,
+        sender_id: user?.id,
+        content: content.trim() ? content : null,
+        attachment_type: attachmentParams?.type || null,
+        attachment_data: attachmentParams ? { 
+            url: attachmentParams.url, 
+            name: attachmentParams.name, 
+            size: attachmentParams.size 
+        } : null,
+        created_at: new Date().toISOString(),
+        sender: { full_name: user?.full_name, profile_picture: user?.user_metadata?.avatar_url },
+        status: isFile ? 'uploading' : 'sending',
+        uploadProgress: isFile ? 0 : 100
+    };
+    
+    setOptimisticMessages(prev => [...prev, optimisticMsg]);
+    setInput('');
+    setAttachmentParams(null);
+    
+    let progressInterval;
+    if (isFile) {
+         progressInterval = setInterval(() => {
+             setOptimisticMessages(prev => prev.map(m => {
+                 if (m.id === tempId && m.uploadProgress < 90) {
+                     return { ...m, uploadProgress: m.uploadProgress + 10 };
+                 }
+                 return m;
+             }));
+         }, 300);
+    }
+
     let finalAttachmentType = null;
     let finalAttachmentData = null;
     let uploadedFilePath = null;
-    
-    const content = input;
-    const prevAttachmentParams = attachmentParams;
-    
-    if (attachmentParams?.fileObj) {
-        setIsUploading(true);
-        const uploadResult = await uploadFileProcess(attachmentParams.fileObj);
-        setIsUploading(false);
-        
-        if (!uploadResult) return; // don't send if upload failed
-        
-        uploadedFilePath = uploadResult.filePath;
-        finalAttachmentType = attachmentParams.type;
-        finalAttachmentData = {
-            url: uploadResult.publicUrl,
-            name: attachmentParams.name,
-            size: attachmentParams.size
-        };
-    }
-
-    setInput(''); // Optimistic clear
-    setAttachmentParams(null); // Clear UI but don't revoke URL yet
 
     try {
-      const csrfRes = await fetch('/api/csrf-token');
-      const { csrfToken } = await csrfRes.json();
+        if (isFile) {
+            setIsUploading(true);
+            const uploadResult = await uploadFileProcess(prevAttachmentParams.fileObj);
+            setIsUploading(false);
+            clearInterval(progressInterval);
+            
+            if (!uploadResult) {
+                setOptimisticMessages(prev => prev.filter(m => m.id !== tempId));
+                setInput(content);
+                setAttachmentParams(prevAttachmentParams);
+                return;
+            }
+            
+            uploadedFilePath = uploadResult.filePath;
+            finalAttachmentType = prevAttachmentParams.type;
+            finalAttachmentData = {
+                url: uploadResult.publicUrl,
+                name: prevAttachmentParams.name,
+                size: prevAttachmentParams.size
+            };
+            
+            setOptimisticMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'sending', uploadProgress: 100 } : m));
+        }
 
-      const res = await fetch('/api/buddy/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-csrf-token': csrfToken,
-        },
-        body: JSON.stringify({
-           groupId,
-           content: content.trim() ? content : null,
-           attachmentType: finalAttachmentType,
-           attachmentData: finalAttachmentData
-        })
-      });
-      if (!res.ok) throw new Error('Failed to send');
-      
-      // Successfully sent, now we can revoke the preview URL
-      if (prevAttachmentParams?.url && prevAttachmentParams.type === 'image') {
-          URL.revokeObjectURL(prevAttachmentParams.url);
-      }
-      
-      fetchMessages();
-      
+        const csrfRes = await fetch('/api/csrf-token');
+        const { csrfToken } = await csrfRes.json();
+
+        const res = await fetch('/api/buddy/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-csrf-token': csrfToken,
+            },
+            body: JSON.stringify({
+                groupId,
+                content: content.trim() ? content : null,
+                attachmentType: finalAttachmentType,
+                attachmentData: finalAttachmentData
+            })
+        });
+        
+        if (!res.ok) throw new Error('Failed to send');
+
+        // Mark as sent
+        setOptimisticMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'sent' } : m));
+        
+        if (prevAttachmentParams?.url && prevAttachmentParams.type === 'image') {
+            URL.revokeObjectURL(prevAttachmentParams.url);
+        }
     } catch (error) {
-      console.error('Error sending message:', error.message || error);
-      setInput(content); // Restore on error
-      setAttachmentParams(prevAttachmentParams); // Restore attachment UI
-      
-      // Cleanup the orphaned file in storage if upload succeeded but DB failed
-      if (uploadedFilePath) {
-          await supabase.storage.from('buddy_attachments').remove([uploadedFilePath]);
-      }
-      
-      toast.error('Failed to send message');
+        clearInterval(progressInterval);
+        setIsUploading(false);
+        console.error('Error sending message:', error.message || error);
+        
+        // Remove optimistic message on fail and restore input
+        setOptimisticMessages(prev => prev.filter(m => m.id !== tempId));
+        setInput(content);
+        setAttachmentParams(prevAttachmentParams);
+        
+        if (uploadedFilePath) {
+            await supabase.storage.from('buddy_attachments').remove([uploadedFilePath]);
+        }
+        
+        toast.error('Failed to send message');
     }
   };
 
@@ -201,11 +261,12 @@ export default function GroupChat({ groupId }) {
     <div className="flex flex-col h-[calc(100dvh-220px)] md:h-[600px] bg-white relative">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-5 space-y-6 scrollbar-thin scrollbar-thumb-navy-100">
-        {messages.map((msg) => {
+        {[...messages, ...optimisticMessages].map((msg) => {
             const isMe = msg.sender_id === user?.id;
+            const opacityClass = (msg.status === 'sending' || msg.status === 'uploading') ? 'opacity-75' : '';
             
             return (
-                <div key={msg.id} className={`flex gap-4 ${isMe ? 'flex-row-reverse' : ''} group`}>
+                <div key={msg.id} className={`flex gap-4 ${isMe ? 'flex-row-reverse' : ''} group ${opacityClass} transition-opacity`}>
                     <div className="shrink-0 w-8 h-8 rounded-full bg-navy-50 border border-navy-100 overflow-hidden mt-1 shadow-sm">
                         {msg.sender?.profile_picture ? (
                             <img src={msg.sender.profile_picture} className="w-full h-full object-cover" />
@@ -295,6 +356,27 @@ export default function GroupChat({ groupId }) {
                             }`}>
                                 {msg.content}
                             </div>
+                        )}
+
+                        {/* Status Checkmarks for User Messages */}
+                        {isMe && (
+                             <div className="flex items-center gap-1 mt-1 justify-end text-[10px] pr-1">
+                                  {msg.status === 'uploading' && (
+                                       <span className="flex items-center gap-1 font-bold text-terracotta-500">
+                                            <MdCloudUpload size={12} /> {msg.uploadProgress}%
+                                       </span>
+                                  )}
+                                  {msg.status === 'sending' && (
+                                       <span className="flex items-center gap-1 font-bold text-navy-400">
+                                            <MdAccessTime size={12} /> Sending
+                                       </span>
+                                  )}
+                                  {(msg.status === 'sent' || !msg.status) && (
+                                       <span className="flex items-center gap-1 font-bold text-terracotta-400">
+                                            <MdCheck size={14} /> Sent
+                                       </span>
+                                  )}
+                             </div>
                         )}
                     </div>
                 </div>

@@ -30,7 +30,8 @@ export default function PropertyGrid({ properties, loading, onSelect }) {
           variants={container}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6 auto-rows-fr"
+          className="grid gap-8 auto-rows-fr"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}
         >
           {renderedProperties.map((listing) => (
             <motion.div key={listing.id} variants={item}>
@@ -45,7 +46,10 @@ export default function PropertyGrid({ properties, loading, onSelect }) {
       
       {/* Loading Skeletons */}
       {loading && (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-2 2xl:grid-cols-3 gap-6">
+        <div 
+          className="grid gap-8"
+          style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))' }}
+        >
           {skeletonItems.map((_, i) => (
             <div key={i} className="bg-white rounded-3xl border border-navy-200 overflow-hidden h-[420px] animate-pulse">
               <div className="h-48 bg-navy-100" />

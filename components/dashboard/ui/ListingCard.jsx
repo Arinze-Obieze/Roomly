@@ -161,7 +161,7 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
       className="group bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-navy-950/5 hover:-translate-y-1 border border-navy-200 flex flex-col h-full [content-visibility:auto] [contain-intrinsic-size:420px]"
     >
       {/* Image Container */}
-      <div className="relative aspect-[5/4] w-full overflow-hidden bg-navy-100">
+      <div className="relative aspect-[4/3] w-full overflow-hidden bg-navy-100">
         <Image 
           src={imgSrc || 'https://placehold.co/600x400/navy-100/navy-500?text=No+Image'} 
           alt={data.title}
@@ -176,14 +176,21 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-navy-900/40 to-transparent opacity-80"></div>
         <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-navy-900/60 via-navy-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
-        {/* Top Badges */}
-        <div className="absolute top-3 left-3 flex flex-wrap gap-2 z-10 max-w-[80%]">
+        {/* Top Badges & Price Overlay */}
+        <div className="absolute top-3 left-3 flex flex-col gap-2 z-10 max-w-[80%]">
+             {/* Beautiful Price Badge */}
+             {!data.isBlurry && (
+                <div className="bg-white/95 text-navy-950 px-3 py-1.5 rounded-xl shadow-lg border border-white/50 backdrop-blur-md flex flex-col transition-transform duration-300 group-hover:scale-105 origin-top-left">
+                    <span className="text-lg font-extrabold text-navy-950 leading-none tracking-tight">{priceLabel}</span>
+                    {data.period && <span className="text-[9px] text-navy-500 font-bold uppercase tracking-wider mt-0.5">{data.period === 'monthly' ? 'per month' : data.period}</span>}
+                </div>
+             )}
+
              {data.isPrivate && (
-                <div className="bg-navy-900/90 text-white px-2.5 py-1 rounded-lg backdrop-blur-md shadow-sm flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider border border-white/10">
+                <div className="bg-navy-900/90 text-white px-2.5 py-1 w-max rounded-lg backdrop-blur-md shadow-sm flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider border border-white/10">
                     <MdLock className="text-terracotta-500" /> Private
                 </div>
              )}
-             
         </div>
 
         {/* Match Score */}
@@ -237,19 +244,15 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
       </div>
 
       <div className="p-4 flex flex-col flex-1">
-        {/* Title & Price */}
-        <div className="flex justify-between items-start gap-2 mb-2">
-           <h3 className="font-heading font-bold text-navy-950 text-base leading-tight line-clamp-2 group-hover:text-terracotta-600 transition-colors flex-1">
+        {/* Title */}
+        <div className="mb-1">
+           <h3 className="font-heading font-bold text-navy-950 text-lg leading-tight truncate group-hover:text-terracotta-600 transition-colors">
              {data.title}
            </h3>
-           <div className="flex flex-col items-end shrink-0">
-             <span className="text-xl font-extrabold text-terracotta-600">{priceLabel}</span>
-             <span className="text-[10px] text-navy-500 font-medium uppercase tracking-wide">{data.period === 'monthly' ? 'per month' : data.period}</span>
-           </div>
         </div>
 
         {/* Location */}
-        <div className="flex items-center gap-1.5 text-navy-500 text-sm mb-4">
+        <div className="flex items-center gap-1 text-navy-500 text-sm mb-3">
             <MdLocationOn className="text-terracotta-400 shrink-0" size={16} />
             <span className="truncate">{data.location}</span>
         </div>
@@ -268,29 +271,24 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
             )}
         </div>
 
-        {/* Footer */}
+        {/* Key Specs Row */}
         {!data.isBlurry && (
-             <div className="pt-3 border-t border-navy-200 flex items-center justify-between text-xs text-navy-500">
-                <div className="flex gap-3">
-                    {data.amenities?.slice(0, 3).map((am, i) => {
+             <div className="mt-auto pt-4 border-t border-navy-100 flex items-center justify-between text-sm text-navy-600 font-medium">
+                <div className="flex gap-4">
+                    {data.amenities?.slice(0, 2).map((am, i) => {
                         const IconComponent = am.icon; 
                         return (
-                            <div key={i} className="flex items-center gap-1" title={am.label}>
-                                {IconComponent && typeof IconComponent !== 'string' && <IconComponent size={14} className="text-navy-500" />} 
-                                <span className="max-w-[60px] truncate">{am.value}</span>
+                            <div key={i} className="flex items-center gap-2" title={am.label}>
+                                {IconComponent && typeof IconComponent !== 'string' && <IconComponent size={16} className="text-navy-400" />} 
+                                <span className="truncate max-w-[80px]">{am.value}</span>
                             </div>
                         );
                     })}
                 </div>
                 
-                {data.host?.avatar ? (
-                     <div className="relative w-6 h-6 rounded-full overflow-hidden bg-navy-100 ring-1 ring-navy-200">
-                        <Image src={data.host.avatar} alt="Host" fill className="object-cover" sizes="24px" />
-                     </div>
-                ) : (
-                    <div className="w-6 h-6 rounded-full bg-terracotta-50 text-terracotta-600 flex items-center justify-center text-[10px] font-bold ring-1 ring-terracotta-100">
-                        {data.host?.name?.[0] || '?'}
-                    </div>
+                {/* Simplified Host/Availability Indicator */}
+                {data.bills_option === 'included' && (
+                    <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2.5 py-1 rounded-md">Bills Inc.</span>
                 )}
              </div>
         )}
