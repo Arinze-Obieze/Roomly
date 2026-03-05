@@ -49,9 +49,11 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
                      className="w-full pl-11 pr-4 py-3 rounded-xl border border-navy-200 bg-white focus:ring-2 focus:ring-terracotta-500 outline-none appearance-none font-sans"
                 >
                     <option value="">Select duration</option>
-                    {[1, 2, 3, 6, 9, 12, 18, 24].map(m => (
+                    {[1, 2, 3, 6, 9, 12, 18].map(m => (
                         <option key={m} value={m}>{m} Month{m > 1 ? 's' : ''}</option>
                     ))}
+                    <option value={24}>24+ Months</option>
+                    <option value={36}>36+ Months (Long-term)</option>
                 </select>
            </div>
         </div>

@@ -83,6 +83,40 @@ export default function HomeDashboard() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // ── Match score bootstrap ──────────────────────────────────────────────────
+  // When a logged-in user has no cached scores (new account, just completed
+  // their profile, or first time the scoring system is active), trigger a
+  // background recompute then refresh listings so % match badges appear.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    async function bootstrapScores() {
+      try {
+        const statusRes = await fetch('/api/matching/status');
+        const { hasScores } = await statusRes.json();
+        if (hasScores || cancelled) return;
+
+        await fetch('/api/matching/recompute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'seeker' }),
+        });
+
+        // Give recompute a few seconds to finish, then reload listings
+        if (!cancelled) {
+          setTimeout(() => { if (!cancelled) refresh(); }, 4000);
+        }
+      } catch {
+        // Silently ignore — scores are a nice-to-have, never a blocker
+      }
+    }
+
+    bootstrapScores();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
+
   return (
     <div className="flex min-h-screen bg-navy-50">
       <div className="flex-1 min-w-0">

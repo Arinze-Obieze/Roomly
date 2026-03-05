@@ -28,7 +28,7 @@ export default function DashboardLayout({ children }) {
               <div className="flex flex-1 max-w-[1920px] w-full mx-auto">
                  <SidebarNav />
                  
-                 <div className="flex-1 min-w-0 flex flex-col relative z-10">
+                 <div className="flex-1 min-w-0 flex flex-col">
                    {children}
                  </div>
               </div>

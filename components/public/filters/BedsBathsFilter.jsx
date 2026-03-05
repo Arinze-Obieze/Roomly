@@ -55,7 +55,7 @@ export default function BedsBathsFilter({ beds, baths, onChange }) {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-4 w-[340px] bg-white rounded-3xl shadow-xl border border-slate-100 p-6 z-50 animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute top-full left-0 mt-4 w-[340px] bg-white rounded-3xl shadow-xl border border-slate-100 p-6 z-[99999] animate-in fade-in zoom-in-95 duration-200">
           <div className="flex justify-between items-center mb-6">
             <h3 className="font-bold text-lg text-slate-900">Beds & Baths</h3>
              <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-slate-50 rounded-full text-slate-400">

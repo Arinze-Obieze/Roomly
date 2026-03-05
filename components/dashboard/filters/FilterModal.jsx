@@ -26,7 +26,7 @@ export const FilterModal = ({ isOpen, onClose, resultsCount = 0, isLoading = fal
   if (!isOpen || !mounted) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-0 md:p-6 lg:p-8 bg-navy-900/60 backdrop-blur-sm">
+    <div className="fixed inset-0 flex items-center justify-center p-0 md:p-6 lg:p-8 bg-navy-900/60 backdrop-blur-sm" style={{ zIndex: 99999 }}>
       <div className="w-full md:max-w-3xl bg-white md:rounded-3xl shadow-2xl overflow-hidden flex flex-col h-full md:max-h-[85vh]">
         <div className="flex items-center justify-between p-4 border-b border-navy-200 bg-white/95 backdrop-blur-md shrink-0">
           <div className="flex items-center gap-3">

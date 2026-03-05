@@ -130,13 +130,15 @@ export const ChatProvider = ({ children }) => {
 
     // Send Message Mutation (Optimistic)
     const sendMessageMutation = useMutation({
-        mutationFn: async ({ conversationId, content }) => {
+        mutationFn: async ({ conversationId, content, attachmentType = null, attachmentData = null }) => {
             const { data, error } = await supabase
                 .from('messages')
                 .insert({
                     conversation_id: conversationId,
                     sender_id: user.id,
-                    content
+                    content,
+                    attachment_type: attachmentType,
+                    attachment_data: attachmentData
                 })
                 .select()
                 .single();
@@ -144,7 +146,7 @@ export const ChatProvider = ({ children }) => {
             if (error) throw error;
             return data;
         },
-        onMutate: async ({ conversationId, content }) => {
+        onMutate: async ({ conversationId, content, attachmentType = null, attachmentData = null }) => {
             await queryClient.cancelQueries(['messages', conversationId]);
 
             const previousMessages = queryClient.getQueryData(['messages', conversationId]);
@@ -157,6 +159,8 @@ export const ChatProvider = ({ children }) => {
                     conversation_id: conversationId,
                     sender_id: user.id,
                     content,
+                    attachment_type: attachmentType,
+                    attachment_data: attachmentData,
                     created_at: new Date().toISOString(),
                     is_read: false
                 };
@@ -197,9 +201,9 @@ export const ChatProvider = ({ children }) => {
         }
     });
 
-    // Start Conversation Mutation
+        // Start Conversation Mutation
     const startConversationMutation = useMutation({
-        mutationFn: async ({ propertyId, hostId, content }) => {
+        mutationFn: async ({ propertyId, hostId, content, attachmentType = null, attachmentData = null }) => {
             const { data: existing } = await supabase
                 .from('conversations')
                 .select('id')
@@ -208,7 +212,7 @@ export const ChatProvider = ({ children }) => {
                 .single();
 
             if (existing) {
-                await sendMessageMutation.mutateAsync({ conversationId: existing.id, content });
+                await sendMessageMutation.mutateAsync({ conversationId: existing.id, content, attachmentType, attachmentData });
                 return existing.id;
             }
 
@@ -218,14 +222,14 @@ export const ChatProvider = ({ children }) => {
                     property_id: propertyId,
                     tenant_id: user.id,
                     host_id: hostId,
-                    last_message: content
+                    last_message: content || 'Shared an attachment'
                 })
                 .select()
                 .single();
             
             if (error) throw error;
             
-            await sendMessageMutation.mutateAsync({ conversationId: newConv.id, content });
+            await sendMessageMutation.mutateAsync({ conversationId: newConv.id, content, attachmentType, attachmentData });
             return newConv.id;
         },
         onSuccess: () => {
@@ -310,8 +314,8 @@ export const ChatProvider = ({ children }) => {
         activeConversation,
         setActiveConversation,
         
-        sendMessage: (conversationId, content) => sendMessageMutation.mutateAsync({ conversationId, content }),
-        startConversation: (pid, hid, content) => startConversationMutation.mutateAsync({ propertyId: pid, hostId: hid, content }),
+        sendMessage: (conversationId, content, attachmentType, attachmentData) => sendMessageMutation.mutateAsync({ conversationId, content, attachmentType, attachmentData }),
+        startConversation: (pid, hid, content, attachmentType, attachmentData) => startConversationMutation.mutateAsync({ propertyId: pid, hostId: hid, content, attachmentType, attachmentData }),
         
         unreadCount: unreadCountQuery.data || 0
     };

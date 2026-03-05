@@ -137,7 +137,9 @@ export const PropertiesProvider = ({ children }) => {
       const dataWithHydratedIcons = transformedData.map(p => ({
          ...p,
          amenities: transformAmenities(p.amenities || []),
-         matchScore: calculateMatchScore(p, filters)
+         // matchScore comes from the API (compatibility_scores cache in DB).
+         // Do NOT overwrite it with a client-side estimate.
+         matchScore: p.matchScore ?? null,
       }));
 
       // Update cache
@@ -233,45 +235,16 @@ export const PropertiesProvider = ({ children }) => {
  */
 function transformAmenities(amenities) {
   const iconMap = {
-    wifi: { icon: FaWifi, label: 'WiFi' },
-    pets: { icon: FaPaw, label: 'Pets Allowed' },
-    parking: { icon: FaCar, label: 'Parking' },
-    ensuite: { icon: FaShower, label: 'Ensuite' },
-    garden: { icon: FaTree, label: 'Garden' }
+    wifi:     { icon: FaWifi,   label: 'WiFi' },
+    pets:     { icon: FaPaw,    label: 'Pets Allowed' },
+    parking:  { icon: FaCar,    label: 'Parking' },
+    ensuite:  { icon: FaShower, label: 'Ensuite' },
+    garden:   { icon: FaTree,   label: 'Garden' },
   };
 
   return amenities.map(amenity => {
-    // Handle both string (DB) and object (API) formats
     const label = typeof amenity === 'string' ? amenity : amenity.label;
     const key = label ? label.toLowerCase() : '';
     return iconMap[key] || { icon: FaWifi, label: label || 'Amenity' };
   });
-}
-
-/**
- * Calculate match score based on user preferences
- * This is a placeholder - implement your own algorithm
- */
-function calculateMatchScore(property, filters) {
-  let score = 70; // Base score
-
-  // Price match
-  if (filters.priceRange) {
-    score += 10;
-  }
-
-  // Bedrooms match
-  if (filters.bedrooms?.includes(property.bedrooms)) {
-    score += 10;
-  }
-
-  // Amenities match
-  if (filters.amenities?.length > 0) {
-    const matchingAmenities = filters.amenities.filter(a => 
-      property.amenities?.includes(a)
-    );
-    score += (matchingAmenities.length / filters.amenities.length) * 10;
-  }
-
-  return Math.min(Math.round(score), 99);
 }

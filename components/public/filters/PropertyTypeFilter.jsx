@@ -60,7 +60,7 @@ export default function PropertyTypeFilter({ values = [], onChange }) {
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-4 w-[280px] bg-white rounded-3xl shadow-xl border border-slate-100 p-4 z-50 animate-in fade-in zoom-in-95 duration-200">
+        <div className="absolute top-full left-0 mt-4 w-[280px] bg-white rounded-3xl shadow-xl border border-slate-100 p-4 z-[99999] animate-in fade-in zoom-in-95 duration-200">
           <div className="flex justify-between items-center mb-4 px-2">
             <h3 className="font-bold text-lg text-slate-900">Property Type</h3>
              <button onClick={() => setIsOpen(false)} className="p-2 hover:bg-slate-50 rounded-full text-slate-400">

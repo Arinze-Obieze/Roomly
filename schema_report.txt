@@ -1,0 +1,13 @@
+=== Roomly Schema Inspection: 2026-03-05T18:04:19.316Z ===
+URL: https://aiovmhiokeisdizhcxvm.supabase.co
+Key type: Anon
+
+[EXISTS]   user_lifestyles | rows≈3 | columns(22): user_id, cleanliness_level, schedule_type, smoking_status, drinking_habits, cannabis_friendly, dietary_preference, social_level, noise_tolerance, pets, interests, overnight_guests, created_at, updated_at, occupation, primary_role, current_city, move_in_urgency, preferred_room_types, preferred_property_types, min_stay, max_stay
+           sample: {"user_id":"06fa1dec-4d85-40c8-8aae-9943b391dd1e","cleanliness_level":2,"schedule_type":"9-5","smoking_status":"no","drinking_habits":"social","cannabis_friendly":false,"dietary_preference":"omnivore","social_level":2,"noise_tolerance":2,"pets":{"has_pets":false,"description":"","accepts_pets":true}
+[EXISTS]   match_preferences | rows≈3 | columns(17): user_id, age_min, age_max, gender_preference, accepted_smoking, accepted_pets, budget_min, budget_max, stay_duration_min, stay_duration_max, location_areas, created_at, updated_at, move_in_window, occupation_preference, cleanliness_tolerance, guests_tolerance
+           sample: {"user_id":"06fa1dec-4d85-40c8-8aae-9943b391dd1e","age_min":20,"age_max":30,"gender_preference":"male","accepted_smoking":["no"],"accepted_pets":true,"budget_min":0,"budget_max":2000,"stay_duration_min":6,"stay_duration_max":12,"location_areas":["Ennis"],"created_at":"2026-01-14T16:28:42.416359+00:0
+[EXISTS]   properties | rows≈5 | columns(48): id, title, description, property_type, price_per_month, state, city, street, bedrooms, bathrooms, square_meters, available_from, amenities, listed_by_user_id, is_active, status, created_at, updated_at, privacy_setting, custom_fees, rental_type, offering_type, year_built, ber_rating, latitude, longitude, transport_options, is_gaeltacht, deposit, bills_option, custom_bills, couples_allowed, payment_methods, occupation_preference, gender_preference, age_min, age_max, lifestyle_priorities, partner_description, is_immediate, min_stay_months, accept_viewings, deal_breakers, fixed_term_duration, is_public, bills_included, room_type, house_rules
+           sample: {"id":"a113a77f-ab66-4980-aab5-aecc183044a0","title":"Charming 4-Bedroom Detached House For Sale","description":"A beautifully presented 4-bedroom detached home located in the popular Manor Farm area of Cork City. This family residence offers spacious living accommodation with an open-plan kitchen/d
+[EXISTS]   property_interests | rows≈0 | columns(0): 
+
+=== Storage Buckets ===

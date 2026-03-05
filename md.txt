@@ -1,0 +1,3 @@
+rror: Failed to create property
+    at handleSubmit (CreateListingForm.jsx:247:20).  -> [Property Create] Property insert failed
+ POST /api/properties/create 500 in 1944ms (compile: 172ms, proxy.ts: 783ms, render: 989ms) // 

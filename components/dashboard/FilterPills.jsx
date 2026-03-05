@@ -125,7 +125,7 @@ export default function FilterPills({ onOpenFilters }) {
   })();
 
   return (
-    <div className="relative z-[250]" ref={pillsRef}>
+    <div className="relative z-[99999]" ref={pillsRef}>
       <div className="flex flex-wrap items-center gap-2 pb-4 -mx-4 px-4 lg:mx-0 lg:px-0">
         {/* All Filters Button */}
         <motion.button 
@@ -167,7 +167,7 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute top-full left-0 right-0 z-[400] mt-2 md:right-auto md:w-[320px] max-md:w-full"
+                className="filter-pill-content absolute top-full left-0 right-0 z-[99999] mt-2 md:right-auto md:w-[320px] max-md:w-full"
               >
                 
                 <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-4 max-md:max-h-[calc(100vh-220px)] max-md:overflow-y-auto">
@@ -267,7 +267,7 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute top-full left-0 right-0 z-[400] mt-2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[340px]"
+                className="filter-pill-content absolute top-full left-0 right-0 z-[99999] mt-2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[340px]"
               >
                 {/* Mobile Overlay */}
                 <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />
@@ -371,7 +371,7 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute top-full left-0 right-0 z-[400] mt-2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[300px] max-md:w-full"
+                className="filter-pill-content absolute top-full left-0 right-0 z-[99999] mt-2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[300px] max-md:w-full"
               >
 
                 <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-3 flex flex-col max-md:max-h-[calc(100vh-220px)]">
@@ -464,7 +464,7 @@ export default function FilterPills({ onOpenFilters }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
-                className="filter-pill-content absolute top-full left-0 right-0 z-[400] mt-2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[340px]"
+                className="filter-pill-content absolute top-full left-0 right-0 z-[99999] mt-2 md:left-1/2 md:right-auto md:-translate-x-1/2 md:w-[340px]"
               >
                 {/* Mobile Overlay */}
                 <div className="md:hidden fixed inset-0 bg-navy-900/60 backdrop-blur-sm -z-10" onClick={() => setActivePill(null)} />

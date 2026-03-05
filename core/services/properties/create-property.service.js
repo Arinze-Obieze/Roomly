@@ -214,7 +214,6 @@ export async function handleCreateProperty(req) {
       price_per_month: pricePerMonth,
       deposit: readNumber(form, 'deposit'),
       bills_option: billsOption,
-      bills_included: billsIncluded,        // ← NEW: derived for filter
       custom_bills: readJson(form, 'custom_bills', []),
       couples_allowed: couplesAllowed,
       payment_methods: readJson(form, 'payment_methods', []),
@@ -234,9 +233,10 @@ export async function handleCreateProperty(req) {
       is_active: true,
       is_public: form.get('is_public') !== null ? readBool(form, 'is_public') : true,
       status: 'available',
-      // ── New filter columns ────────────────────────────────────────────────
-      room_type: form.get('room_type') || null,  // 'single' | 'double' | 'ensuite' | null
-      house_rules: houseRules,                    // derived from deal_breakers + couples_allowed
+      // Filter columns (require db_migration_filter_columns.sql to be run first)
+      room_type: form.get('room_type') || null,
+      house_rules: houseRules,
+      // Note: bills_included is a GENERATED column in Postgres — no need to insert it
     };
 
     const { data: property, error: propertyInsertError } = await supabase
@@ -326,6 +326,16 @@ export async function handleCreateProperty(req) {
     }
 
     await invalidatePattern('properties:list:*');
+
+    // Fire-and-forget: recompute compatibility scores for all seekers against this property.
+    // We don't await this — the response has already gone back to the user.
+    // DB trigger already cleared stale rows for this property_id.
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    fetch(`${appUrl}/api/matching/recompute`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ mode: 'property', propertyId: property.id }),
+    }).catch(() => {}); // Silently ignore if this fails
 
     return NextResponse.json({
       success: true,

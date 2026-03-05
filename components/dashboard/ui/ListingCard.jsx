@@ -138,8 +138,10 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
 
     try {
       setInterestLoading(true);
-      const response = await fetch(`/api/properties/${data.id}/interest`, {
-        method: 'POST'
+      const response = await fetch('/api/interests/show-interest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ propertyId: data.id }),
       });
       const resData = await response.json();
 
@@ -193,32 +195,60 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
              )}
         </div>
 
-        {/* Match Score */}
-        {!isOwner && !data.isBlurry && !data.isPrivate && (
+        {/* Match Score — shows on all listings except the owner's own */}
+        {!isOwner && (
             <div className="absolute bottom-3 left-3 z-10 transition-transform duration-300 group-hover:-translate-y-1">
-                {user && data.matchScore !== null ? (
-                    <div className="bg-white/95 backdrop-blur-md text-navy-900 pl-2 pr-3 py-1.5 rounded-full shadow-lg flex items-center gap-2 text-xs font-bold border border-navy-200">
-                        <div className="relative w-4 h-4">
-                             <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
-                                <path className="text-navy-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
-                                <path className={`${data.matchScore > 85 ? 'text-teal-500' : data.matchScore > 50 ? 'text-yellow-400' : 'text-terracotta-500'}`} strokeDasharray={`${data.matchScore}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="4" />
-                             </svg>
+                {user && data.matchScore != null ? (
+                    /* Real score from compatibility_scores cache */
+                    <div className={`
+                        backdrop-blur-md pl-2 pr-3 py-1.5 rounded-full shadow-lg
+                        flex items-center gap-2 text-xs font-bold border
+                        ${data.isBlurry
+                          ? 'bg-navy-900/80 text-white border-white/10'
+                          : 'bg-white/95 text-navy-900 border-navy-200'}
+                    `}>
+                        <div className="relative w-4 h-4 shrink-0">
+                            <svg viewBox="0 0 36 36" className="w-full h-full transform -rotate-90">
+                                <path
+                                    className={data.isBlurry ? 'text-white/20' : 'text-navy-200'}
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    fill="none" stroke="currentColor" strokeWidth="4"
+                                />
+                                <path
+                                    className={
+                                        data.matchScore >= 80 ? 'text-teal-400'
+                                        : data.matchScore >= 55 ? 'text-yellow-400'
+                                        : 'text-terracotta-400'
+                                    }
+                                    strokeDasharray={`${data.matchScore}, 100`}
+                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                                    fill="none" stroke="currentColor" strokeWidth="4"
+                                />
+                            </svg>
                         </div>
                         <span>{data.matchScore}% Match</span>
                     </div>
+                ) : user ? (
+                    /* Logged in but no score yet — recompute is running in the background */
+                    <div className="bg-navy-900/70 backdrop-blur-md text-white/70 px-3 py-1.5 rounded-full text-xs font-medium border border-white/10 flex items-center gap-1.5 animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/50 inline-block" />
+                        Computing…
+                    </div>
                 ) : (
-                    <div 
+                    /* Logged out — invite to sign up */
+                    <div
                         onClick={(e) => {
                             e.stopPropagation();
-                            if (!user) openLoginModal('Sign up to see compatibility match.');
+                            openLoginModal('Sign up to see your compatibility match for this room.');
                         }}
-                        className="bg-navy-950/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-bold border border-white/10 hover:bg-navy-900 transition-colors"
+                        className="bg-navy-950/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-bold border border-white/10 hover:bg-navy-900 transition-colors cursor-pointer"
                     >
-                         Sign up to see match
+                        See % match
                     </div>
                 )}
             </div>
         )}
+
 
         {/* Action Buttons */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">

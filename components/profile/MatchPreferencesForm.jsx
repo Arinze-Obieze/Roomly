@@ -88,7 +88,6 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
     if(e) e.preventDefault();
     setLoading(true);
     try {
-      // ... (upsert logic same as before)
       const { error } = await supabase
         .from('match_preferences')
         .upsert({ user_id: user.id, ...formData });
@@ -97,6 +96,13 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
       toast.success('Match preferences updated!');
       setMode('view'); 
       if (onComplete) onComplete();
+
+      // Fire-and-forget: recompute compatibility scores in the background
+      fetch('/api/matching/recompute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'seeker' }),
+      }).catch(() => {});
     } catch (error) {
       console.error(error);
       toast.error('Failed to update preferences');

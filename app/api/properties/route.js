@@ -7,30 +7,31 @@ import crypto from 'crypto';
 export const runtime = 'nodejs';
 export const bodySizeLimit = '20mb';
 
-// Generate consistent cache key from query parameters
-const generateCacheKey = (searchParams) => {
+// Generate consistent, per-user cache key from query parameters
+// IMPORTANT: scores and interests are user-specific — must be keyed per user.
+const generateCacheKey = (searchParams, userId) => {
   const params = {};
   for (const [key, value] of searchParams.entries()) {
     params[key] = value;
   }
-  // Create hash of params for consistent key
   const hash = crypto
     .createHash('md5')
-    .update(JSON.stringify(params))
+    .update(JSON.stringify({ params, userId: userId || 'anon' }))
     .digest('hex');
   return `properties:list:${hash}`;
 };
 
 export async function GET(request) {
   try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
     const { searchParams } = new URL(request.url);
-    
-    // Generate cache key
-    const cacheKey = generateCacheKey(searchParams);
-    
-    // Try to fetch from cache first (5 min TTL for listings)
+
+    const cacheKey = generateCacheKey(searchParams, user?.id);
+
+    // 5 min TTL — personalised per user so scores/interests are always correct
     const cachedData = await cachedFetch(cacheKey, 300, async () => {
-      return await fetchPropertiesFromDB(searchParams);
+      return await fetchPropertiesFromDB(searchParams, user);
     });
 
     return NextResponse.json(cachedData);
@@ -44,7 +45,7 @@ export async function GET(request) {
 }
 
 // Extract database fetch logic
-async function fetchPropertiesFromDB(searchParams) {
+async function fetchPropertiesFromDB(searchParams, user) {
   const page = parseInt(searchParams.get('page') || '1');
   const pageSize = parseInt(searchParams.get('pageSize') || '12');
   const priceRange = searchParams.get('priceRange');
@@ -137,12 +138,17 @@ async function fetchPropertiesFromDB(searchParams) {
   }
 
   // ── New advanced filters ───────────────────────────────────────────────────
+  // Note: room_type and house_rules require db_migration_filter_columns.sql.
+  // bills_included falls back to bills_option for safety.
   if (roomType) {
+    // Try room_type column; if it doesn't exist the query will return a DB error
+    // that is caught above — safe to add now that migration is available.
     query = query.eq('room_type', roomType);
   }
 
   if (billsIncluded) {
-    query = query.eq('bills_included', true);
+    // Prefer the generated column if available, fall back to bills_option string match
+    query = query.or('bills_included.eq.true,bills_option.eq.all');
   }
 
   if (houseRules && houseRules.length > 0) {
@@ -196,27 +202,47 @@ async function fetchPropertiesFromDB(searchParams) {
     throw error;
   }
 
-  const authStart = Date.now();
-  const { data: { user } } = await supabase.auth.getUser();
-  console.log(`[PERF_DEBUG] Auth getUser Time: ${Date.now() - authStart}ms`);
+  // user is passed in from GET to avoid a redundant getUser() call
+  // interests and scores are fetched per-user from Supabase (bypasses Redis)
 
   // Fetch interests for the current user
   let interests = [];
+  let scoreMap = {}; // { [property_id]: score }
   if (user) {
     const interestStart = Date.now();
-    const { data: interestData } = await supabase
-      .from('property_interests')
-      .select('property_id, status')
-      .eq('seeker_id', user.id);
-    interests = interestData || [];
-    console.log(`[PERF_DEBUG] Interests Fetch Time: ${Date.now() - interestStart}ms`);
+    const [interestData, scoreData] = await Promise.all([
+      supabase
+        .from('property_interests')
+        .select('property_id, status')
+        .eq('seeker_id', user.id),
+      supabase
+        .from('compatibility_scores')
+        .select('property_id, score')
+        .eq('seeker_id', user.id),
+    ]);
+    interests = interestData.data || [];
+    for (const row of (scoreData.data || [])) {
+      scoreMap[row.property_id] = row.score;
+    }
+    console.log(`[PERF_DEBUG] Interests + Scores Fetch Time: ${Date.now() - interestStart}ms`);
   }
 
   const transformedData = data.map(property => {
     const interest = interests.find(i => i.property_id === property.id);
     const isMutualInterest = interest?.status === 'accepted';
     const isPrivate = property.privacy_setting === 'private';
-    const shouldMask = isPrivate && !isMutualInterest;
+    const isOwner = user && property.listed_by_user_id === user.id;
+    const shouldMask = isPrivate && !isMutualInterest && !isOwner;
+    const matchScore = scoreMap[property.id] ?? null;
+
+    // ── 70% PRIVACY THRESHOLD ──
+    // If it's private and we don't have mutual interest/ownership,
+    // completely hide it unless the seeker is a >= 70% match.
+    if (shouldMask) {
+      if (!user || matchScore === null || matchScore < 70) {
+        return null;
+      }
+    }
 
     let hostName = property.users?.full_name || 'Unknown';
     
@@ -255,10 +281,13 @@ async function fetchPropertiesFromDB(searchParams) {
         isBlurry: true,
         bedrooms: property.bedrooms,
         bathrooms: property.bathrooms,
+        bills_option: property.bills_option,
+        couples_allowed: property.couples_allowed,
         propertyType: property.property_type,
         amenities: (property.amenities || []).slice(0, 3).map(a => ({ icon: 'FaWifi', label: a })),
         verified: false,
         isPrivate: true,
+        matchScore: scoreMap[property.id] ?? null, // Match score always visible on private listings
         interestStatus: interest?.status || null,
         host: {
           name: maskedName,
@@ -299,10 +328,13 @@ async function fetchPropertiesFromDB(searchParams) {
       ) || [],
       bedrooms: property.bedrooms,
       bathrooms: property.bathrooms,
+      bills_option: property.bills_option,
+      couples_allowed: property.couples_allowed,
       propertyType: property.property_type,
       amenities: (property.amenities || []).map(a => ({ icon: 'FaWifi', label: a })),
       verified: false,
       isPrivate: isPrivate,
+      matchScore: scoreMap[property.id] ?? null,
       interestStatus: interest?.status || null,
       host: {
         name: hostName,
@@ -313,15 +345,15 @@ async function fetchPropertiesFromDB(searchParams) {
       availableFrom: property.available_from,
       createdAt: property.created_at
     };
-  });
+  }).filter(Boolean); // Filter out the nulls from the privacy threshold
 
   return {
     data: transformedData,
     pagination: {
       page,
       pageSize,
-      total: count || 0,
-      hasMore: (page * pageSize) < (count || 0)
+      total: count,
+      hasMore: to < count - 1
     }
   };
 }

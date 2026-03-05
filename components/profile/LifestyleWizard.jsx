@@ -88,8 +88,16 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
       if (error) throw error;
       
       toast.success('Lifestyle profile saved!');
-      setMode('view'); // Switch to view mode on save
+      setMode('view');
       if (onComplete) onComplete();
+
+      // Fire-and-forget: recompute compatibility scores in the background
+      // Does not block the user. DB triggers already deleted stale rows.
+      fetch('/api/matching/recompute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ mode: 'seeker' }),
+      }).catch(() => {}); // Silently ignore errors
     } catch (error) {
       console.error('Error saving lifestyle:', error);
       toast.error('Failed to save profile');

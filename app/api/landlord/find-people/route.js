@@ -77,7 +77,8 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
         full_name,
         profile_picture,
         bio,
-        is_verified
+        is_verified,
+        profile_visibility
       )
     `)
     .neq('user_id', landlordId)
@@ -109,13 +110,39 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
         if (row.match_score > best.match_score) best = row;
       }
 
-      if (best.match_score < minMatch) return null;
+      // Check for mutual interest first
+      const { data: interest } = await adminSupabase
+        .from('property_interests')
+        .select('status')
+        .eq('seeker_id', seekerId)
+        .eq('property_id', best.property_id)
+        .single();
+        
+      const isMutualInterest = interest?.status === 'accepted';
+      const isPrivate = candidate.users?.profile_visibility === 'private';
+      const shouldMask = isPrivate && !isMutualInterest;
+
+      // Drop candidates below the minMatch threshold, UNLESS they already have mutual interest
+      if (best.match_score < minMatch && !isMutualInterest) return null;
+
+      let displayName = candidate.users?.full_name || 'Seeker';
+      let bio = candidate.users?.bio || null;
+      let isBlurry = false;
+
+      if (shouldMask) {
+        // Mask the name: "Arinze O." -> "A."
+        const nameParts = displayName.split(' ');
+        displayName = nameParts[0] ? `${nameParts[0][0]}.` : '?';
+        isBlurry = true;
+        bio = null; // Hide bio for privacy
+      }
 
       return {
         user_id: seekerId,
-        full_name: candidate.users?.full_name || 'Seeker',
+        full_name: displayName,
         profile_picture: candidate.users?.profile_picture || null,
-        bio: candidate.users?.bio || null,
+        bio,
+        isBlurry,
         is_verified: !!candidate.users?.is_verified,
         current_city: candidate.current_city || null,
         schedule_type: candidate.schedule_type || null,
