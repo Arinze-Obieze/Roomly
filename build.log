@@ -1,0 +1,96 @@
+
+> RoomFind@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   ▲ Next.js 16.0.8 (Turbopack)
+   - Environments: .env
+
+ ⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ ✓ Compiled successfully in 17.9s
+   Running TypeScript ...
+   Collecting page data using 7 workers ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Generating static pages using 7 workers (0/48) ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Generating static pages using 7 workers (12/48) 
+   Generating static pages using 7 workers (24/48) 
+   Generating static pages using 7 workers (36/48) 
+ ✓ Generating static pages using 7 workers (48/48) in 2.5s
+   Finalizing page optimization ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /api/auth/callback
+├ ƒ /api/auth/delete-account
+├ ƒ /api/auth/forgot-password
+├ ƒ /api/auth/login
+├ ƒ /api/auth/logout
+├ ƒ /api/auth/reset-password
+├ ƒ /api/auth/session
+├ ƒ /api/auth/signup
+├ ƒ /api/buddy/groups/[id]
+├ ƒ /api/buddy/groups/[id]/members/[userId]
+├ ƒ /api/buddy/groups/create
+├ ƒ /api/buddy/invites/send
+├ ƒ /api/buddy/join
+├ ƒ /api/buddy/messages
+├ ƒ /api/community/posts
+├ ƒ /api/community/posts/[id]
+├ ƒ /api/community/posts/[id]/comments
+├ ƒ /api/community/posts/[id]/vote
+├ ƒ /api/csrf-token
+├ ƒ /api/interests/[id]
+├ ƒ /api/landlord/find-people
+├ ƒ /api/landlord/interests
+├ ƒ /api/messages/start-seeker
+├ ƒ /api/profile/settings
+├ ƒ /api/properties
+├ ƒ /api/properties/[id]
+├ ƒ /api/properties/[id]/interest
+├ ƒ /api/properties/create
+├ ƒ /api/seeker/interests
+├ ƒ /auth/callback
+├ ○ /community
+├ ○ /dashboard
+├ ○ /dashboard/buddy
+├ ○ /dashboard/buddy/join
+├ ○ /dashboard/community
+├ ○ /feedback
+├ ○ /find-people
+├ ○ /forgot-password
+├ ○ /help
+├ ○ /interests
+├ ○ /legal
+├ ƒ /listings/[id]
+├ ○ /listings/new
+├ ○ /login
+├ ○ /menu
+├ ○ /messages
+├ ○ /my-properties
+├ ○ /notifications
+├ ○ /profile
+├ ○ /reset-password
+├ ○ /rooms
+├ ƒ /rooms/[id]
+├ ○ /safety
+├ ○ /saved
+├ ○ /signup
+└ ƒ /users/[id]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

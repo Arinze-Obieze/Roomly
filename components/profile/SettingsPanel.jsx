@@ -157,7 +157,7 @@ function VisibilityOption({ value, current, onChange, icon: Icon, label, descrip
 // ─── Main Component ────────────────────────────────────────────────────────────
 export default function SettingsPanel() {
   const router = useRouter();
-  const { user, signOut } = useAuthContext();
+  const { user, signOut, updateProfile } = useAuthContext();
 
   const [saving, setSaving] = useState(false);
   const [deleteStep, setDeleteStep] = useState(0);
@@ -217,7 +217,12 @@ export default function SettingsPanel() {
     }
     setDeleting(true);
     try {
-      const csrfToken = await getCSRF();
+      const csrfRes = await fetch('/api/csrf-token');
+      const csrfPayload = await csrfRes.json();
+      if (!csrfRes.ok || !csrfPayload?.csrfToken) {
+        throw new Error(csrfPayload?.error || 'Failed to get CSRF token');
+      }
+      const csrfToken = csrfPayload.csrfToken;
       const res = await fetch('/api/auth/delete-account', {
         method: 'DELETE',
         headers: { 'x-csrf-token': csrfToken },
