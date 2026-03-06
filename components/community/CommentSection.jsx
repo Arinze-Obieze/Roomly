@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { formatDistanceToNow } from 'date-fns';
 import toast from 'react-hot-toast';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 export default function CommentSection({ postId, onCommentAdded }) {
   const { user } = useAuthContext();
@@ -40,7 +41,7 @@ export default function CommentSection({ postId, onCommentAdded }) {
 
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/community/posts/${postId}/comments`, {
+      const res = await fetchWithCsrf(`/api/community/posts/${postId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: newComment }),

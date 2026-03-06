@@ -151,12 +151,15 @@ export const useAuth = () => {
     setLoading(true);
     
     try {
+      const csrfResponse = await fetch('/api/csrf-token');
+      const { csrfToken } = await csrfResponse.json();
+
       const response = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ password: newPassword }),
+        body: JSON.stringify({ password: newPassword, csrfToken }),
       });
 
       const data = await response.json();

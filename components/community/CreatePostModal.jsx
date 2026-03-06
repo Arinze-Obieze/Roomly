@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { MdClose, MdImage, MdAddPhotoAlternate } from 'react-icons/md';
 import { createClient } from '@/core/utils/supabase/client';
 import toast from 'react-hot-toast';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 const CATEGORIES = [
   { value: 'general', label: 'General Discussion', icon: '💬' },
@@ -40,11 +41,6 @@ export default function CreatePostModal({ onClose, onCreated }) {
     setLoading(true);
 
     try {
-      // Get CSRF token
-      const csrfRes = await fetch('/api/csrf-token');
-      if (!csrfRes.ok) throw new Error('Failed to get CSRF token');
-      const { csrfToken } = await csrfRes.json();
-
       let image_url = null;
       const supabase = createClient();
       
@@ -59,7 +55,7 @@ export default function CreatePostModal({ onClose, onCreated }) {
         image_url = supabase.storage.from('property-media').getPublicUrl(fileName).data.publicUrl;
       }
 
-      const res = await fetch('/api/community/posts', {
+      const res = await fetchWithCsrf('/api/community/posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -68,8 +64,7 @@ export default function CreatePostModal({ onClose, onCreated }) {
           category: formData.category,
           city: formData.city,
           image_url,
-          is_anonymous: formData.isAnonymous,
-          csrfToken
+          is_anonymous: formData.isAnonymous
         }),
       });
 

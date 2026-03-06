@@ -8,6 +8,7 @@ import PostCard from './PostCard';
 import CreatePostModal from './CreatePostModal';
 import toast from 'react-hot-toast';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 const FILTERS = [
   { value: 'all', label: 'All Posts' },
@@ -84,7 +85,7 @@ export default function CommunityFeed() {
   }, [loading, hasMore]);
 
   const handleVote = async (postId, voteType) => {
-    await fetch(`/api/community/posts/${postId}/vote`, {
+    await fetchWithCsrf(`/api/community/posts/${postId}/vote`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ vote_type: voteType }),
@@ -95,7 +96,7 @@ export default function CommunityFeed() {
     if (!confirm('Are you sure you want to delete this post?')) return;
     
     try {
-      const res = await fetch(`/api/community/posts/${postId}`, { method: 'DELETE' });
+      const res = await fetchWithCsrf(`/api/community/posts/${postId}`, { method: 'DELETE' });
       if (!res.ok) throw new Error('Failed');
       setPosts(prev => prev.filter(p => p.id !== postId));
       toast.success('Post deleted');
