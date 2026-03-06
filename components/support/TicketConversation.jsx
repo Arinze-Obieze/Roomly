@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdSend, MdPerson, MdAttachFile, MdClose, MdDescription } from 'react-icons/md';
 import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
+import { useConfirmation } from '@/core/contexts/ConfirmationContext';
 import { createClient } from '@/core/utils/supabase/client';
 import { v4 as uuidv4 } from 'uuid';
 import bytes from 'bytes';
@@ -16,6 +17,7 @@ dayjs.extend(relativeTime);
 
 export default function TicketConversation({ ticket, onUpdate }) {
   const { user } = useAuthContext();
+  const { alert: showModalAlert } = useConfirmation();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
@@ -76,7 +78,11 @@ export default function TicketConversation({ ticket, onUpdate }) {
     if (!file) return;
 
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
+      showModalAlert({
+        title: 'File Too Large',
+        message: 'File size must be less than 5MB',
+        type: 'info'
+      });
       return;
     }
 

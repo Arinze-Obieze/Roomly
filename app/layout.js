@@ -45,8 +45,7 @@ export const viewport = {
 };
 
 import QueryProvider from '@/providers/QueryProvider';
-
-// ... existing imports
+import { ConfirmationProvider } from "@/core/contexts/ConfirmationContext";
 
 export default function RootLayout({ children }) {
   return (
@@ -55,10 +54,12 @@ export default function RootLayout({ children }) {
         className={`${inter.variable} ${spaceGrotesk.variable} font-sans antialiased`}
       >
         <QueryProvider>
-          <AuthProvider>
-            <GlobalToaster/>
-            {children}
-          </AuthProvider>
+          <ConfirmationProvider>
+            <AuthProvider>
+              <GlobalToaster/>
+              {children}
+            </AuthProvider>
+          </ConfirmationProvider>
         </QueryProvider>
       </body>
     </html>

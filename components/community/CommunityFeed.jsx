@@ -8,6 +8,7 @@ import PostCard from './PostCard';
 import CreatePostModal from './CreatePostModal';
 import toast from 'react-hot-toast';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
+import { useConfirmation } from '@/core/contexts/ConfirmationContext';
 import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 const FILTERS = [
@@ -30,6 +31,7 @@ export default function CommunityFeed() {
   const [category, setCategory] = useState('all');
   const [cityFilter, setCityFilter] = useState('');
   const [debouncedCity, setDebouncedCity] = useState('');
+  const { confirm } = useConfirmation();
 
   const observer = useRef();
 
@@ -93,7 +95,14 @@ export default function CommunityFeed() {
   };
 
   const handleDelete = async (postId) => {
-    if (!confirm('Are you sure you want to delete this post?')) return;
+    const isConfirmed = await confirm({
+      title: 'Delete Post',
+      message: 'Are you sure you want to delete this post?',
+      confirmText: 'Delete',
+      type: 'danger'
+    });
+
+    if (!isConfirmed) return;
     
     try {
       const res = await fetchWithCsrf(`/api/community/posts/${postId}`, { method: 'DELETE' });

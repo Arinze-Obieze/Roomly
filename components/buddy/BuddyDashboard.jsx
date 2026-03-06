@@ -6,14 +6,16 @@ import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import GroupChat from './GroupChat';
 import InviteMemberModal from './InviteMemberModal';
-import { MdPersonAdd, MdChat, MdHomeWork, MdSettings, MdPerson, MdExitToApp, MdDeleteOutline } from 'react-icons/md';
+import { MdPersonAdd, MdChat, MdHomeWork, MdSettings, MdPerson, MdExitToApp, MdDeleteOutline, MdArrowForward } from 'react-icons/md';
 import dayjs from 'dayjs';
 import { useRouter } from 'next/navigation';
+import { useConfirmation } from '@/core/contexts/ConfirmationContext';
 import toast from 'react-hot-toast';
 
-export default function BuddyDashboard({ group }) {
+export default function BuddyDashboard({ group, onBack, onAction }) {
   const { user } = useAuthContext();
   const router = useRouter();
+  const { confirm } = useConfirmation();
   const [activeTab, setActiveTab] = useState('chat');
   const [members, setMembers] = useState([]);
   const [sharedProperties, setSharedProperties] = useState([]);
@@ -122,7 +124,15 @@ export default function BuddyDashboard({ group }) {
   const handleRemoveMember = async (memberId) => {
     if (!isAdmin) return;
     if (!group?.id || !memberId || actionLoading) return;
-    if (!confirm('Remove this member from the group?')) return;
+    
+    const isConfirmed = await confirm({
+      title: 'Remove Member',
+      message: 'Are you sure you want to remove this member from the group?',
+      confirmText: 'Remove',
+      type: 'danger'
+    });
+
+    if (!isConfirmed) return;
 
     setActionLoading(true);
     try {
@@ -146,7 +156,15 @@ export default function BuddyDashboard({ group }) {
 
   const handleLeaveGroup = async () => {
     if (!group?.id || !user?.id || actionLoading) return;
-    if (!confirm('Leave this group?')) return;
+    
+    const isConfirmed = await confirm({
+      title: 'Leave Group',
+      message: 'Are you sure you want to leave this group?',
+      confirmText: 'Leave',
+      type: 'danger'
+    });
+
+    if (!isConfirmed) return;
 
     setActionLoading(true);
     try {
@@ -159,7 +177,9 @@ export default function BuddyDashboard({ group }) {
       if (!res.ok) throw new Error(payload.error || 'Failed to leave group');
 
       toast.success('You left the group');
-      router.push('/dashboard/buddy');
+      if (onAction) onAction();
+      if (onBack) onBack();
+      else router.push('/dashboard/buddy');
       router.refresh();
     } catch (error) {
       toast.error(error.message || 'Failed to leave group');
@@ -170,7 +190,15 @@ export default function BuddyDashboard({ group }) {
 
   const handleDeleteGroup = async () => {
     if (!group?.id || actionLoading) return;
-    if (!confirm('Delete this group? This action cannot be undone.')) return;
+    
+    const isConfirmed = await confirm({
+      title: 'Delete Group',
+      message: 'Are you sure you want to delete this group? This action cannot be undone.',
+      confirmText: 'Delete',
+      type: 'danger'
+    });
+
+    if (!isConfirmed) return;
 
     setActionLoading(true);
     try {
@@ -183,7 +211,9 @@ export default function BuddyDashboard({ group }) {
       if (!res.ok) throw new Error(payload.error || 'Failed to delete group');
 
       toast.success('Group deleted');
-      router.push('/dashboard/buddy');
+      if (onAction) onAction();
+      if (onBack) onBack();
+      else router.push('/dashboard/buddy');
       router.refresh();
     } catch (error) {
       toast.error(error.message || 'Failed to delete group');
@@ -252,6 +282,7 @@ export default function BuddyDashboard({ group }) {
 
   if (!group) return <div className="p-8 text-center text-navy-400 font-medium">Loading group...</div>;
 
+
   return (
     <div className="max-w-6xl mx-auto">
       {/* Header */}
@@ -261,6 +292,17 @@ export default function BuddyDashboard({ group }) {
         
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
             <div>
+                {onBack && (
+                  <button 
+                    onClick={onBack}
+                    className="flex items-center gap-2 text-navy-200 hover:text-white transition-colors text-sm font-bold mb-4 group/back"
+                  >
+                    <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center group-hover/back:bg-white/20 transition-all">
+                      <MdArrowForward className="rotate-180" size={14} />
+                    </div>
+                    Back to Groups
+                  </button>
+                )}
                 <div className="flex items-center gap-3 mb-2">
                     <h1 className="font-heading text-3xl md:text-4xl font-bold tracking-tight">{groupName || group.name}</h1>
                     <span className="bg-white/10 backdrop-blur-md text-white border border-white/20 text-xs font-bold px-3 py-1 rounded-full">

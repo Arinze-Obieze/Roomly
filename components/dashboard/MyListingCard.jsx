@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { MdEdit, MdDelete, MdLocationOn, MdOutlineBed, MdBathtub, MdShare, MdFavorite, MdFavoriteBorder } from 'react-icons/md';
 import toast from 'react-hot-toast';
 import { useSavedProperties } from '@/core/contexts/SavedPropertiesContext';
+import { useConfirmation } from '@/core/contexts/ConfirmationContext';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
 export default function MyListingCard({ property, onEdit, onDelete }) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const { confirm } = useConfirmation();
   const { isPropertySaved, toggleSave } = useSavedProperties();
   const isSaved = isPropertySaved(property.id);
 
@@ -20,9 +22,14 @@ export default function MyListingCard({ property, onEdit, onDelete }) {
   };
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this listing? This action cannot be undone.')) {
-      return;
-    }
+    const isConfirmed = await confirm({
+      title: 'Delete Listing',
+      message: 'Are you sure you want to delete this listing? This action cannot be undone.',
+      confirmText: 'Delete',
+      type: 'danger'
+    });
+
+    if (!isConfirmed) return;
 
     setIsDeleting(true);
     try {
