@@ -26,7 +26,7 @@ export default function HostProfilePage() {
         
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('id, full_name, profile_picture, bio, created_at, is_verified')
+          .select('id, full_name, profile_picture, bio, created_at, is_verified, privacy_setting, last_seen, average_response_time_ms')
           .eq('id', userId)
           .single();
 
@@ -137,6 +137,20 @@ export default function HostProfilePage() {
     );
   }
 
+  const isOnline = host?.privacy_setting === 'public' && 
+                   host?.last_seen && 
+                   (new Date() - new Date(host.last_seen)) < 5 * 60 * 1000;
+
+  const formatResponseTime = (ms) => {
+    if (!ms || ms <= 0) return null;
+    const mins = Math.round(ms / 60000);
+    if (mins < 60) return `${mins === 0 ? '< 1' : mins} min${mins !== 1 ? 's' : ''}`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `${hours} hr${hours !== 1 ? 's' : ''}`;
+    const days = Math.round(hours / 24);
+    return `${days} day${days !== 1 ? 's' : ''}`;
+  };
+
   return (
     <motion.div 
       initial={{ opacity: 0 }}
@@ -193,7 +207,16 @@ export default function HostProfilePage() {
                       {host.full_name?.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
                     </div>
                   )}
-                  
+                  {isOnline && (
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      title="Online now"
+                      className="absolute bottom-2 right-2 w-5 h-5 bg-emerald-500 rounded-full border-4 border-white shadow-sm"
+                    >
+                      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+                    </motion.div>
+                  )}
                 </div>
                 
                 <h2 className="text-2xl font-heading font-bold text-navy-950 mb-1">{host.full_name}</h2>
@@ -202,6 +225,13 @@ export default function HostProfilePage() {
                   <MdCalendarToday className="text-terracotta-400" size={14} />
                   <span>Joined {new Date(host.created_at).getFullYear()}</span>
                 </div>
+
+                {host?.average_response_time_ms > 0 && (
+                   <div className="text-xs font-medium text-emerald-600 mb-4 bg-emerald-50 px-3 py-1.5 rounded-full inline-flex items-center border border-emerald-100">
+                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2"></span>
+                     Usually responds in {formatResponseTime(host.average_response_time_ms)}
+                   </div>
+                )}
 
                 {/* Stats */}
                 <div className="grid grid-cols-2 gap-4 w-full mt-2">

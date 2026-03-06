@@ -76,6 +76,7 @@ async function fetchMatchedBuddies({ seekerId, minMatch, limit }) {
       social_level,
       noise_tolerance,
       interests,
+      updated_at,
       users:user_id (
         id,
         full_name,
@@ -94,13 +95,18 @@ async function fetchMatchedBuddies({ seekerId, minMatch, limit }) {
     query = query.eq('current_city', myLifestyle.current_city);
   }
   
-  const { data: seekers, error: seekersError } = await query.limit(100);
+  const { data: seekers, error: seekersError } = await query
+    .order('updated_at', { ascending: false })
+    .limit(200);
 
   if (seekersError) throw seekersError;
 
   const scoredBuddies = (seekers || []).map((candidate) => {
     // Basic similarity scoring (0-100)
-    let score = 50; // Base score for being in the same city
+    let score = 25; // Neutral baseline
+    if (myLifestyle.current_city && candidate.current_city === myLifestyle.current_city) {
+      score += 25;
+    }
     
     if (candidate.schedule_type === myLifestyle.schedule_type) score += 15;
     if (candidate.cleanliness_level === myLifestyle.cleanliness_level) score += 15;
@@ -117,9 +123,8 @@ async function fetchMatchedBuddies({ seekerId, minMatch, limit }) {
     // ── 70% PRIVACY THRESHOLD ──
     const isPrivate = candidate.users?.profile_visibility === 'private';
     
-    // We don't have a mutual buddy interest system yet, so private buddies are blurred if >= 70
-    // If private and < 70, they are excluded entirely.
-    if (isPrivate && score < minMatch) return null;
+    // Enforce threshold consistently across private and public profiles.
+    if (score < minMatch) return null;
 
     let displayName = candidate.users?.full_name || 'Seeker';
     let bio = candidate.users?.bio || null;

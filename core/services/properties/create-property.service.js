@@ -1,7 +1,9 @@
 import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
+import { createAdminClient } from '@/core/utils/supabase/admin';
 import { invalidatePattern } from '@/core/utils/redis';
+import { recomputeForProperty } from '@/core/services/matching/recompute-compatibility.service';
 
 const FILE_LIMITS = {
   IMAGE_MAX_BYTES: 5 * 1024 * 1024,
@@ -327,15 +329,15 @@ export async function handleCreateProperty(req) {
 
     await invalidatePattern('properties:list:*');
 
-    // Fire-and-forget: recompute compatibility scores for all seekers against this property.
-    // We don't await this — the response has already gone back to the user.
-    // DB trigger already cleared stale rows for this property_id.
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    fetch(`${appUrl}/api/matching/recompute`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ mode: 'property', propertyId: property.id }),
-    }).catch(() => {}); // Silently ignore if this fails
+    // Recompute compatibility synchronously for this new property so production
+    // feeds and find-people views are fresh immediately after listing creation.
+    try {
+      await recomputeForProperty(createAdminClient(), property.id);
+    } catch (recomputeError) {
+      console.error('[Property Create] Recompute failed:', recomputeError?.message || recomputeError);
+    }
+
+    await invalidatePattern('landlord:find_people:*');
 
     return NextResponse.json({
       success: true,

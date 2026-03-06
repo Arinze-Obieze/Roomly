@@ -45,7 +45,8 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
   const { data: listings, error: listingsError } = await adminSupabase
     .from('properties')
     .select('id, title')
-    .eq('listed_by_user_id', landlordId);
+    .eq('listed_by_user_id', landlordId)
+    .eq('is_active', true);
 
   if (listingsError) throw listingsError;
 
@@ -58,8 +59,69 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
     };
   }
 
-  const listingIds = new Set(listings.map((l) => l.id));
+  const listingIds = listings.map((l) => l.id);
+  const listingIdSet = new Set(listingIds);
   const listingById = new Map(listings.map((l) => [l.id, l]));
+
+  // 1) Cached compatibility scores for this landlord's active listings
+  const { data: scoreRows, error: scoreError } = await adminSupabase
+    .from('compatibility_scores')
+    .select('seeker_id, property_id, score')
+    .in('property_id', listingIds);
+
+  if (scoreError) throw scoreError;
+
+  // 2) Accepted interests should still be visible even when below threshold
+  const { data: acceptedInterestRows, error: acceptedError } = await adminSupabase
+    .from('property_interests')
+    .select('seeker_id, property_id, status')
+    .in('property_id', listingIds)
+    .eq('status', 'accepted');
+
+  if (acceptedError) throw acceptedError;
+
+  const acceptedKeys = new Set(
+    (acceptedInterestRows || []).map((row) => `${row.seeker_id}:${row.property_id}`)
+  );
+  const acceptedSeekerIds = new Set(
+    (acceptedInterestRows || []).map((row) => row.seeker_id).filter(Boolean)
+  );
+  const bestBySeeker = new Map();
+
+  for (const row of scoreRows || []) {
+    const seekerId = row?.seeker_id;
+    const propertyId = row?.property_id;
+    const score = Number(row?.score);
+    if (!seekerId || !propertyId || !Number.isFinite(score) || !listingIdSet.has(propertyId)) continue;
+
+    const key = `${seekerId}:${propertyId}`;
+    const isMutualInterest = acceptedKeys.has(key);
+    const current = bestBySeeker.get(seekerId);
+    if (!current || score > current.match_score) {
+      bestBySeeker.set(seekerId, { property_id: propertyId, match_score: score, isMutualInterest });
+    }
+  }
+
+  // Keep accepted interests in feed even when score cache is missing
+  for (const row of acceptedInterestRows || []) {
+    const seekerId = row?.seeker_id;
+    const propertyId = row?.property_id;
+    if (!seekerId || !propertyId) continue;
+    const current = bestBySeeker.get(seekerId);
+    if (!current) {
+      bestBySeeker.set(seekerId, { property_id: propertyId, match_score: 0, isMutualInterest: true });
+    }
+  }
+
+  const candidateIds = [...bestBySeeker.keys()];
+  if (candidateIds.length === 0) {
+    return {
+      canUseFeature: true,
+      minMatch,
+      listingCount: listings.length,
+      data: [],
+    };
+  }
 
   const { data: seekers, error: seekersError } = await adminSupabase
     .from('user_lifestyles')
@@ -81,77 +143,52 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
         profile_visibility
       )
     `)
+    .in('user_id', candidateIds)
     .neq('user_id', landlordId)
-    .or('primary_role.eq.seeker,primary_role.is.null')
-    .limit(120);
+    .or('primary_role.eq.seeker,primary_role.is.null');
 
   if (seekersError) throw seekersError;
 
-  const scoredCandidates = await Promise.all(
-    (seekers || []).map(async (candidate) => {
-      const seekerId = candidate.user_id;
-      const { data: matchRows, error: matchError } = await adminSupabase.rpc('get_property_matches', {
-        seeker_id: seekerId,
-      });
+  const candidateById = new Map((seekers || []).map((candidate) => [candidate.user_id, candidate]));
 
-      if (matchError || !Array.isArray(matchRows)) return null;
+  const scoredCandidates = candidateIds.map((seekerId) => {
+    const candidate = candidateById.get(seekerId);
+    if (!candidate) return null;
 
-      const relevantMatches = matchRows
-        .map((row) => ({
-          property_id: row?.property_id,
-          match_score: Number(row?.match_score),
-        }))
-        .filter((row) => row?.property_id && listingIds.has(row.property_id) && Number.isFinite(row.match_score));
+    const best = bestBySeeker.get(seekerId);
+    if (!best) return null;
 
-      if (relevantMatches.length === 0) return null;
+    const isMutualInterest = best.isMutualInterest || acceptedSeekerIds.has(seekerId);
+    if (best.match_score < minMatch && !isMutualInterest) return null;
 
-      let best = relevantMatches[0];
-      for (const row of relevantMatches) {
-        if (row.match_score > best.match_score) best = row;
-      }
+    const isPrivate = candidate.users?.profile_visibility === 'private';
+    const shouldMask = isPrivate && !isMutualInterest;
 
-      // Check for mutual interest first
-      const { data: interest } = await adminSupabase
-        .from('property_interests')
-        .select('status')
-        .eq('seeker_id', seekerId)
-        .eq('property_id', best.property_id)
-        .single();
-        
-      const isMutualInterest = interest?.status === 'accepted';
-      const isPrivate = candidate.users?.profile_visibility === 'private';
-      const shouldMask = isPrivate && !isMutualInterest;
+    let displayName = candidate.users?.full_name || 'Seeker';
+    let bio = candidate.users?.bio || null;
+    let isBlurry = false;
 
-      // Drop candidates below the minMatch threshold, UNLESS they already have mutual interest
-      if (best.match_score < minMatch && !isMutualInterest) return null;
+    if (shouldMask) {
+      const nameParts = displayName.split(' ');
+      displayName = nameParts[0] ? `${nameParts[0][0]}.` : '?';
+      isBlurry = true;
+      bio = null;
+    }
 
-      let displayName = candidate.users?.full_name || 'Seeker';
-      let bio = candidate.users?.bio || null;
-      let isBlurry = false;
-
-      if (shouldMask) {
-        // Mask the name: "Arinze O." -> "A."
-        const nameParts = displayName.split(' ');
-        displayName = nameParts[0] ? `${nameParts[0][0]}.` : '?';
-        isBlurry = true;
-        bio = null; // Hide bio for privacy
-      }
-
-      return {
-        user_id: seekerId,
-        full_name: displayName,
-        profile_picture: candidate.users?.profile_picture || null,
-        bio,
-        isBlurry,
-        is_verified: !!candidate.users?.is_verified,
-        current_city: candidate.current_city || null,
-        schedule_type: candidate.schedule_type || null,
-        interests: Array.isArray(candidate.interests) ? candidate.interests.slice(0, 6) : [],
-        match_score: Math.round(best.match_score),
-        matched_property: listingById.get(best.property_id) || null,
-      };
-    })
-  );
+    return {
+      user_id: seekerId,
+      full_name: displayName,
+      profile_picture: candidate.users?.profile_picture || null,
+      bio,
+      isBlurry,
+      is_verified: !!candidate.users?.is_verified,
+      current_city: candidate.current_city || null,
+      schedule_type: candidate.schedule_type || null,
+      interests: Array.isArray(candidate.interests) ? candidate.interests.slice(0, 6) : [],
+      match_score: Math.round(best.match_score),
+      matched_property: listingById.get(best.property_id) || null,
+    };
+  });
 
   const filtered = scoredCandidates
     .filter(Boolean)

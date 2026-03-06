@@ -136,7 +136,7 @@ export default function ProfileForm({ onCancel }) {
               className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-terracotta-500/20"
             >
               <img 
-                src={previewUrl || user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=FF6B6B&color=fff`}
+                src={previewUrl || user.profile_picture || user.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.full_name || 'User')}&background=FF6B6B&color=fff`}
                 alt="Avatar"
                 className="w-full h-full object-cover"
               />

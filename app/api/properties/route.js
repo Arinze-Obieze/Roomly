@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
+import { createAdminClient } from '@/core/utils/supabase/admin';
 import { cachedFetch } from '@/core/utils/redis';
 import { handleCreateProperty } from '@/core/services/properties/create-property.service';
 import crypto from 'crypto';
@@ -66,9 +67,10 @@ async function fetchPropertiesFromDB(searchParams, user) {
   const houseRules = searchParams.get('houseRules')?.split(',').filter(Boolean);
   const billsIncluded = searchParams.get('billsIncluded') === 'true';
 
-  const supabase = await createClient();
+  const supabase = await createClient(); // user-scoped reads (interests/scores)
+  const adminSb = createAdminClient();   // avoids recursive users RLS on host joins
 
-  let query = supabase
+  let query = adminSb
     .from('properties')
     .select(`
       *,
@@ -191,7 +193,10 @@ async function fetchPropertiesFromDB(searchParams, user) {
 
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
-  query = query.range(from, to);
+  const applyDbPagination = !(sortBy === 'match' && user);
+  if (applyDbPagination) {
+    query = query.range(from, to);
+  }
 
   const queryStart = Date.now();
   const { data, error, count } = await query;
@@ -291,7 +296,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
         interestStatus: interest?.status || null,
         host: {
           name: maskedName,
-          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(maskedName)}&background=random`,
+          avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(maskedName)}&background=FF6B6B&color=fff`,
           id: property.listed_by_user_id
         },
         description: property.description?.substring(0, 100) + '...',
@@ -338,7 +343,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
       interestStatus: interest?.status || null,
       host: {
         name: hostName,
-        avatar: property.users?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(hostName)}&background=random`,
+        avatar: property.users?.profile_picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(hostName)}&background=FF6B6B&color=fff`,
         id: property.listed_by_user_id
       },
       description: property.description,
@@ -347,13 +352,23 @@ async function fetchPropertiesFromDB(searchParams, user) {
     };
   }).filter(Boolean); // Filter out the nulls from the privacy threshold
 
+  let finalData = transformedData;
+  if (sortBy === 'match' && user) {
+    finalData = [...transformedData].sort((a, b) => {
+      const aScore = typeof a.matchScore === 'number' ? a.matchScore : -1;
+      const bScore = typeof b.matchScore === 'number' ? b.matchScore : -1;
+      if (bScore !== aScore) return bScore - aScore;
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }).slice(from, to + 1);
+  }
+
   return {
-    data: transformedData,
+    data: finalData,
     pagination: {
       page,
       pageSize,
       total: count,
-      hasMore: to < count - 1
+      hasMore: to < (count || 0) - 1
     }
   };
 }

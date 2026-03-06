@@ -30,9 +30,13 @@ export default function FindPeoplePage() {
       const statusRes = await fetch('/api/user/profile-status');
       if (!statusRes.ok) throw new Error('Failed to verify profile status');
       const status = await statusRes.json();
-      setProfileStatus(status);
+      const normalizedStatus = {
+        ...status,
+        isProfileComplete: activeTab === 'buddies' ? !!status.hasLifestyle : true,
+      };
+      setProfileStatus(normalizedStatus);
 
-      if (!status.isProfileComplete) {
+      if (!normalizedStatus.isProfileComplete) {
         setLoadingState(false);
         return; // Halt: Show gate UI
       }
@@ -63,7 +67,11 @@ export default function FindPeoplePage() {
   };
 
   const handleContactSeeker = async (seeker) => {
-    if (!seeker?.user_id || !seeker?.matched_property?.id || contactingId) return;
+    if (!seeker?.user_id || contactingId) return;
+    if (!seeker?.matched_property?.id) {
+      toast('Direct buddy messaging is coming soon. For now, create a buddy group to chat together.');
+      return;
+    }
 
     setContactingId(seeker.user_id);
     try {
@@ -190,7 +198,9 @@ export default function FindPeoplePage() {
           </div>
           <h2 className="text-2xl font-heading font-extrabold text-navy-950 mb-3 tracking-tight">Unlock Your Matches</h2>
           <p className="text-navy-600 mb-8 text-lg leading-relaxed max-w-lg mx-auto">
-            Tell us about yourself and what you're looking for to see who's a 70%+ match. You must complete both your Lifestyle and Match Preferences to access this feed.
+            {activeTab === 'buddies'
+              ? "Complete your Lifestyle profile to unlock buddy matching."
+              : "Complete your profile to unlock this feed."}
           </p>
           <button
             onClick={() => router.push('/profile/settings')}
@@ -285,10 +295,14 @@ export default function FindPeoplePage() {
 
               <button
                 onClick={() => handleContactSeeker(seeker)}
-                disabled={contactingId === seeker.user_id}
+                disabled={contactingId === seeker.user_id || (activeTab === 'buddies' && !seeker.matched_property)}
                 className="w-full bg-terracotta-500 text-white py-2.5 rounded-xl text-sm font-heading font-semibold hover:bg-terracotta-600 transition-colors disabled:opacity-60 shadow-lg shadow-terracotta-500/10 mt-auto"
               >
-                {contactingId === seeker.user_id ? 'Sending...' : activeTab === 'buddies' ? 'Message Buddy' : 'Contact Seeker'}
+                {contactingId === seeker.user_id
+                  ? 'Sending...'
+                  : activeTab === 'buddies'
+                    ? 'Buddy Chat Soon'
+                    : 'Contact Seeker'}
               </button>
             </article>
           ))}

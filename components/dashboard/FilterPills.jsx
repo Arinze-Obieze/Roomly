@@ -375,7 +375,7 @@ export default function FilterPills({ onOpenFilters }) {
               >
 
                 <div className="bg-white rounded-2xl shadow-xl border border-navy-200 p-3 flex flex-col max-md:max-h-[calc(100vh-220px)]">
-                  <div className="space-y-1 overflow-y-auto scrollbar-thin scrollbar-thumb-navy-200 flex-1 min-h-0 pr-1">
+                  <div className="space-y-1 max-h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-navy-200 flex-1 min-h-0 pr-1">
                     <button
                       onClick={() => {
                         setDraftPropertyTypes([]);

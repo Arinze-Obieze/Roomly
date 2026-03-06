@@ -65,6 +65,7 @@ export async function POST(request) {
         id: data.user.id,
         email: data.user.email,
         fullName: data.user.user_metadata?.full_name || data.user.user_metadata?.fullName,
+        is_superadmin: data.user.user_metadata?.is_superadmin || data.user.app_metadata?.is_superadmin || false,
         user_metadata: data.user.user_metadata,
       },
       message: 'Login successful'

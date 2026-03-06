@@ -13,10 +13,27 @@ export const AuthService = {
    */
   async login(email, password) {
     const supabase = await createClient();
-    return await supabase.auth.signInWithPassword({
+    const result = await supabase.auth.signInWithPassword({
       email,
       password,
     });
+    
+    if (result.data?.user) {
+      try {
+        const adminClient = createAdminClient();
+        await adminClient.from('activity_logs').insert({
+          user_id: result.data.user.id,
+          level: 'info',
+          service: 'auth',
+          action: 'user_login',
+          message: 'User logged in successfully using email/password'
+        });
+      } catch (e) {
+        console.error('Failed to log login activity', e);
+      }
+    }
+    
+    return result;
   },
 
   /**
@@ -77,6 +94,18 @@ export const AuthService = {
       throw new Error(`Failed to create user profile: ${rpcError.message}`);
     }
 
+    try {
+      await supabase.from('activity_logs').insert({
+        user_id: userId,
+        level: 'info',
+        service: 'auth',
+        action: 'user_signup',
+        message: 'New user registered using email/password'
+      });
+    } catch (e) {
+      console.error('Failed to log signup activity', e);
+    }
+
     return signUpData;
   },
 
@@ -86,6 +115,23 @@ export const AuthService = {
    */
   async logout() {
     const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      try {
+        const adminClient = createAdminClient();
+        await adminClient.from('activity_logs').insert({
+          user_id: user.id,
+          level: 'info',
+          service: 'auth',
+          action: 'user_logout',
+          message: 'User explicitly logged out'
+        });
+      } catch (e) {
+        console.error('Failed to log logout activity', e);
+      }
+    }
+
     return await supabase.auth.signOut();
   },
 
@@ -125,6 +171,7 @@ export const AuthService = {
       bio: profile?.bio,
       date_of_birth: profile?.date_of_birth,
       is_admin: profile?.is_admin,
+      is_superadmin: profile?.is_superadmin,
     };
   }
 };

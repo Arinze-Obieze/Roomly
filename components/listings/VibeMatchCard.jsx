@@ -24,6 +24,21 @@ const calculateAgeFromBirthDate = (birthDate) => {
   return age >= 0 ? age : null;
 };
 
+const normalizeDealBreakers = (raw) => {
+  const source = Array.isArray(raw) ? raw : [];
+  const normalized = new Set(source.map((value) => String(value || '').toLowerCase().trim()));
+  if (normalized.has('smokers')) normalized.add('smoking');
+  if (normalized.has('pets')) normalized.add('no_pets');
+  return normalized;
+};
+
+const normalizeOccupation = (raw) => {
+  const value = String(raw || '').toLowerCase().trim();
+  if (!value) return '';
+  if (value === 'working') return 'professional';
+  return value;
+};
+
 export default function VibeMatchCard({ property }) {
   const { user } = useAuthContext();
   const [lifestyle, setLifestyle] = useState(null);
@@ -54,46 +69,40 @@ export default function VibeMatchCard({ property }) {
 
   // Analysis Logic
   const checks = [];
+  const dealBreakers = normalizeDealBreakers(property.deal_breakers);
 
   // 1. Smoking
   const userSmokes = lifestyle.smoking_status !== 'no';
-  // Wait, standardized field might be missing. Using property.smokers_allowed if available, else infer.
-  // PropertyDetailsPage didn't explicitly show a 'smokers_allowed' field in the "Rental Details" or "Preferences".
-  // I will check property.amenities for 'smoking allowed' or similar.
-  // Assuming property.amenities array labels.
-  
-  // Actually, standard schema should have 'smokers_allowed'. I will try to use it if it exists.
-  // If undefined, we skip.
-  if (typeof property.smokers_allowed !== 'undefined') {
-      if (userSmokes && !property.smokers_allowed) {
-          checks.push({ type: 'danger', icon: <MdCancel />, text: 'Property is Non-Smoking' });
-      } else if (userSmokes && property.smokers_allowed) {
-          checks.push({ type: 'success', icon: <MdCheckCircle />, text: 'Smoking Allowed' });
+  if (dealBreakers.has('smoking')) {
+      if (userSmokes) {
+          checks.push({ type: 'danger', icon: <MdCancel />, text: 'No smokers allowed' });
+      } else {
+          checks.push({ type: 'success', icon: <MdCheckCircle />, text: 'Non-smoking match' });
       }
   }
 
   // 2. Pets
-  const userHasPets = lifestyle.pets?.has_pets;
-  if (typeof property.pets_allowed !== 'undefined') {
-      if (userHasPets && !property.pets_allowed) {
-        checks.push({ type: 'danger', icon: <MdCancel />, text: 'No Pets Allowed' });
-      } else if (userHasPets && property.pets_allowed) {
-        checks.push({ type: 'success', icon: <MdCheckCircle />, text: 'Pets Welcome' });
+  const userHasPets = lifestyle.pets?.has_pets === true;
+  if (dealBreakers.has('no_pets')) {
+      if (userHasPets) {
+        checks.push({ type: 'danger', icon: <MdCancel />, text: 'No pets allowed' });
+      } else {
+        checks.push({ type: 'success', icon: <MdCheckCircle />, text: 'No-pet household match' });
       }
   }
 
   // 3. Gender (Using user.gender from AuthContext/User table)
-  const userGender = user.gender; // Assuming 'male', 'female', 'non-binary'
+  const userGender = String(user.gender || '').toLowerCase().trim();
   if (userGender && property.gender_preference && property.gender_preference !== 'any') {
-      if (property.gender_preference !== userGender) {
-           checks.push({ type: 'warning', icon: <MdWarning />, text: `Preferred Gender: ${property.gender_preference}` });
+      if (String(property.gender_preference).toLowerCase().trim() !== userGender) {
+           checks.push({ type: 'danger', icon: <MdWarning />, text: `Preferred Gender: ${property.gender_preference}` });
       } else {
            checks.push({ type: 'success', icon: <MdCheckCircle />, text: 'Gender Match' });
       }
   }
 
   // 4. Age (Using user.birth_date -> age)
-  const userAge = calculateAgeFromBirthDate(user.birth_date);
+  const userAge = calculateAgeFromBirthDate(user.date_of_birth || user.birth_date);
   const minAge = Number(property.age_min);
   const maxAge = Number(property.age_max);
   const hasMinAge = Number.isFinite(minAge) && minAge > 0;
@@ -104,17 +113,19 @@ export default function VibeMatchCard({ property }) {
       const isTooOld = hasMaxAge && userAge > maxAge;
 
       if (isTooYoung || isTooOld) {
-          checks.push({ type: 'warning', icon: <MdWarning />, text: `Preferred age range: ${hasMinAge ? minAge : 18}-${hasMaxAge ? maxAge : 99}` });
+          checks.push({ type: 'danger', icon: <MdWarning />, text: `Preferred age range: ${hasMinAge ? minAge : 18}-${hasMaxAge ? maxAge : 99}` });
       } else {
           checks.push({ type: 'success', icon: <MdCheckCircle />, text: 'Age Preference Match' });
       }
   }
   
   // Vibe Checks (Occupation)
-  if (user.occupation && property.occupation_preference && property.occupation_preference !== 'any') {
-       if (property.occupation_preference === 'professional' && user.occupation === 'student') {
+  const normalizedUserOccupation = normalizeOccupation(lifestyle.occupation || user.occupation);
+  const normalizedPropertyOccupation = normalizeOccupation(property.occupation_preference);
+  if (normalizedUserOccupation && normalizedPropertyOccupation && normalizedPropertyOccupation !== 'any') {
+       if (normalizedPropertyOccupation === 'professional' && normalizedUserOccupation === 'student') {
             checks.push({ type: 'warning', icon: <MdInfo />, text: 'Professionals Preferred' });
-       } else if (property.occupation_preference === 'student' && user.occupation === 'professional') {
+       } else if (normalizedPropertyOccupation === 'student' && normalizedUserOccupation === 'professional') {
             checks.push({ type: 'neutral', icon: <MdInfo />, text: 'Students Preferred' });
        } else {
             checks.push({ type: 'success', icon: <MdCheckCircle />, text: 'Occupation Match' });

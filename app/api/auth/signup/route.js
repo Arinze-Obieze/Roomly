@@ -54,7 +54,7 @@ export async function POST(req) {
     let signUpData;
     try {
         const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin).replace(/\/+$/, '');
-        const redirectUrl = `${baseUrl}/api/auth/callback`;
+        const redirectUrl = `${baseUrl}/auth/confirm`;
         signUpData = await AuthService.signup({ email, password, fullName, phone, redirectUrl });
     } catch (error) {
         if (error.code === 'DUPLICATE_EMAIL') {

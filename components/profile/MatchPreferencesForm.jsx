@@ -54,7 +54,12 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
 
   useEffect(() => {
     if (initialData) {
-      setFormData(prev => ({ ...prev, ...initialData }));
+      setFormData(prev => ({
+        ...prev,
+        ...initialData,
+        min_stay: initialData.stay_duration_min ?? initialData.min_stay ?? prev.min_stay,
+        max_stay: initialData.stay_duration_max ?? initialData.max_stay ?? prev.max_stay,
+      }));
       setMode('view');
     }
   }, [initialData]);
@@ -88,9 +93,31 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
     if(e) e.preventDefault();
     setLoading(true);
     try {
+      const stayMin = Number(formData.min_stay || 6);
+      const stayMaxRaw = Number(formData.max_stay || 12);
+      const stayMax = stayMaxRaw < stayMin ? stayMin : stayMaxRaw;
+
+      const payload = {
+        user_id: user.id,
+        location_areas: formData.location_areas || [],
+        move_in_window: formData.move_in_window || 'flexible',
+        budget_min: formData.budget_min === '' ? null : Number(formData.budget_min),
+        budget_max: formData.budget_max === '' ? null : Number(formData.budget_max),
+        occupation_preference: formData.occupation_preference || [],
+        age_min: Number(formData.age_min || 18),
+        age_max: Number(formData.age_max || 99),
+        gender_preference: formData.gender_preference || 'any',
+        accepted_smoking: formData.accepted_smoking || [],
+        accepted_pets: !!formData.accepted_pets,
+        cleanliness_tolerance: formData.cleanliness_tolerance,
+        guests_tolerance: formData.guests_tolerance,
+        stay_duration_min: stayMin,
+        stay_duration_max: stayMax,
+      };
+
       const { error } = await supabase
         .from('match_preferences')
-        .upsert({ user_id: user.id, ...formData });
+        .upsert(payload);
       
       if (error) throw error;
       toast.success('Match preferences updated!');

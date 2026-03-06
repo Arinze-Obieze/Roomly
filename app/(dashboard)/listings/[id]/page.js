@@ -77,11 +77,14 @@ export default function PropertyDetailsPage() {
               media_type,
               display_order
             ),
-            users (
+            users:listed_by_user_id (
               id,
               full_name,
               profile_picture,
-              is_verified
+              is_verified,
+              privacy_setting,
+              last_seen,
+              average_response_time_ms
             )
           `)
           .eq('id', params.id)
@@ -120,7 +123,10 @@ export default function PropertyDetailsPage() {
            host: {
              name: data.users?.full_name || 'Unknown Host',
              avatar: data.users?.profile_picture,
-             id: data.users?.id
+             id: data.users?.id,
+             privacy_setting: data.users?.privacy_setting,
+             last_seen: data.users?.last_seen,
+             average_response_time_ms: data.users?.average_response_time_ms
            }
         });
       } catch (err) {

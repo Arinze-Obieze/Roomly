@@ -14,14 +14,22 @@ export async function GET(request) {
       
       if (error) {
         console.error('Auth check error:', error);
-        return NextResponse.redirect(new URL(`/login?error=${encodeURIComponent(error.message)}`, request.url));
+        return NextResponse.redirect(
+          new URL(`/auth/auth-code-error?message=${encodeURIComponent(error.message)}`, request.url)
+        );
       }
     } catch (error) {
       console.error('Auth error:', error);
-      return NextResponse.redirect(new URL('/login?error=Authentication failed', request.url));
+      return NextResponse.redirect(
+        new URL('/auth/auth-code-error?message=Authentication failed', request.url)
+      );
     }
+
+    // URL to redirect to after code exchange completes
+    return NextResponse.redirect(new URL(next, request.url));
   }
 
-  // URL to redirect to after sign in process completes
-  return NextResponse.redirect(new URL(next, request.url));
+  // No auth code in query usually means a hash-token flow (#access_token=...).
+  // Redirect to a client page that can read the hash and establish a session.
+  return NextResponse.redirect(new URL(`/auth/confirm?next=${encodeURIComponent(next)}`, request.url));
 }

@@ -68,7 +68,7 @@ export default function PropertyTypeFilter({ values = [], onChange }) {
             </button>
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 max-h-72 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 pr-1">
              <button
                onClick={() => handleSelect('any')}
                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between transition-colors ${

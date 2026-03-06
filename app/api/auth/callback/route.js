@@ -22,8 +22,15 @@ export async function GET(request) {
         return NextResponse.redirect(`${origin}${next}`);
       }
     }
+
+    return NextResponse.redirect(
+      `${origin}/auth/auth-code-error?message=${encodeURIComponent(error.message)}`
+    );
   }
 
-  // Return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/auth/auth-code-error`);
+  // No auth code in query usually means a hash-token flow (#access_token=...).
+  // Redirect to a client page that can read the hash and establish a session.
+  return NextResponse.redirect(
+    `${origin}/auth/confirm${next ? `?next=${encodeURIComponent(next)}` : ''}`
+  );
 }

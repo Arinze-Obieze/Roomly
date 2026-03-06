@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
             try {
                 const { data: profile, error: profileError } = await supabase
                 .from('users')
-                .select('*')
+                .select('*, is_superadmin')
                 .eq('id', authUser.id)
                 .single();
                 
@@ -45,7 +45,11 @@ export function AuthProvider({ children }) {
                 }
 
                 if (mounted) {
-                    setUser({ ...authUser, ...(profile || {}) });
+                    const mergedUser = { ...authUser, ...(profile || {}) };
+                    mergedUser.full_name = profile?.full_name || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name;
+                    mergedUser.profile_picture = profile?.profile_picture || authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture;
+                    mergedUser.avatar_url = mergedUser.profile_picture;
+                    setUser(mergedUser);
                 }
             } catch (innerError) {
                 console.warn('Profile fetch failed:', innerError.message);
@@ -82,12 +86,18 @@ export function AuthProvider({ children }) {
          try {
             const { data: profile } = await supabase
                 .from('users')
-                .select('*')
+                .select('*, is_superadmin')
                 .eq('id', session.user.id)
                 .single();
             
             if (mounted && profile) {
-                setUser(u => ({ ...u, ...session.user, ...profile }));
+                setUser(u => {
+                    const mergedUser = { ...u, ...session.user, ...profile };
+                    mergedUser.full_name = profile?.full_name || session.user?.user_metadata?.full_name || session.user?.user_metadata?.name;
+                    mergedUser.profile_picture = profile?.profile_picture || session.user?.user_metadata?.avatar_url || session.user?.user_metadata?.picture;
+                    mergedUser.avatar_url = mergedUser.profile_picture;
+                    return mergedUser;
+                });
             }
          } catch (e) {
              // silent fail
@@ -104,6 +114,34 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
+  // Heartbeat for online status
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    let isMounted = true;
+    const supabase = createClient();
+    
+    const pingPresence = async () => {
+      if (!isMounted) return;
+      try {
+        await supabase.rpc('update_last_seen');
+      } catch (err) {
+        // silent fail
+      }
+    };
+    
+    // Ping immediately when user becomes active
+    pingPresence();
+    
+    // Ping every 3 minutes
+    const interval = setInterval(pingPresence, 3 * 60 * 1000);
+    
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [user?.id]);
+
   const refreshSession = async () => {
      const supabase = createClient();
      const { data: { user: authUser } } = await supabase.auth.getUser();
@@ -111,10 +149,14 @@ export function AuthProvider({ children }) {
      if (authUser) {
         const { data: profile } = await supabase
             .from('users')
-            .select('*')
+            .select('*, is_superadmin')
             .eq('id', authUser.id)
             .single();
-        setUser({ ...authUser, ...profile });
+        const mergedUser = { ...authUser, ...profile };
+        mergedUser.full_name = profile?.full_name || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name;
+        mergedUser.profile_picture = profile?.profile_picture || authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture;
+        mergedUser.avatar_url = mergedUser.profile_picture;
+        setUser(mergedUser);
      } else {
         setUser(null);
      }
@@ -131,29 +173,27 @@ export function AuthProvider({ children }) {
       }
 
       // Save original state for rollback
-      const originalUser = user;
-
-      // Optimistic update - update UI immediately
       const previousUser = { ...user };
       setUser(prev => ({ ...prev, ...updates }));
 
-      const supabase = createClient();
-      const { error } = await supabase
-        .from('users')
-        .update(updates)
-        .eq('id', user.id);
+      const response = await fetch('/api/profile/update', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const payload = await response.json().catch(() => ({}));
 
-      if (error) {
-        // Rollback on error
+      if (!response.ok || !payload?.success) {
         setUser(previousUser);
-        console.error('Error updating profile:', error);
-        return { 
-          success: false, 
-          error: error.message || 'Failed to update profile. Please try again.',
-          details: error
+        return {
+          success: false,
+          error: payload?.error || 'Failed to update profile. Please try again.',
+          details: payload,
         };
       }
 
+      const mergedUser = { ...previousUser, ...(payload?.data || {}), ...updates };
+      setUser(mergedUser);
       return { success: true };
     } catch (error) {
       // Rollback on unexpected error
@@ -184,11 +224,12 @@ export function AuthProvider({ children }) {
     setShowLoginModal(true);
   };
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = async (options = {}) => {
     try {
       const supabase = createClient();
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') ||
         (typeof window !== 'undefined' ? window.location.origin : '');
+      const redirectTo = options?.redirectTo || `${siteUrl}/auth/callback`;
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -196,7 +237,7 @@ export function AuthProvider({ children }) {
             access_type: 'offline',
             prompt: 'consent',
           },
-          redirectTo: `${siteUrl}/auth/callback`,
+          redirectTo,
         },
       });
 

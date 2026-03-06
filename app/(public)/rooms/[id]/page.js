@@ -241,15 +241,23 @@ export default function RoomDetailsPage() {
                 <div className="bg-white border border-slate-200 rounded-2xl p-6">
                     <h3 className="text-lg font-bold text-slate-900 mb-4">Compatibility</h3>
                     {user ? (
-                        <div className="flex items-center gap-4">
-                            <div className="w-16 h-16 rounded-full bg-terracotta-50 text-terracotta-600 flex items-center justify-center font-bold text-xl">
-                                85%
-                            </div>
-                            <div>
-                                <p className="font-semibold text-slate-900">Great Match!</p>
-                                <p className="text-slate-500 text-sm">Based on your preferences.</p>
-                            </div>
-                        </div>
+                        property.matchScore != null ? (
+                          <div className="flex items-center gap-4">
+                              <div className="w-16 h-16 rounded-full bg-terracotta-50 text-terracotta-600 flex items-center justify-center font-bold text-xl">
+                                  {property.matchScore}%
+                              </div>
+                              <div>
+                                  <p className="font-semibold text-slate-900">
+                                    {property.matchScore >= 85 ? 'Excellent Match!' : property.matchScore >= 70 ? 'Great Match!' : 'Potential Match'}
+                                  </p>
+                                  <p className="text-slate-500 text-sm">Based on your lifestyle and match preferences.</p>
+                              </div>
+                          </div>
+                        ) : (
+                          <div className="text-sm text-slate-500">
+                            Compatibility score is being computed. Refresh in a few seconds.
+                          </div>
+                        )
                     ) : (
                         <div className="text-center py-4">
                             <p className="text-slate-600 mb-4">Sign up to see how compatible you are with this room and host.</p>

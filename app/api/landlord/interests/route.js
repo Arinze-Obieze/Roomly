@@ -1,4 +1,5 @@
 import { createClient } from '@/core/utils/supabase/server';
+import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
 import { cachedFetch } from '@/core/utils/redis';
 import crypto from 'crypto';
@@ -22,10 +23,11 @@ export async function GET(request) {
     }
 
     const cacheKey = generateCacheKey(user.id);
+    const adminSb = createAdminClient();
 
     // Try to fetch from cache first (10 min TTL for landlord interests)
     const cachedData = await cachedFetch(cacheKey, 600, async () => {
-      return await fetchLandlordInterestsFromDB(supabase, user.id);
+      return await fetchLandlordInterestsFromDB(adminSb, user.id);
     });
 
     return NextResponse.json({ data: cachedData });

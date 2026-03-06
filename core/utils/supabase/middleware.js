@@ -72,8 +72,8 @@ export async function updateSession(request) {
     console.warn(
       '[middleware] Supabase unreachable after all retries — allowing request through.'
     );
-    return { supabaseResponse, user: null, networkError: true };
+    return { supabaseResponse, user: null, networkError: true, supabase };
   }
 
-  return { supabaseResponse, user };
+  return { supabaseResponse, user, networkError: false, supabase };
 }

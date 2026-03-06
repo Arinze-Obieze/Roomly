@@ -274,11 +274,20 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
       </div>
 
       <div className="p-4 flex flex-col flex-1">
-        {/* Title */}
-        <div className="mb-1">
-           <h3 className="font-heading font-bold text-navy-950 text-lg leading-tight truncate group-hover:text-terracotta-600 transition-colors">
+        {/* Title and Avatar */}
+        <div className="flex justify-between items-start mb-1">
+           <h3 className="font-heading font-bold text-navy-950 text-lg leading-tight truncate group-hover:text-terracotta-600 transition-colors pr-2">
              {data.title}
            </h3>
+           {data.host?.avatar && (
+             <div className="shrink-0 -mt-8 relative z-10" title={`Hosted by ${data.host.name}`}>
+                 <img 
+                    src={data.host.avatar} 
+                    alt={data.host.name} 
+                    className="w-12 h-12 rounded-full border-4 border-white shadow-md object-cover bg-navy-50" 
+                 />
+             </div>
+           )}
         </div>
 
         {/* Location */}

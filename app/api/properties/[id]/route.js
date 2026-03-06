@@ -1,9 +1,11 @@
 export const runtime = 'nodejs';
 
 import { createClient } from '@/core/utils/supabase/server';
+import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
 import { cachedFetch, invalidatePattern } from '@/core/utils/redis';
 import crypto from 'crypto';
+import { recomputeForProperty } from '@/core/services/matching/recompute-compatibility.service';
 
 // Generate cache key for property details (includes user for personalized data)
 const generateCacheKey = (propertyId, userId = 'anon') => {
@@ -40,6 +42,7 @@ const normalizeMediaPath = (value) => {
 export async function GET(request, { params }) {
   try {
     const supabase = await createClient();
+    const adminSb = createAdminClient();
     const { id } = await params;
 
     const { data: { user } } = await supabase.auth.getUser();
@@ -48,7 +51,7 @@ export async function GET(request, { params }) {
     const cacheKey = generateCacheKey(id, userId);
 
     const cachedData = await cachedFetch(cacheKey, 600, async () => {
-      return fetchPropertyFromDB(supabase, id, user);
+      return fetchPropertyFromDB(supabase, adminSb, id, user);
     });
 
     return NextResponse.json(cachedData);
@@ -64,21 +67,31 @@ export async function GET(request, { params }) {
 }
 
 // Extract database fetch logic
-async function fetchPropertyFromDB(supabase, id, user) {
+async function fetchPropertyFromDB(supabase, adminSb, id, user) {
   let interestStatus = null;
+  let matchScore = null;
 
   if (user) {
-    const { data: interest } = await supabase
-      .from('property_interests')
-      .select('status')
-      .eq('property_id', id)
-      .eq('seeker_id', user.id)
-      .maybeSingle();
+    const [{ data: interest }, { data: scoreRow }] = await Promise.all([
+      supabase
+        .from('property_interests')
+        .select('status')
+        .eq('property_id', id)
+        .eq('seeker_id', user.id)
+        .maybeSingle(),
+      supabase
+        .from('compatibility_scores')
+        .select('score')
+        .eq('property_id', id)
+        .eq('seeker_id', user.id)
+        .maybeSingle(),
+    ]);
 
     interestStatus = interest?.status;
+    matchScore = scoreRow?.score ?? null;
   }
 
-  const { data: property, error } = await supabase
+  const { data: property, error } = await adminSb
     .from('properties')
     .select(`
       *,
@@ -89,7 +102,7 @@ async function fetchPropertyFromDB(supabase, id, user) {
         is_primary,
         media_type
       ),
-      users (
+      users!listed_by_user_id (
         id,
         full_name,
         profile_picture,
@@ -113,7 +126,7 @@ async function fetchPropertyFromDB(supabase, id, user) {
       ...media,
       url: media.url.startsWith('http')
         ? media.url
-        : supabase.storage
+        : adminSb.storage
             .from('property-media')
             .getPublicUrl(media.url).data.publicUrl
     }));
@@ -151,7 +164,8 @@ async function fetchPropertyFromDB(supabase, id, user) {
   return {
     ...property,
     isPrivate,
-    interestStatus
+    interestStatus,
+    matchScore
   };
 }
 
@@ -363,10 +377,17 @@ export async function PUT(request, { params }) {
         if (mediaInsertError) throw mediaInsertError;
       }
 
+      try {
+        await recomputeForProperty(createAdminClient(), id);
+      } catch (recomputeError) {
+        console.error('[Property Details PUT] Recompute failed:', recomputeError?.message || recomputeError);
+      }
+
       await invalidatePattern(`property:*`);
       await invalidatePattern('properties:list:*');
       await invalidatePattern('seeker:interests:*');
       await invalidatePattern('landlord:interests:*');
+      await invalidatePattern('landlord:find_people:*');
 
       return NextResponse.json(propertyData);
     }
@@ -408,10 +429,17 @@ export async function PUT(request, { params }) {
 
     if (error) throw error;
 
+    try {
+      await recomputeForProperty(createAdminClient(), id);
+    } catch (recomputeError) {
+      console.error('[Property Details PUT] Recompute failed:', recomputeError?.message || recomputeError);
+    }
+
     await invalidatePattern(`property:*`);
     await invalidatePattern('properties:list:*');
     await invalidatePattern('seeker:interests:*');
     await invalidatePattern('landlord:interests:*');
+    await invalidatePattern('landlord:find_people:*');
 
     return NextResponse.json(data);
 

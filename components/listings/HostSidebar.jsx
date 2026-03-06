@@ -1,5 +1,7 @@
 'use client';
 
+import { motion } from 'framer-motion';
+
 export default function HostSidebar({ 
   host, 
   isOwner, 
@@ -10,6 +12,20 @@ export default function HostSidebar({
   contactButtonText,
   isPrivate
 }) {
+  const isOnline = host?.privacy_setting === 'public' && 
+                   host?.last_seen && 
+                   (new Date() - new Date(host.last_seen)) < 5 * 60 * 1000;
+
+  const formatResponseTime = (ms) => {
+    if (!ms || ms <= 0) return null;
+    const mins = Math.round(ms / 60000);
+    if (mins < 60) return `${mins === 0 ? '< 1' : mins} min${mins !== 1 ? 's' : ''}`;
+    const hours = Math.round(mins / 60);
+    if (hours < 24) return `${hours} hr${hours !== 1 ? 's' : ''}`;
+    const days = Math.round(hours / 24);
+    return `${days} day${days !== 1 ? 's' : ''}`;
+  };
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm sticky top-24">
@@ -19,6 +35,7 @@ export default function HostSidebar({
           className="flex items-center gap-4 mb-6 cursor-pointer hover:bg-slate-50 p-2 rounded-xl transition-colors -mx-2"
           onClick={onViewProfile}
         >
+          <div className="relative">
             {host.avatar ? (
               <img 
                 src={host.avatar} 
@@ -30,6 +47,17 @@ export default function HostSidebar({
                 {host.name?.split(' ').map(n=>n[0]).join('').slice(0,2).toUpperCase()}
               </div>
             )}
+            {isOnline && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                title="Online now"
+                className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white shadow-sm"
+              >
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              </motion.div>
+            )}
+          </div>
             
             <div>
               <div className="font-bold text-navy-950 flex items-center gap-2">
@@ -55,9 +83,12 @@ export default function HostSidebar({
               {contacting ? 'Loading...' : (contactButtonText || 'Contact Host')}
             </button>
         )}
-        <p className="text-xs text-center text-slate-400 mt-4">
-          Response time: usually within an hour
-        </p>
+        {host?.average_response_time_ms > 0 && (
+          <p className="text-xs text-center text-slate-500 mt-4 flex items-center justify-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+            Usually responds in {formatResponseTime(host.average_response_time_ms)}
+          </p>
+        )}
       </div>
     </div>
   );

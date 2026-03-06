@@ -42,13 +42,17 @@ function LoginForm() {
   });
 
   const onSubmit = async (data) => {
-    const { error } = await login(data.email, data.password);
+    const response = await login(data.email, data.password);
 
-    if (error) {
-      toast.error(error);
+    if (response.error) {
+      toast.error(response.error);
     } else {
       toast.success('Successfully logged in!');
-      router.push(redirectTo);
+      if (response.user?.is_superadmin) {
+        router.push('/superadmin');
+      } else {
+        router.push(redirectTo);
+      }
     }
   };
 
