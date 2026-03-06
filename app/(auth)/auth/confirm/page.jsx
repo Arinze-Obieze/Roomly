@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/core/utils/supabase/client';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
@@ -12,7 +12,7 @@ const sanitizeNextPath = (value) => {
   return value;
 };
 
-export default function AuthConfirmPage() {
+function AuthConfirmContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [errorMessage, setErrorMessage] = useState('');
@@ -102,5 +102,13 @@ export default function AuthConfirmPage() {
         </button>
       </div>
     </div>
+  );
+}
+
+export default function AuthConfirmPage() {
+  return (
+    <Suspense fallback={<div className="w-full max-w-md mx-auto lg:mx-0 flex flex-col items-center justify-center min-h-[360px] gap-4"><GlobalSpinner size="lg" color="primary" /></div>}>
+      <AuthConfirmContent />
+    </Suspense>
   );
 }

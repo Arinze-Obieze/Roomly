@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 
@@ -11,7 +11,7 @@ const sanitizeNextPath = (value) => {
   return value;
 };
 
-export default function AuthCodeErrorPage() {
+function AuthCodeErrorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [recovering, setRecovering] = useState(false);
@@ -117,5 +117,13 @@ export default function AuthCodeErrorPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function AuthCodeErrorPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-slate-500">Loading recovery state...</div>}>
+      <AuthCodeErrorContent />
+    </Suspense>
   );
 }
