@@ -294,7 +294,10 @@ export const ChatProvider = ({ children }) => {
         : [];
     
     const conversationsList = conversationsQuery.data
-        ? conversationsQuery.data.pages.flat()
+        ? conversationsQuery.data.pages.flat().map(conv => ({
+            ...conv,
+            unread_count: conv.tenant_id === user?.id ? conv.unread_count_tenant : conv.unread_count_host
+        }))
         : [];
 
     const value = {

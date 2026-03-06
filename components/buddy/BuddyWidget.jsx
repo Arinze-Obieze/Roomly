@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 export default function BuddyWidget(props) {
-  const { user } = useAuthContext();
+  const { user, loading: authLoading } = useAuthContext();
   const [group, setGroup] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -19,10 +19,14 @@ export default function BuddyWidget(props) {
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
-      fetchGroup();
+    if (!authLoading) {
+      if (user) {
+        fetchGroup();
+      } else {
+        setLoading(false);
+      }
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const fetchGroup = async () => {
     try {

@@ -128,11 +128,11 @@ export const ChatList = ({ activeTab, onTabChange }) => {
                     variants={item}
                     onClick={() => setActiveConversation(conv.id)}
                     className={`w-full p-4 flex gap-3 text-left relative transition-colors ${
-                      isActive ? 'bg-terracotta-50' : 'hover:bg-navy-50'
+                      isActive ? 'bg-terracotta-50' : hasUnread ? 'bg-navy-50/30 font-bold hover:bg-navy-50' : 'hover:bg-navy-50'
                     }`}
                   >
                     {/* Active Indicator Dot */}
-                    {isActive && (
+                    {isActive ? (
                       <motion.div
                         layoutId="activeChatDot"
                         className="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 bg-terracotta-500 rounded-full"
@@ -140,6 +140,10 @@ export const ChatList = ({ activeTab, onTabChange }) => {
                         animate={{ scale: 1 }}
                         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
                       />
+                    ) : (
+                      hasUnread && (
+                        <div className="absolute left-0 top-0 bottom-0 w-1 bg-teal-500" />
+                      )
                     )}
 
                     {/* Avatar */}
@@ -157,11 +161,11 @@ export const ChatList = ({ activeTab, onTabChange }) => {
                       )}
                       
                       {/* Unread Badge */}
-                      {hasUnread && activeTab === 'received' && (
+                      {hasUnread && (
                         <motion.div
                           initial={{ scale: 0 }}
                           animate={{ scale: 1 }}
-                          className="absolute -top-1 -right-1 w-5 h-5 bg-teal-500 rounded-full border-2 border-white flex items-center justify-center"
+                          className="absolute -top-1 -right-1 min-w-[20px] h-5 bg-teal-500 rounded-full border-2 border-white flex items-center justify-center px-1 shadow-sm"
                         >
                           <span className="text-[10px] text-white font-bold">{conv.unread_count}</span>
                         </motion.div>
@@ -170,22 +174,22 @@ export const ChatList = ({ activeTab, onTabChange }) => {
 
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start mb-0.5">
-                        <h3 className={`font-heading font-bold text-sm truncate pr-2 ${
-                          isActive ? 'text-terracotta-700' : 'text-navy-950'
+                        <h3 className={`font-heading text-sm truncate pr-2 ${
+                          isActive ? 'text-terracotta-700 font-bold' : hasUnread ? 'text-navy-950 font-bold' : 'text-navy-900 font-medium'
                         }`}>
                           {otherParty?.full_name || 'Unknown User'}
                         </h3>
-                        <span className="text-xs font-sans text-navy-400 shrink-0">
+                        <span className={`text-xs font-sans shrink-0 ${hasUnread && !isActive ? 'text-teal-600 font-bold' : 'text-navy-400'}`}>
                           {conv.last_message_at && formatDistanceToNow(new Date(conv.last_message_at), { addSuffix: false })}
                         </span>
                       </div>
                       
-                      <p className="text-xs font-sans font-medium text-navy-500 mb-1 truncate">
+                      <p className={`text-xs font-sans mb-1 truncate ${hasUnread && !isActive ? 'text-navy-700 font-bold' : 'text-navy-500 font-medium'}`}>
                         {conv.property?.title || 'Unknown Property'} • {conv.property?.city}
                       </p>
 
                       <p className={`text-sm font-sans truncate flex items-center gap-1 ${
-                        isActive ? 'text-terracotta-600' : 'text-navy-600'
+                        isActive ? 'text-terracotta-600 font-medium' : hasUnread ? 'text-navy-900 font-bold' : 'text-navy-600'
                       }`}>
                         {conv.last_message || 'Started a conversation'}
                         {conv.last_message_sender_id === user?.id && (

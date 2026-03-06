@@ -8,7 +8,7 @@ import { MdArrowForward, MdBolt, MdPerson, MdStyle, MdTune } from 'react-icons/m
 import { motion } from 'framer-motion';
 
 export default function ProfileStrengthWidget() {
-  const { user } = useAuthContext();
+  const { user, loading: authLoading } = useAuthContext();
   const [data, setData] = useState({
     lifestyle: null,
     preferences: null,
@@ -18,10 +18,14 @@ export default function ProfileStrengthWidget() {
   const supabase = createClient();
 
   useEffect(() => {
-    if (user) {
-      fetchData();
+    if (!authLoading) {
+      if (user) {
+        fetchData();
+      } else {
+        setData(prev => ({ ...prev, loading: false }));
+      }
     }
-  }, [user]);
+  }, [user, authLoading]);
 
   const fetchData = async () => {
     try {
@@ -42,7 +46,8 @@ export default function ProfileStrengthWidget() {
     }
   };
 
-  if (!user || data.loading) return null;
+  if (authLoading || data.loading) return null;
+  if (!user) return null;
 
   // Calculate Score
   const hasAvatar = user?.profile_picture || user?.avatar_url || user?.user_metadata?.avatar_url;

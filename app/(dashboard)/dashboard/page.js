@@ -11,6 +11,7 @@ import {
 } from "@/components/dashboard";
 import BuddyWidget from "@/components/buddy/BuddyWidget";
 import ProfileStrengthWidget from "@/components/dashboard/widgets/ProfileStrengthWidget";
+import SupportWidget from "@/components/dashboard/widgets/SupportWidget";
 import GlobalSpinner from "@/components/ui/GlobalSpinner";
 import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters";
 import { useRouter } from "next/navigation";
@@ -220,25 +221,7 @@ export default function HomeDashboard() {
                 {/* Buddy Group Widget */}
                 <BuddyWidget />
                 
-                {/* Simplified Community CTA */}
-                {/* <div className="bg-white rounded-3xl p-6 shadow-sm border border-navy-100 hover:shadow-md transition-shadow group cursor-pointer">
-                  <div className="flex items-center gap-2 mb-3">
-                    <div className="p-2 bg-navy-50 rounded-xl text-terracotta-500">
-                      <MdGroups size={20} />
-                    </div>
-                    <h3 className="font-heading font-bold text-lg text-navy-950">Find your tribe</h3>
-                  </div>
-                  <p className="text-navy-600 text-sm mb-5 font-sans leading-relaxed">
-                    Join 12,000+ others sharing tips, events, and room hunting advice.
-                  </p>
-                  <button
-                    onClick={() => router.push('/dashboard/community')}
-                    className="w-full bg-navy-50 hover:bg-navy-100 text-navy-900 border border-navy-200 px-4 py-2.5 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
-                  >
-                    <MdChat size={18} className="text-terracotta-500" />
-                    Join Community
-                  </button>
-                </div> */}
+                <SupportWidget />
 
                 {/* Quick Tips */}
                 <div className="bg-white rounded-3xl border border-navy-100 p-6 shadow-sm">

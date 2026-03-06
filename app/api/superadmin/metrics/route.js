@@ -31,6 +31,8 @@ export async function GET() {
     pendingReports,
     totalLogs,
     errorLogsToday,
+    totalSupportTickets,
+    openSupportTickets,
   ] = await Promise.all([
     safeCount(() => adminClient.from('users').select('*', { count: 'exact', head: true })),
     safeCount(() =>
@@ -57,6 +59,10 @@ export async function GET() {
         .eq('level', 'error')
         .gte('created_at', today.toISOString());
     }),
+    safeCount(() => adminClient.from('support_tickets').select('*', { count: 'exact', head: true })),
+    safeCount(() =>
+      adminClient.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['open', 'in_progress'])
+    ),
   ]);
 
   const payload = {
@@ -70,6 +76,8 @@ export async function GET() {
       pendingReports,
       totalLogs,
       errorLogsToday,
+      totalSupportTickets,
+      openSupportTickets,
     },
   };
 

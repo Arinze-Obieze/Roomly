@@ -8,6 +8,7 @@ import {
   MdTrendingUp,
   MdReceiptLong,
   MdBugReport,
+  MdChatBubbleOutline,
 } from "react-icons/md";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -141,6 +142,13 @@ export default function SuperAdminDashboard() {
         icon: MdReceiptLong,
         color: 'blue',
       },
+      {
+        title: 'Support Tickets',
+        value: metricValue(metrics?.openSupportTickets),
+        subtitle: `${metricValue(metrics?.totalSupportTickets)} total tickets`,
+        icon: MdChatBubbleOutline,
+        color: 'orange',
+      },
     ],
     [metrics]
   );
@@ -180,7 +188,7 @@ export default function SuperAdminDashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {cards.map((card) => (
           <StatCard
             key={card.title}

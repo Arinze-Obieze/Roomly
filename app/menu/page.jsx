@@ -52,6 +52,7 @@ export default function MenuPage() {
 
   const supportItems = [
     { icon: MdHelpOutline, label: 'Help Center', path: '/help' },
+    { icon: MdChatBubbleOutline, label: 'Contact Support', path: '/support' },
     { icon: MdOutlineFeedback, label: 'Give Feedback', path: '/feedback' },
     { icon: MdOutlineSecurity, label: 'Safety Tips', path: '/safety' },
     { icon: MdOutlinePolicy, label: 'Terms & Privacy', path: '/legal' }
