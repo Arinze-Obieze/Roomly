@@ -4,6 +4,8 @@ import { createContext, useContext, useEffect, useState, useCallback, useRef } f
 import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from './AuthContext';
 import { toast } from 'react-hot-toast';
+import { initializeApp, getApps } from 'firebase/app';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
 const NotificationsContext = createContext({});
 
@@ -14,6 +16,7 @@ export const NotificationsProvider = ({ children }) => {
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [pushEnabled, setPushEnabled] = useState(false);
     const [isFetchingMore, setIsFetchingMore] = useState(false);
     const [hasMore, setHasMore] = useState(true);
     const [page, setPage] = useState(0);
@@ -29,13 +32,16 @@ export const NotificationsProvider = ({ children }) => {
     useEffect(() => {
         const storedSound = localStorage.getItem('notifications:sound');
         const storedToast = localStorage.getItem('notifications:toast');
+        const storedPush = localStorage.getItem('notifications:push');
         if (storedSound !== null) setSoundEnabled(storedSound === 'true');
         if (storedToast !== null) setToastEnabled(storedToast === 'true');
+        if (storedPush === 'true') setPushEnabled(true);
     }, []);
 
-    const persistNotificationPrefs = useCallback((nextSoundEnabled, nextToastEnabled) => {
+    const persistNotificationPrefs = useCallback((nextSoundEnabled, nextToastEnabled, nextPushEnabled) => {
         localStorage.setItem('notifications:sound', String(nextSoundEnabled));
         localStorage.setItem('notifications:toast', String(nextToastEnabled));
+        localStorage.setItem('notifications:push', String(nextPushEnabled));
     }, []);
 
     const fetchUnreadCount = useCallback(async () => {
@@ -96,17 +102,64 @@ export const NotificationsProvider = ({ children }) => {
         }
     }, [user, supabase, fetchUnreadCount]);
 
+    const requestPushPermission = async () => {
+        if (!user || typeof window === 'undefined' || !('Notification' in window)) return;
+
+        // Check for missing Firebase config
+        if (!process.env.NEXT_PUBLIC_FIREBASE_API_KEY || !process.env.NEXT_PUBLIC_FIREBASE_APP_ID) {
+            console.warn('[NotificationsContext] Firebase keys missing. Push notifications disabled.');
+            return;
+        }
+
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission === 'granted') {
+                const firebaseConfig = {
+                    apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+                    projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+                    messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_SENDER_ID,
+                    appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+                };
+
+                const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+                const messaging = getMessaging(app);
+
+                const token = await getToken(messaging, {
+                    vapidKey: process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY
+                });
+
+                if (token) {
+                    await fetch('/api/notifications/fcm-token', {
+                        method: 'POST',
+                        body: JSON.stringify({ token, deviceType: 'web' }),
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    setPushEnabled(true);
+                    localStorage.setItem('notifications:push', 'true');
+                    toast.success('Push notifications enabled!');
+                }
+            }
+        } catch (error) {
+            console.error('Error enabling push notifications:', error);
+            // Don't show toast error on every boot if it fails quietly
+        }
+    };
+
     // Initial fetch
     useEffect(() => {
         if (!user) return;
         fetchNotifications({ append: false, targetPage: 0 });
-    }, [fetchNotifications]);
+        
+        const storedPush = localStorage.getItem('notifications:push');
+        if (storedPush === 'true') {
+            requestPushPermission();
+        }
+    }, [user, fetchNotifications]);
 
-    // Real-time subscription - FIXED: removed 'notifications' from deps to prevent recreation
+    // Real-time subscription
     useEffect(() => {
         if (!user) return;
 
-        // Cleanup existing subscription if any
         if (subscriptionRef.current) {
             supabase.removeChannel(subscriptionRef.current);
         }
@@ -126,12 +179,10 @@ export const NotificationsProvider = ({ children }) => {
                 });
                 setUnreadCount(prev => prev + (newNotification.is_read ? 0 : 1));
                 
-                // Play sound
                 if (soundEnabled && audioRef.current) {
                     audioRef.current.play().catch(e => console.log('Audio play failed', e));
                 }
                 
-                // Show toast
                 if (toastEnabled) {
                     toast(newNotification.title, {
                         icon: '🔔',
@@ -166,7 +217,7 @@ export const NotificationsProvider = ({ children }) => {
                 subscriptionRef.current = null;
             }
         };
-    }, [user, supabase, soundEnabled, toastEnabled]); // Fixed: removed 'notifications' dependency
+    }, [user, supabase, soundEnabled, toastEnabled]);
 
     const markAsRead = async (id) => {
         let shouldDecrement = false;
@@ -193,7 +244,6 @@ export const NotificationsProvider = ({ children }) => {
     };
 
     const markAllAsRead = async () => {
-        // Optimistic
         setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
         setUnreadCount(0);
 
@@ -220,12 +270,22 @@ export const NotificationsProvider = ({ children }) => {
         await fetchNotifications({ append: false, targetPage: 0 });
     }, [fetchNotifications]);
 
-    const updatePreferences = ({ sound, toast: toastPref }) => {
+    const updatePreferences = ({ sound, toast: toastPref, push }) => {
         const nextSound = typeof sound === 'boolean' ? sound : soundEnabled;
         const nextToast = typeof toastPref === 'boolean' ? toastPref : toastEnabled;
+        const nextPush = typeof push === 'boolean' ? push : pushEnabled;
+
         setSoundEnabled(nextSound);
         setToastEnabled(nextToast);
-        persistNotificationPrefs(nextSound, nextToast);
+        
+        if (push === true && !pushEnabled) {
+            requestPushPermission();
+        } else if (push === false && pushEnabled) {
+            setPushEnabled(false);
+            localStorage.setItem('notifications:push', 'false');
+        }
+
+        persistNotificationPrefs(nextSound, nextToast, nextPush);
     };
 
     return (
@@ -233,6 +293,7 @@ export const NotificationsProvider = ({ children }) => {
             notifications,
             unreadCount,
             loading,
+            pushEnabled,
             isFetchingMore,
             hasMore,
             soundEnabled,
@@ -241,7 +302,8 @@ export const NotificationsProvider = ({ children }) => {
             markAllAsRead,
             loadMore,
             refresh,
-            updatePreferences
+            updatePreferences,
+            requestPushPermission
         }}>
             <audio ref={audioRef} src="/sounds/notification.mp3" className="hidden" />
             {children}

@@ -2,6 +2,7 @@ import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { Notifier } from '@/core/services/notifications/notifier';
 
 export async function POST(request) {
   try {
@@ -114,6 +115,29 @@ export async function POST(request) {
         if (updateError) {
             console.error('Update invite error:', updateError);
         }
+    }
+
+    // 6. Notify Group Admin
+    try {
+      const { data: group } = await adminSupabase
+        .from('buddy_groups')
+        .select('name, admin_id')
+        .eq('id', invite.group_id)
+        .single();
+      
+      if (group && group.admin_id !== user.id) {
+        await Notifier.send({
+          userId: group.admin_id,
+          type: 'system',
+          title: 'New Group Member',
+          message: `${user.full_name || 'Someone'} joined your group "${group.name}"`,
+          link: `/dashboard/buddy?groupId=${invite.group_id}`,
+          data: { groupId: invite.group_id },
+          channels: ['in-app', 'push'] // Join is likely expected, so maybe skip email to avoid spam
+        });
+      }
+    } catch (nError) {
+      console.error('[Buddy Join Notification Error]:', nError);
     }
 
     return NextResponse.json({ 

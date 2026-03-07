@@ -10,6 +10,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { invalidatePattern } from '@/core/utils/redis';
+import { Notifier } from '@/core/services/notifications/notifier';
 
 export async function POST(request) {
   try {
@@ -95,6 +96,21 @@ export async function POST(request) {
     // 5. Invalidate relevant caches
     await invalidatePattern(`seeker:interests:*`);
     await invalidatePattern(`landlord:interests:*`);
+
+    // 6. Notify Landlord
+    try {
+      await Notifier.send({
+        userId: property.listed_by_user_id,
+        type: 'inquiry',
+        title: 'New Interest',
+        message: `${user.full_name || 'A seeker'} is interested in your listing "${property.title}"`,
+        link: `/dashboard/listings/interests?propertyId=${propertyId}`,
+        data: { propertyId },
+        channels: ['in-app', 'email', 'push']
+      });
+    } catch (nError) {
+      console.error('[Show Interest Notification Error]:', nError);
+    }
 
     return NextResponse.json({
       success: true,

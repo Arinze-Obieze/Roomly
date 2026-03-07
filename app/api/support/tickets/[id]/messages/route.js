@@ -1,6 +1,7 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { Notifier } from '@/core/services/notifications/notifier';
 
 export async function GET(req, { params }) {
   try {
@@ -80,6 +81,31 @@ export async function POST(req, { params }) {
       .from('support_tickets')
       .update({ updated_at: new Date().toISOString() })
       .eq('id', id);
+
+    // 6. Notify User if Admin replied
+    if (role === 'admin') {
+      try {
+        const { data: ticket } = await supabase
+          .from('support_tickets')
+          .select('user_id, subject')
+          .eq('id', id)
+          .single();
+
+        if (ticket) {
+          await Notifier.send({
+            userId: ticket.user_id,
+            type: 'system',
+            title: 'Support Update',
+            message: `An admin has responded to your ticket: "${ticket.subject}"`,
+            link: `/dashboard/support?id=${id}`,
+            data: { ticketId: id },
+            channels: ['in-app', 'email', 'push']
+          });
+        }
+      } catch (nError) {
+        console.error('[Support Reply Notification Error]:', nError);
+      }
+    }
 
     return NextResponse.json({ data: message });
   } catch (error) {
