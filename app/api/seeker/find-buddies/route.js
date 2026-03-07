@@ -86,33 +86,38 @@ async function fetchMatchedBuddies({ seekerId, minMatch, limit }) {
         profile_visibility
       )
     `)
-    .neq('user_id', seekerId) // Don't fetch myself
-    .or('primary_role.eq.seeker,primary_role.is.null') // Must be a seeker
+    .neq('user_id', seekerId); // Don't fetch myself
+    // Removed strict primary_role filter and moved city filter to scoring to improve discovery
     
-  // Only filter by city if the user actually set one, otherwise let them see anyone
-  // and rely purely on the lifestyle score.
-  if (myLifestyle.current_city) {
-    query = query.eq('current_city', myLifestyle.current_city);
-  }
-  
   const { data: seekers, error: seekersError } = await query
     .order('updated_at', { ascending: false })
-    .limit(200);
+    .limit(400); // Increased limit as we'll filter/score in memory
 
   if (seekersError) throw seekersError;
 
   const scoredBuddies = (seekers || []).map((candidate) => {
     // Basic similarity scoring (0-100)
-    let score = 25; // Neutral baseline
-    if (myLifestyle.current_city && candidate.current_city === myLifestyle.current_city) {
-      score += 25;
+    let score = 20; // Lower baseline
+    
+    // Weight city match (30pts) - use fuzzy-ish match
+    const myCity = myLifestyle.current_city?.toLowerCase().trim();
+    const theirCity = candidate.current_city?.toLowerCase().trim();
+    
+    if (myCity && theirCity) {
+      if (myCity === theirCity) {
+        score += 30;
+      } else if (myCity.includes(theirCity) || theirCity.includes(myCity)) {
+        score += 20;
+      }
+    } else {
+      score += 15; // Partial credit if one or both are missing (discovery)
     }
     
     if (candidate.schedule_type === myLifestyle.schedule_type) score += 15;
     if (candidate.cleanliness_level === myLifestyle.cleanliness_level) score += 15;
     if (candidate.noise_tolerance === myLifestyle.noise_tolerance) score += 10;
     
-    // Interest overlap
+    // Interest overlap (max 10pts)
     const myInterests = Array.isArray(myLifestyle.interests) ? myLifestyle.interests : [];
     const theirInterests = Array.isArray(candidate.interests) ? candidate.interests : [];
     const commonInterests = myInterests.filter(i => theirInterests.includes(i));

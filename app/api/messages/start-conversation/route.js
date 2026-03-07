@@ -3,7 +3,12 @@ import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 import { sanitizeLength, sanitizeText } from '@/core/utils/sanitizers';
+import { logFeatureEvent } from '@/core/services/analytics/analytics.service';
 
+/**
+ * Polymorphic endpoint to start a conversation between a Seeker and a Host
+ * for a specific Property context.
+ */
 export async function POST(request) {
   try {
     const csrfValidation = await validateCSRFRequest(request);
@@ -17,10 +22,10 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { seekerId, propertyId, message } = await request.json();
+    const { targetId, propertyId, message } = await request.json();
 
-    if (!seekerId || !propertyId) {
-      return NextResponse.json({ error: 'seekerId and propertyId are required' }, { status: 400 });
+    if (!targetId || !propertyId) {
+      return NextResponse.json({ error: 'targetId and propertyId are required' }, { status: 400 });
     }
 
     const cleanedMessage = sanitizeText(sanitizeLength(message || '', 2000)).trim();
@@ -30,69 +35,63 @@ export async function POST(request) {
 
     const adminSupabase = createAdminClient();
 
-    const [{ data: ownedProperty }, { data: seekerUser }] = await Promise.all([
-      adminSupabase
-        .from('properties')
-        .select('id, listed_by_user_id')
-        .eq('id', propertyId)
-        .eq('listed_by_user_id', user.id)
-        .maybeSingle(),
-      adminSupabase
-        .from('users')
-        .select('id')
-        .eq('id', seekerId)
-        .maybeSingle(),
+    // 1. Fetch target user and property to verify roles/ownership
+    const [{ data: targetUser }, { data: property }] = await Promise.all([
+      adminSupabase.from('users').select('id').eq('id', targetId).maybeSingle(),
+      adminSupabase.from('properties').select('id, listed_by_user_id').eq('id', propertyId).maybeSingle(),
     ]);
 
-    if (!ownedProperty) {
-      return NextResponse.json({ error: 'You can only contact seekers for your own listing' }, { status: 403 });
+    if (!targetUser) return NextResponse.json({ error: 'Target user not found' }, { status: 404 });
+    if (!property) return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+
+    // 2. Identify roles
+    const isLandlordContactingSeeker = property.listed_by_user_id === user.id;
+    const isSeekerContactingLandlord = property.listed_by_user_id === targetId;
+
+    if (!isLandlordContactingSeeker && !isSeekerContactingLandlord) {
+      return NextResponse.json({ error: 'Invalid context for conversation' }, { status: 403 });
     }
 
-    if (!seekerUser) {
-      return NextResponse.json({ error: 'Seeker not found' }, { status: 404 });
-    }
+    const hostId = isLandlordContactingSeeker ? user.id : targetId;
+    const tenantId = isLandlordContactingSeeker ? targetId : user.id;
 
+    // 3. Find or Create Conversation
     const { data: existingConversation } = await adminSupabase
       .from('conversations')
       .select('id')
       .eq('property_id', propertyId)
-      .eq('tenant_id', seekerId)
+      .eq('tenant_id', tenantId)
       .maybeSingle();
 
     let conversationId = existingConversation?.id;
 
     if (!conversationId) {
-      const { data: createdConversation, error: createConversationError } = await adminSupabase
+       const { data: createdConversation, error: createError } = await adminSupabase
         .from('conversations')
         .insert({
           property_id: propertyId,
-          tenant_id: seekerId,
-          host_id: user.id,
+          tenant_id: tenantId,
+          host_id: hostId,
           last_message: cleanedMessage,
           last_message_at: new Date().toISOString(),
         })
         .select('id')
         .single();
 
-      if (createConversationError) {
-        throw createConversationError;
-      }
-
+      if (createError) throw createError;
       conversationId = createdConversation.id;
     } else {
-      const { error: updateConversationError } = await adminSupabase
+      await adminSupabase
         .from('conversations')
         .update({
           last_message: cleanedMessage,
           last_message_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
         })
         .eq('id', conversationId);
-
-      if (updateConversationError) {
-        throw updateConversationError;
-      }
     }
 
+    // 4. Insert Message
     const { error: messageError } = await adminSupabase
       .from('messages')
       .insert({
@@ -101,13 +100,22 @@ export async function POST(request) {
         content: cleanedMessage,
       });
 
-    if (messageError) {
-      throw messageError;
-    }
+    if (messageError) throw messageError;
+
+    // 5. Log tracking event (fire & forget)
+    logFeatureEvent({
+      userId: user.id,
+      featureName: 'messaging',
+      action: 'start_conversation',
+      metadata: {
+        role: isLandlordContactingSeeker ? 'host' : 'tenant',
+        propertyId
+      }
+    }).catch(console.error);
 
     return NextResponse.json({ success: true, conversationId });
   } catch (error) {
-    console.error('[Start Seeker Conversation POST] Error:', error);
+    console.error('[Start Conversation POST] Error:', error);
     return NextResponse.json(
       { error: error.message || 'Failed to start conversation' },
       { status: 500 }

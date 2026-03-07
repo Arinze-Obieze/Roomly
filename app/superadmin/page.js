@@ -9,6 +9,9 @@ import {
   MdReceiptLong,
   MdBugReport,
   MdChatBubbleOutline,
+  MdSearch,
+  MdMessage,
+  MdGroup,
 } from "react-icons/md";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -148,6 +151,27 @@ export default function SuperAdminDashboard() {
         subtitle: `${metricValue(metrics?.totalSupportTickets)} total tickets`,
         icon: MdChatBubbleOutline,
         color: 'orange',
+      },
+      {
+        title: 'Discovery Activity',
+        value: metricValue(metrics?.discoveryEventsToday),
+        subtitle: 'Events logged today',
+        icon: MdSearch,
+        color: 'rose',
+      },
+      {
+        title: 'New Chats',
+        value: metricValue(metrics?.conversationsToday),
+        subtitle: 'Started today',
+        icon: MdMessage,
+        color: 'teal',
+      },
+      {
+        title: 'New Buddy Groups',
+        value: metricValue(metrics?.buddyGroupsToday),
+        subtitle: 'Created today',
+        icon: MdGroup,
+        color: 'indigo',
       },
     ],
     [metrics]

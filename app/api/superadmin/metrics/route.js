@@ -33,6 +33,9 @@ export async function GET() {
     errorLogsToday,
     totalSupportTickets,
     openSupportTickets,
+    discoveryEventsToday,
+    conversationsToday,
+    buddyGroupsToday,
   ] = await Promise.all([
     safeCount(() => adminClient.from('users').select('*', { count: 'exact', head: true })),
     safeCount(() =>
@@ -63,6 +66,31 @@ export async function GET() {
     safeCount(() =>
       adminClient.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['open', 'in_progress'])
     ),
+    safeCount(() => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return adminClient
+        .from('feature_events')
+        .select('*', { count: 'exact', head: true })
+        .eq('feature_name', 'discovery')
+        .gte('created_at', today.toISOString());
+    }),
+    safeCount(() => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return adminClient
+        .from('conversations')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', today.toISOString());
+    }),
+    safeCount(() => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return adminClient
+        .from('buddy_groups')
+        .select('*', { count: 'exact', head: true })
+        .gte('created_at', today.toISOString());
+    }),
   ]);
 
   const payload = {
@@ -78,6 +106,9 @@ export async function GET() {
       errorLogsToday,
       totalSupportTickets,
       openSupportTickets,
+      discoveryEventsToday,
+      conversationsToday,
+      buddyGroupsToday,
     },
   };
 

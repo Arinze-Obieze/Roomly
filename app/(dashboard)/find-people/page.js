@@ -11,8 +11,22 @@ import { MdLock } from 'react-icons/md';
 export default function FindPeoplePage() {
   const router = useRouter();
   const { user, loading } = useAuthContext();
-  const [activeTab, setActiveTab] = useState('tenants'); // 'tenants' | 'buddies'
+  const [activeTab, setActiveTab] = useState('tenants'); // 'tenants' | 'landlords'
   const [loadingState, setLoadingState] = useState(true);
+
+  const logEvent = async (action, metadata = {}) => {
+    try {
+      fetch('/api/analytics/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          featureName: 'discovery',
+          action,
+          metadata: { ...metadata, tab: activeTab }
+        })
+      });
+    } catch (e) { /* ignore analytics errors */ }
+  };
   const [profileStatus, setProfileStatus] = useState(null);
   const [featureState, setFeatureState] = useState({
     canUseFeature: true,
@@ -32,7 +46,7 @@ export default function FindPeoplePage() {
       const status = await statusRes.json();
       const normalizedStatus = {
         ...status,
-        isProfileComplete: activeTab === 'buddies' ? !!status.hasLifestyle : true,
+        isProfileComplete: activeTab === 'landlords' ? !!status.hasLifestyle : true,
       };
       setProfileStatus(normalizedStatus);
 
@@ -44,12 +58,15 @@ export default function FindPeoplePage() {
       // 2. Profile is complete, fetch matches based on active tab
       const endpoint = activeTab === 'tenants' 
         ? '/api/landlord/find-people?minMatch=70&limit=24'
-        : '/api/seeker/find-buddies?minMatch=70&limit=24';
+        : '/api/seeker/find-landlords?minMatch=70&limit=24';
         
       const res = await fetch(endpoint);
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error || 'Failed to load matches');
       setFeatureState(payload);
+      if (payload.data?.length > 0) {
+        logEvent('view_results', { count: payload.data.length });
+      }
     } catch (error) {
       toast.error(error.message || 'Failed to load matches');
     } finally {
@@ -69,23 +86,25 @@ export default function FindPeoplePage() {
   const handleContactSeeker = async (seeker) => {
     if (!seeker?.user_id || contactingId) return;
     if (!seeker?.matched_property?.id) {
-      toast('Direct buddy messaging is coming soon. For now, create a buddy group to chat together.');
+      toast('Contacting this person directly is coming soon.');
       return;
     }
 
     setContactingId(seeker.user_id);
     try {
       const csrfToken = await getCSRFToken();
-      const introMessage = `Hi ${seeker.full_name?.split(' ')[0] || ''}, I saw your ${seeker.match_score}% match for my listing "${seeker.matched_property.title}". Let me know if you'd like to discuss next steps.`;
+      const introMessage = activeTab === 'tenants'
+        ? `Hi ${seeker.full_name?.split(' ')[0] || ''}, I saw your ${seeker.match_score}% match for my listing "${seeker.matched_property.title}". Let me know if you'd like to discuss next steps.`
+        : `Hi ${seeker.full_name?.split(' ')[0] || ''}, I'm interested in your room "${seeker.matched_property.title}". We have a ${seeker.match_score}% lifestyle match!`;
 
-      const res = await fetch('/api/messages/start-seeker', {
+      const res = await fetch('/api/messages/start-conversation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'x-csrf-token': csrfToken,
         },
         body: JSON.stringify({
-          seekerId: seeker.user_id,
+          targetId: seeker.user_id,
           propertyId: seeker.matched_property.id,
           message: introMessage,
         }),
@@ -129,7 +148,7 @@ export default function FindPeoplePage() {
           <p className="text-slate-500 mt-1">
             {activeTab === 'tenants' 
               ? `Browse seekers with ${featureState.minMatch || 70}%+ compatibility for your listings.`
-              : `Find potential roommates with ${featureState.minMatch || 70}%+ lifestyle compatibility.`}
+              : `Find landlords whose rooms match your lifestyle by ${featureState.minMatch || 70}%+.`}
           </p>
         </div>
         <button
@@ -145,7 +164,10 @@ export default function FindPeoplePage() {
       {/* Tabs */}
       <div className="flex items-center gap-2 border-b border-navy-200 mb-8 pt-6">
         <button 
-          onClick={() => setActiveTab('tenants')}
+          onClick={() => {
+            setActiveTab('tenants');
+            logEvent('switch_tab', { target: 'tenants' });
+          }}
           className={`pb-3 px-4 text-sm font-heading font-bold border-b-2 transition-colors ${
             activeTab === 'tenants' ? 'border-terracotta-500 text-terracotta-600' : 'border-transparent text-navy-500 hover:text-navy-700'
           }`}
@@ -153,12 +175,15 @@ export default function FindPeoplePage() {
           Find Tenants
         </button>
         <button 
-          onClick={() => setActiveTab('buddies')}
+          onClick={() => {
+            setActiveTab('landlords');
+            logEvent('switch_tab', { target: 'landlords' });
+          }}
           className={`pb-3 px-4 text-sm font-heading font-bold border-b-2 transition-colors ${
-            activeTab === 'buddies' ? 'border-terracotta-500 text-terracotta-600' : 'border-transparent text-navy-500 hover:text-navy-700'
+            activeTab === 'landlords' ? 'border-terracotta-500 text-terracotta-600' : 'border-transparent text-navy-500 hover:text-navy-700'
           }`}
         >
-          Find Buddies
+          Find Landlords
         </button>
       </div>
 
@@ -169,7 +194,7 @@ export default function FindPeoplePage() {
             <MdHomeWork size={28} />
           </div>
           <h2 className="text-xl font-heading font-bold text-navy-950 mb-2">
-            {activeTab === 'tenants' ? 'Add a listing to unlock this feature' : 'Update your profile to find buddies'}
+            {activeTab === 'tenants' ? 'Add a listing to unlock this feature' : 'Update your profile to find landlords'}
           </h2>
           <p className="text-navy-500 mb-6">{featureState.message}</p>
           {activeTab === 'tenants' ? (
@@ -198,8 +223,8 @@ export default function FindPeoplePage() {
           </div>
           <h2 className="text-2xl font-heading font-extrabold text-navy-950 mb-3 tracking-tight">Unlock Your Matches</h2>
           <p className="text-navy-600 mb-8 text-lg leading-relaxed max-w-lg mx-auto">
-            {activeTab === 'buddies'
-              ? "Complete your Lifestyle profile to unlock buddy matching."
+            {activeTab === 'landlords'
+              ? "Complete your Lifestyle profile to unlock landlord matching."
               : "Complete your profile to unlock this feed."}
           </p>
           <button
@@ -277,11 +302,12 @@ export default function FindPeoplePage() {
                 <p className="text-sm text-navy-600 line-clamp-2 mb-3">{seeker.bio}</p>
               )}
 
-              {seeker.matched_property && (
-                <div className="mb-3 text-xs text-navy-600 bg-navy-50 border border-navy-100 rounded-xl p-2.5">
-                  Best fit for your listing: <span className="font-heading font-semibold text-navy-950">{seeker.matched_property.title}</span>
-                </div>
-              )}
+                {seeker.matched_property?.title && (
+                  <div className="mb-3 text-xs text-navy-600 bg-navy-50 border border-navy-100 rounded-xl p-2.5">
+                    {activeTab === 'tenants' ? 'Best fit for your listing: ' : 'Their best room for you: '} 
+                    <span className="font-heading font-semibold text-navy-950">{seeker.matched_property.title}</span>
+                  </div>
+                )}
 
               {Array.isArray(seeker.interests) && seeker.interests.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 mb-3">
@@ -300,8 +326,8 @@ export default function FindPeoplePage() {
               >
                 {contactingId === seeker.user_id
                   ? 'Sending...'
-                  : activeTab === 'buddies'
-                    ? 'Buddy Chat Soon'
+                  : activeTab === 'landlords'
+                    ? 'Contact Landlord'
                     : 'Contact Seeker'}
               </button>
             </article>

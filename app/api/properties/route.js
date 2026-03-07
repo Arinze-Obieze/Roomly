@@ -193,7 +193,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
 
   const from = (page - 1) * pageSize;
   const to = from + pageSize - 1;
-  const applyDbPagination = !(sortBy === 'match' && user);
+  const applyDbPagination = !((sortBy === 'match' || sortBy === 'recommended') && user);
   if (applyDbPagination) {
     query = query.range(from, to);
   }
@@ -353,11 +353,23 @@ async function fetchPropertiesFromDB(searchParams, user) {
   }).filter(Boolean); // Filter out the nulls from the privacy threshold
 
   let finalData = transformedData;
-  if (sortBy === 'match' && user) {
+  if ((sortBy === 'match' || sortBy === 'recommended') && user) {
+    const now = new Date();
     finalData = [...transformedData].sort((a, b) => {
-      const aScore = typeof a.matchScore === 'number' ? a.matchScore : -1;
-      const bScore = typeof b.matchScore === 'number' ? b.matchScore : -1;
-      if (bScore !== aScore) return bScore - aScore;
+      const aMatch = typeof a.matchScore === 'number' ? a.matchScore : 50;
+      const bMatch = typeof b.matchScore === 'number' ? b.matchScore : 50;
+
+      // Recency Score: Linear decay over 28 days (672 hours)
+      const aAgeHours = Math.max(0, (now - new Date(a.createdAt)) / 36e5);
+      const bAgeHours = Math.max(0, (now - new Date(b.createdAt)) / 36e5);
+      const aRecency = Math.max(0, 100 - (aAgeHours / 6.72));
+      const bRecency = Math.max(0, 100 - (bAgeHours / 6.72));
+
+      // Blended Discovery Score (70% Compatibility, 30% Freshness)
+      const aDiscovery = (aMatch * 0.7) + (aRecency * 0.3);
+      const bDiscovery = (bMatch * 0.7) + (bRecency * 0.3);
+
+      if (bDiscovery !== aDiscovery) return bDiscovery - aDiscovery;
       return new Date(b.createdAt) - new Date(a.createdAt);
     }).slice(from, to + 1);
   }

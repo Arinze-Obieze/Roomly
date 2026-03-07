@@ -67,7 +67,9 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
   const { data: scoreRows, error: scoreError } = await adminSupabase
     .from('compatibility_scores')
     .select('seeker_id, property_id, score')
-    .in('property_id', listingIds);
+    .in('property_id', listingIds)
+    .order('score', { ascending: false })
+    .limit(1000); // Increased limit to ensure we see high matches
 
   if (scoreError) throw scoreError;
 
@@ -76,7 +78,8 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
     .from('property_interests')
     .select('seeker_id, property_id, status')
     .in('property_id', listingIds)
-    .eq('status', 'accepted');
+    .eq('status', 'accepted')
+    .limit(500); // Safety limit for interests per landlord
 
   if (acceptedError) throw acceptedError;
 
@@ -145,7 +148,7 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
     `)
     .in('user_id', candidateIds)
     .neq('user_id', landlordId)
-    .or('primary_role.eq.seeker,primary_role.is.null');
+    .limit(limit * 2); // Fetch slightly more to account for masking/filtering
 
   if (seekersError) throw seekersError;
 

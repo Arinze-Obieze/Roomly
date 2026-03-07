@@ -53,6 +53,12 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
     return '€0';
   }, [data.isBlurry, data.price, data.priceRange]);
 
+  const isNew = useMemo(() => {
+    if (!data.createdAt) return false;
+    const hours = (new Date() - new Date(data.createdAt)) / 36e5;
+    return hours <= 48; // New if posted in last 48 hours
+  }, [data.createdAt]);
+
   useEffect(() => {
     setImgSrc(data.image);
   }, [data.image]);
@@ -187,6 +193,12 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
                     {data.period && <span className="text-[9px] text-navy-500 font-bold uppercase tracking-wider mt-0.5">{data.period === 'monthly' ? 'per month' : data.period}</span>}
                 </div>
              )}
+
+              {isNew && (
+                <div className="bg-teal-500/90 text-white px-2.5 py-1 w-max rounded-lg backdrop-blur-md shadow-sm flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider border border-white/10">
+                    New
+                </div>
+              )}
 
              {data.isPrivate && (
                 <div className="bg-navy-900/90 text-white px-2.5 py-1 w-max rounded-lg backdrop-blur-md shadow-sm flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider border border-white/10">
