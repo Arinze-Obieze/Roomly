@@ -241,11 +241,23 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
                         <span>{data.matchScore}% Match</span>
                     </div>
                 ) : user ? (
-                    /* Logged in but no score yet — recompute is running in the background */
-                    <div className="bg-navy-900/70 backdrop-blur-md text-white/70 px-3 py-1.5 rounded-full text-xs font-medium border border-white/10 flex items-center gap-1.5 animate-pulse">
-                        <span className="w-1.5 h-1.5 rounded-full bg-white/50 inline-block" />
-                        Computing…
-                    </div>
+                    /* Logged in but no score explicitly found -- maybe computing or missing profile */
+                    data.missingProfile ? (
+                       <button
+                           onClick={(e) => {
+                               e.stopPropagation();
+                               router.push('/profile?tab=lifestyle');
+                           }}
+                           className="bg-terracotta-500/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-bold border border-white/10 hover:bg-terracotta-600 transition-colors animate-pulse"
+                       >
+                           Complete profile for match
+                       </button>
+                    ) : (
+                       <div className="bg-navy-900/70 backdrop-blur-md text-white/70 px-3 py-1.5 rounded-full text-xs font-medium border border-white/10 flex items-center gap-1.5 animate-pulse">
+                           <span className="w-1.5 h-1.5 rounded-full bg-white/50 inline-block" />
+                           Computing…
+                       </div>
+                    )
                 ) : (
                     /* Logged out — invite to sign up */
                     <div

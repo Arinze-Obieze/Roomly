@@ -282,6 +282,24 @@ export const ChatProvider = ({ children }) => {
 
                 queryClient.invalidateQueries(['conversations', user.id]);
             })
+            .on('postgres_changes', {
+                event: 'UPDATE', schema: 'public', table: 'messages'
+            }, (payload) => {
+                const msg = payload.new;
+                const currentConversation = activeConversationRef.current;
+
+                if (currentConversation && msg.conversation_id === currentConversation) {
+                    queryClient.setQueryData(['messages', currentConversation], (old) => {
+                        if (!old) return old;
+                        const pages = [...old.pages];
+                        const newPages = pages.map(page => 
+                            page.map(m => m.id === msg.id ? { ...m, ...msg } : m)
+                        );
+                        return { ...old, pages: newPages };
+                    });
+                }
+                queryClient.invalidateQueries(['conversations', user.id]);
+            })
             .subscribe();
 
         return () => {

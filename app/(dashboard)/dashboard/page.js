@@ -85,9 +85,8 @@ export default function HomeDashboard() {
   }, []);
 
   // ── Match score bootstrap ──────────────────────────────────────────────────
-  // When a logged-in user has no cached scores (new account, just completed
-  // their profile, or first time the scoring system is active), trigger a
-  // background recompute then refresh listings so % match badges appear.
+  // When a logged-in user has no cached scores, trigger a background recompute
+  // then refresh listings so match % badges appear.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -95,19 +94,19 @@ export default function HomeDashboard() {
     async function bootstrapScores() {
       try {
         const statusRes = await fetch('/api/matching/status');
-        const { hasScores } = await statusRes.json();
-        if (hasScores || cancelled) return;
+        const { hasScores, missingProfile } = await statusRes.json();
+        // Don't recompute if we already have scores, or the user hasn't filled their profile
+        if (hasScores || missingProfile || cancelled) return;
 
+        // await the recompute — this blocks until the server finishes writing scores
         await fetch('/api/matching/recompute', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'seeker' }),
         });
 
-        // Give recompute a few seconds to finish, then reload listings
-        if (!cancelled) {
-          setTimeout(() => { if (!cancelled) refresh(); }, 4000);
-        }
+        // Recompute is fully done — refresh listings now to pick up fresh scores
+        if (!cancelled) refresh();
       } catch {
         // Silently ignore — scores are a nice-to-have, never a blocker
       }

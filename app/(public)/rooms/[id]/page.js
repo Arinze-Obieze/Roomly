@@ -253,9 +253,20 @@ export default function RoomDetailsPage() {
                                   <p className="text-slate-500 text-sm">Based on your lifestyle and match preferences.</p>
                               </div>
                           </div>
+                        ) : property.missingProfile ? (
+                          <div className="text-center py-4 bg-terracotta-50 rounded-xl border border-terracotta-100">
+                             <p className="text-terracotta-800 text-sm font-medium mb-3">Complete your profile to see your match score.</p>
+                             <button 
+                                 onClick={() => router.push('/profile?tab=lifestyle')}
+                                 className="px-6 py-2 bg-terracotta-600 text-white font-bold rounded-xl shadow-md hover:bg-terracotta-700 transition-colors text-sm"
+                             >
+                                 Complete Profile
+                             </button>
+                          </div>
                         ) : (
-                          <div className="text-sm text-slate-500">
-                            Compatibility score is being computed. Refresh in a few seconds.
+                          <div className="text-sm text-slate-500 flex items-center gap-2">
+                             <GlobalSpinner size="xs" color="slate" />
+                             Compatibility score is being computed...
                           </div>
                         )
                     ) : (

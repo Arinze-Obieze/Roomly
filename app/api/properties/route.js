@@ -213,9 +213,14 @@ async function fetchPropertiesFromDB(searchParams, user) {
   // Fetch interests for the current user
   let interests = [];
   let scoreMap = {}; // { [property_id]: score }
+  let missingProfile = false;
+
   if (user) {
     const interestStart = Date.now();
-    const [interestData, scoreData] = await Promise.all([
+    
+    // We also need to check if the user has actually filled out their profile
+    // If they haven't, we should tell the frontend so it prompts them.
+    const [interestData, scoreData, profileCheck] = await Promise.all([
       supabase
         .from('property_interests')
         .select('property_id, status')
@@ -224,11 +229,24 @@ async function fetchPropertiesFromDB(searchParams, user) {
         .from('compatibility_scores')
         .select('property_id, score')
         .eq('seeker_id', user.id),
+      supabase
+        .from('user_lifestyles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .single()
     ]);
+    
     interests = interestData.data || [];
     for (const row of (scoreData.data || [])) {
       scoreMap[row.property_id] = row.score;
     }
+
+    // If no row exists in user_lifestyles, they haven't started the profile wizard
+    if (profileCheck.error && profileCheck.error.code === 'PGRST116') {
+        missingProfile = true;
+    }
+
+    console.log(`[Properties] User ${user.id}: ${Object.keys(scoreMap).length} scores loaded from DB, missingProfile=${missingProfile}`);
     console.log(`[PERF_DEBUG] Interests + Scores Fetch Time: ${Date.now() - interestStart}ms`);
   }
 
@@ -293,6 +311,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
         verified: false,
         isPrivate: true,
         matchScore: scoreMap[property.id] ?? null, // Match score always visible on private listings
+        missingProfile,
         interestStatus: interest?.status || null,
         host: {
           name: maskedName,
@@ -340,6 +359,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
       verified: false,
       isPrivate: isPrivate,
       matchScore: scoreMap[property.id] ?? null,
+      missingProfile,
       interestStatus: interest?.status || null,
       host: {
         name: hostName,

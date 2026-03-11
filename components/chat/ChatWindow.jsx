@@ -4,13 +4,14 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
-import { MdSend, MdMoreVert, MdArrowBack, MdCheckCircle, MdDoneAll, MdAttachFile, MdClose, MdDescription, MdCloudUpload, MdAccessTime } from 'react-icons/md';
+import { MdSend, MdMoreVert, MdArrowBack, MdCheckCircle, MdDoneAll, MdAttachFile, MdClose, MdDescription, MdCloudUpload, MdAccessTime, MdEvent } from 'react-icons/md';
 import { format } from 'date-fns';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { createClient } from '@/core/utils/supabase/client';
 import { toast } from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
 import bytes from 'bytes';
+import { ScheduleInspectionModal } from './ScheduleInspectionModal';
 
 export const ChatWindow = () => {
     const { 
@@ -28,6 +29,7 @@ export const ChatWindow = () => {
     const [sending, setSending] = useState(false);
     const [isUploading, setIsUploading] = useState(false);
     const [attachmentParams, setAttachmentParams] = useState(null);
+    const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
     const messagesEndRef = useRef(null);
     const scrollContainerRef = useRef(null);
     const fileInputRef = useRef(null);
@@ -119,6 +121,69 @@ export const ChatWindow = () => {
             URL.revokeObjectURL(attachmentParams.url);
         }
         setAttachmentParams(null);
+    };
+
+    const handleInspectionSubmit = async (data) => {
+        try {
+            const payload = {
+                conversationId: activeConversation,
+                propertyId: conversation?.property?.id,
+                hostId: conversation?.host_id,
+                tenantId: conversation?.tenant_id,
+                date: data.date,
+                time: data.time,
+                note: data.note,
+                seekerName: user.full_name,
+                propertyTitle: conversation?.property?.title || 'Property'
+            };
+
+            const response = await fetch('/api/inspections/request', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('Failed to request inspection');
+            
+            toast.success('Inspection requested successfully!');
+        } catch (error) {
+            console.error('Submit inspection error:', error);
+            toast.error('Failed to request inspection');
+        }
+    };
+
+    const handleInspectionAction = async (msgId, newStatus, proposedDate = null, proposedTime = null) => {
+        try {
+            // Find current message
+            const currentMsg = messages.find(m => m.id === msgId);
+            if (!currentMsg) return;
+
+            const otherPartyId = user.id === conversation.host_id ? conversation.tenant_id : conversation.host_id;
+
+            const payload = {
+                messageId: msgId,
+                newStatus,
+                conversationId: activeConversation,
+                updaterId: user.id,
+                otherPartyId,
+                propertyTitle: conversation?.property?.title || 'Property',
+                date: proposedDate,
+                time: proposedTime
+            };
+
+            const response = await fetch('/api/inspections/update', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) throw new Error('Failed to update inspection');
+            
+            toast.success(`Inspection ${newStatus} successfully!`);
+        } catch (error) {
+            console.error('Update inspection error:', error);
+            toast.error('Failed to update inspection status');
+        }
     };
 
     const handleSend = async (e) => {
@@ -306,6 +371,59 @@ export const ChatWindow = () => {
                                                     </div>
                                                 </a>
                                             </div>
+                                        ) : msg.attachment_type === 'inspection_request' && msg.attachment_data ? (
+                                            <div className="mb-2 p-3 bg-white border border-navy-100 rounded-xl shadow-sm text-navy-900 w-64 space-y-3">
+                                                <div className="font-bold font-heading text-[15px] pb-2 border-b border-navy-50 flex items-center justify-between">
+                                                    <span>Inspection Request</span>
+                                                    {msg.attachment_data.status === 'pending' && <span className="text-[10px] uppercase font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded-md">Pending</span>}
+                                                    {msg.attachment_data.status === 'confirmed' && <span className="text-[10px] uppercase font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-md">Confirmed</span>}
+                                                    {msg.attachment_data.status === 'declined' && <span className="text-[10px] uppercase font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md">Declined</span>}
+                                                    {msg.attachment_data.status === 'rescheduled' && <span className="text-[10px] uppercase font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">Proposed</span>}
+                                                </div>
+                                                
+                                                <div className="space-y-1.5 text-xs">
+                                                    <p className="flex items-center gap-2"><MdEvent className="text-navy-400" size={16}/> <span className="font-medium">{format(new Date(msg.attachment_data.date), 'MMM d, yyyy')}</span></p>
+                                                    <p className="flex items-center gap-2"><MdAccessTime className="text-navy-400" size={16}/> <span className="font-medium">{msg.attachment_data.time}</span></p>
+                                                    {msg.attachment_data.note && (
+                                                        <p className="mt-2 text-navy-600 italic bg-navy-50 p-2 rounded-lg">"{msg.attachment_data.note}"</p>
+                                                    )}
+                                                </div>
+
+                                                {/* Action Buttons for Pending or Rescheduled requests */}
+                                                {(msg.attachment_data.status === 'pending' || (msg.attachment_data.status === 'rescheduled' && msg.attachment_data.proposed_by !== user.id)) && (
+                                                    <div className="pt-2 border-t border-navy-50 flex flex-col gap-2 mt-2">
+                                                        {/* Only the other party can see Accept/Decline */}
+                                                        {((msg.attachment_data.status === 'pending' && user.id === conversation.host_id) || 
+                                                          (msg.attachment_data.status === 'rescheduled' && user.id !== msg.attachment_data.proposed_by)) ? (
+                                                            <>
+                                                                <button 
+                                                                    onClick={() => handleInspectionAction(msg.id, 'confirmed')}
+                                                                    className="w-full py-2 bg-teal-500 hover:bg-teal-600 text-white font-bold rounded-lg text-xs transition-colors shadow-sm"
+                                                                >
+                                                                    Accept Request
+                                                                </button>
+                                                                <button 
+                                                                    onClick={() => handleInspectionAction(msg.id, 'declined')}
+                                                                    className="w-full py-2 bg-navy-50 hover:bg-navy-100 text-navy-600 font-bold rounded-lg text-xs transition-colors"
+                                                                >
+                                                                    Decline
+                                                                </button>
+                                                            </>
+                                                        ) : (
+                                                            <div className="text-center text-xs font-medium text-navy-500 py-1">
+                                                                Waiting for response...
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+                                                
+                                                {/* Confirmed State visually */}
+                                                {msg.attachment_data.status === 'confirmed' && (
+                                                    <div className="pt-2 border-t border-navy-50 flex items-center justify-center gap-1.5 text-teal-600 text-xs font-bold mt-2">
+                                                        <MdCheckCircle size={14} /> See you then!
+                                                    </div>
+                                                )}
+                                            </div>
                                         ) : null}
                                         
                                         {msg.content && (
@@ -382,7 +500,7 @@ export const ChatWindow = () => {
                 </AnimatePresence>
 
                 <div className="max-w-3xl mx-auto">
-                    <div className="flex items-end gap-2">
+                    <div className="flex items-end gap-1">
                         <input 
                             type="file" 
                             ref={fileInputRef} 
@@ -393,10 +511,24 @@ export const ChatWindow = () => {
                         <button 
                             type="button" 
                             onClick={() => fileInputRef.current?.click()}
-                            className="mb-1 p-2.5 text-navy-400 hover:text-navy-600 hover:bg-navy-50 rounded-xl transition-colors shrink-0"
+                            className="mb-1 p-2 text-navy-400 hover:text-navy-600 hover:bg-navy-50 rounded-xl transition-colors shrink-0"
+                            title="Attach File"
                         >
                             <MdAttachFile size={22} />
                         </button>
+                        
+                        {/* Only show the inspection schedule button to the tenant/seeker, assuming they initiate it usually */}
+                        {user?.id === conversation?.tenant_id && (
+                            <button 
+                                type="button" 
+                                onClick={() => setIsInspectionModalOpen(true)}
+                                className="mb-1 p-2 text-navy-400 hover:text-terracotta-500 hover:bg-terracotta-50 rounded-xl transition-colors shrink-0 mr-1"
+                                title="Schedule Inspection"
+                            >
+                                <MdEvent size={22} />
+                            </button>
+                        )}
+                        
                         <div className="flex-1 relative">
                             <textarea
                                 value={newMessage}
@@ -430,6 +562,12 @@ export const ChatWindow = () => {
                     </div>
                 </div>
             </motion.form>
+
+            <ScheduleInspectionModal 
+                isOpen={isInspectionModalOpen} 
+                onClose={() => setIsInspectionModalOpen(false)} 
+                onSubmit={handleInspectionSubmit} 
+            />
         </div>
     );
 };
