@@ -238,7 +238,7 @@ export const ChatProvider = ({ children }) => {
         }
     });
 
-    // Archive / Un-archive Conversation Mutation
+    // Archive / Un-archive Conversation Mutation (Optimistic)
     const archiveConversationMutation = useMutation({
         mutationFn: async ({ conversationId, archive }) => {
             const response = await fetch('/api/conversations/archive', {
@@ -249,11 +249,40 @@ export const ChatProvider = ({ children }) => {
             if (!response.ok) throw new Error('Failed to archive conversation');
             return response.json();
         },
+        onMutate: async ({ conversationId, archive }) => {
+            await queryClient.cancelQueries(['conversations', user?.id]);
+            const previous = queryClient.getQueryData(['conversations', user?.id]);
+
+            // Optimistically update the archived_by field in the cache
+            queryClient.setQueryData(['conversations', user?.id], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map(page =>
+                        page.map(conv => {
+                            if (conv.id !== conversationId) return conv;
+                            const archivedBy = conv.archived_by || [];
+                            const newArchivedBy = archive
+                                ? archivedBy.includes(user.id) ? archivedBy : [...archivedBy, user.id]
+                                : archivedBy.filter(id => id !== user.id);
+                            return { ...conv, archived_by: newArchivedBy };
+                        })
+                    )
+                };
+            });
+
+            return { previous };
+        },
+        onError: (err, vars, context) => {
+            if (context?.previous) queryClient.setQueryData(['conversations', user?.id], context.previous);
+            toast.error('Failed to archive conversation');
+        },
         onSuccess: (data, variables) => {
-            queryClient.invalidateQueries(['conversations', user?.id]);
             toast.success(variables.archive ? 'Chat archived' : 'Chat restored');
         },
-        onError: () => toast.error('Failed to archive conversation')
+        onSettled: () => {
+            queryClient.invalidateQueries(['conversations', user?.id]);
+        }
     });
 
         // Start Conversation Mutation

@@ -180,7 +180,6 @@ export default function BuddyDashboard({ group, onBack, onAction }) {
       if (onAction) onAction();
       if (onBack) onBack();
       else router.push('/dashboard/buddy');
-      router.refresh();
     } catch (error) {
       toast.error(error.message || 'Failed to leave group');
     } finally {
@@ -214,7 +213,6 @@ export default function BuddyDashboard({ group, onBack, onAction }) {
       if (onAction) onAction();
       if (onBack) onBack();
       else router.push('/dashboard/buddy');
-      router.refresh();
     } catch (error) {
       toast.error(error.message || 'Failed to delete group');
     } finally {
@@ -251,7 +249,7 @@ export default function BuddyDashboard({ group, onBack, onAction }) {
       if (!res.ok) throw new Error(payload.error || 'Failed to update group name');
 
       toast.success('Group name updated');
-      router.refresh();
+      onAction?.();
     } catch (error) {
       toast.error(error.message || 'Failed to update group name');
     } finally {

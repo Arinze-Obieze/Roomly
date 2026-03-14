@@ -51,6 +51,10 @@ export default function InterestsPage() {
   }, [user, activeTab]);
 
   const handleUpdateStatus = async (id, status) => {
+    // Optimistically flip status immediately
+    const previous = interests;
+    setInterests(prev => prev.map(item => item.id === id ? { ...item, status } : item));
+
     try {
       const response = await fetch(`/api/interests/${id}`, {
         method: 'PATCH',
@@ -60,11 +64,12 @@ export default function InterestsPage() {
       const data = await response.json();
       if (data.success) {
         toast.success(`Interest ${status === 'accepted' ? 'accepted' : 'declined'}`);
-        fetchInterests(activeTab);
       } else {
+        setInterests(previous); // revert on failure
         toast.error(data.error || 'Failed to update interest');
       }
     } catch (error) {
+      setInterests(previous); // revert on error
       toast.error('Something went wrong');
     }
   };
