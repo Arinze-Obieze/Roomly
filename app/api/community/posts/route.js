@@ -43,10 +43,12 @@ async function fetchPostsFromDB(searchParams) {
     
   const city = searchParams.get('city');
   const category = searchParams.get('category');
+  const sortBy = searchParams.get('sortBy') || 'recent';
   const limit = parseInt(searchParams.get('limit') || '10');
   const cursor = searchParams.get('cursor');
 
-  const validLimit = Math.min(Math.max(limit, 1), 50);
+  // If fetching top, grab a larger pool to sort in memory
+  const validLimit = sortBy === 'top' ? 50 : Math.min(Math.max(limit, 1), 50);
 
   let query = supabase
     .from('community_posts')
@@ -65,7 +67,7 @@ async function fetchPostsFromDB(searchParams) {
     `)
     .order('created_at', { ascending: false });
 
-  if (cursor) {
+  if (cursor && sortBy === 'recent') {
     query = query.lt('created_at', cursor);
   }
 
@@ -101,13 +103,21 @@ async function fetchPostsFromDB(searchParams) {
     };
   });
 
-  const hasMore = formattedPosts.length >= validLimit;
+  if (sortBy === 'top') {
+    formattedPosts.sort((a, b) => {
+      const scoreA = a.score + (a.comments_count * 2);
+      const scoreB = b.score + (b.comments_count * 2);
+      return scoreB - scoreA;
+    });
+  }
+
+  const hasMore = sortBy === 'top' ? false : formattedPosts.length >= validLimit;
   const nextCursor = hasMore && formattedPosts.length > 0 
     ? formattedPosts[formattedPosts.length - 1].created_at
       : null;
 
   return {
-    posts: formattedPosts.slice(0, validLimit),
+    posts: sortBy === 'top' ? formattedPosts : formattedPosts.slice(0, validLimit),
     hasMore,
     nextCursor,
   };

@@ -4,8 +4,12 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
-import { MdSend, MdMoreVert, MdArrowBack, MdCheckCircle, MdDoneAll, MdAttachFile, MdClose, MdDescription, MdCloudUpload, MdAccessTime, MdEvent } from 'react-icons/md';
-import { format } from 'date-fns';
+import { 
+    MdSend, MdMoreVert, MdArrowBack, MdCheckCircle, MdDoneAll, MdAttachFile, MdClose, 
+    MdDescription, MdCloudUpload, MdAccessTime, MdEvent, MdEdit, MdArchive, MdDone,
+    MdCheck
+} from 'react-icons/md';
+import { format, differenceInMilliseconds } from 'date-fns';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { createClient } from '@/core/utils/supabase/client';
 import { toast } from 'react-hot-toast';
@@ -18,11 +22,14 @@ export const ChatWindow = () => {
         activeConversation, 
         setActiveConversation,
         messages, 
-        sendMessage, 
+        sendMessage,
+        editMessage,
+        archiveConversation,
         conversations,
         fetchNextPage,
         hasNextPage,
-        isFetchingNextPage
+        isFetchingNextPage,
+        EDIT_WINDOW_MS
     } = useChat();
     const { user } = useAuthContext();
     const [newMessage, setNewMessage] = useState('');
@@ -30,15 +37,44 @@ export const ChatWindow = () => {
     const [isUploading, setIsUploading] = useState(false);
     const [attachmentParams, setAttachmentParams] = useState(null);
     const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
+    const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+
+    // Editing state
+    const [editingMessageId, setEditingMessageId] = useState(null);
+    const [editContent, setEditContent] = useState('');
+    const [hoveredMessageId, setHoveredMessageId] = useState(null);
+
     const messagesEndRef = useRef(null);
     const scrollContainerRef = useRef(null);
+    const editInputRef = useRef(null);
     const fileInputRef = useRef(null);
+    const headerMenuRef = useRef(null);
     const [prevScrollHeight, setPrevScrollHeight] = useState(null);
     const supabase = createClient();
 
     const conversation = conversations.find(c => c.id === activeConversation);
     const otherParty = conversation ? (conversation.tenant_id === user?.id ? conversation.host : conversation.tenant) : null;
     const isMe = (msg) => msg.sender_id === user.id;
+
+    // Close header menu on outside click
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (headerMenuRef.current && !headerMenuRef.current.contains(e.target)) {
+                setShowHeaderMenu(false);
+            }
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, []);
+
+    // Focus edit input when editing starts
+    useEffect(() => {
+        if (editingMessageId && editInputRef.current) {
+            editInputRef.current.focus();
+            const length = editInputRef.current.value.length;
+            editInputRef.current.setSelectionRange(length, length);
+        }
+    }, [editingMessageId]);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -123,6 +159,50 @@ export const ChatWindow = () => {
         setAttachmentParams(null);
     };
 
+    // --- Message Edit Handlers ---
+    const canEdit = (msg) => {
+        if (!isMe(msg)) return false;
+        if (msg.attachment_type && msg.attachment_type !== null) return false; // Only text-only messages
+        const msSinceSent = differenceInMilliseconds(new Date(), new Date(msg.created_at));
+        return msSinceSent < EDIT_WINDOW_MS;
+    };
+
+    const startEditing = (msg) => {
+        setEditingMessageId(msg.id);
+        setEditContent(msg.content || '');
+    };
+
+    const cancelEditing = () => {
+        setEditingMessageId(null);
+        setEditContent('');
+    };
+
+    const commitEdit = async (msg) => {
+        const trimmed = editContent.trim();
+        if (!trimmed || trimmed === msg.content) {
+            cancelEditing();
+            return;
+        }
+        try {
+            await editMessage(msg.id, activeConversation, trimmed);
+            cancelEditing();
+        } catch (e) {
+            // Toast shown in context
+        }
+    };
+
+    // --- Archive Handler ---
+    const handleArchive = async () => {
+        setShowHeaderMenu(false);
+        try {
+            await archiveConversation(activeConversation, true);
+            setActiveConversation(null);
+        } catch (e) {
+            // Toast shown in context
+        }
+    };
+
+    // --- Inspection Handlers ---
     const handleInspectionSubmit = async (data) => {
         try {
             const payload = {
@@ -144,7 +224,6 @@ export const ChatWindow = () => {
             });
 
             if (!response.ok) throw new Error('Failed to request inspection');
-            
             toast.success('Inspection requested successfully!');
         } catch (error) {
             console.error('Submit inspection error:', error);
@@ -154,21 +233,15 @@ export const ChatWindow = () => {
 
     const handleInspectionAction = async (msgId, newStatus, proposedDate = null, proposedTime = null) => {
         try {
-            // Find current message
             const currentMsg = messages.find(m => m.id === msgId);
             if (!currentMsg) return;
 
             const otherPartyId = user.id === conversation.host_id ? conversation.tenant_id : conversation.host_id;
-
             const payload = {
-                messageId: msgId,
-                newStatus,
-                conversationId: activeConversation,
-                updaterId: user.id,
-                otherPartyId,
+                messageId: msgId, newStatus, conversationId: activeConversation,
+                updaterId: user.id, otherPartyId,
                 propertyTitle: conversation?.property?.title || 'Property',
-                date: proposedDate,
-                time: proposedTime
+                date: proposedDate, time: proposedTime
             };
 
             const response = await fetch('/api/inspections/update', {
@@ -178,7 +251,6 @@ export const ChatWindow = () => {
             });
 
             if (!response.ok) throw new Error('Failed to update inspection');
-            
             toast.success(`Inspection ${newStatus} successfully!`);
         } catch (error) {
             console.error('Update inspection error:', error);
@@ -282,13 +354,37 @@ export const ChatWindow = () => {
                     </div>
                 </div>
                 
-                <motion.button 
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    className="p-2 hover:bg-navy-50 rounded-full text-navy-500 transition-colors shrink-0"
-                >
-                    <MdMoreVert size={24} />
-                </motion.button>
+                {/* Header Actions Menu */}
+                <div className="relative" ref={headerMenuRef}>
+                    <motion.button 
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => setShowHeaderMenu(v => !v)}
+                        className="p-2 hover:bg-navy-50 rounded-full text-navy-500 transition-colors shrink-0"
+                    >
+                        <MdMoreVert size={24} />
+                    </motion.button>
+
+                    <AnimatePresence>
+                        {showHeaderMenu && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                                transition={{ duration: 0.15 }}
+                                className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-navy-100 overflow-hidden z-30"
+                            >
+                                <button
+                                    onClick={handleArchive}
+                                    className="w-full px-4 py-3 text-sm text-left flex items-center gap-3 text-navy-700 hover:bg-navy-50 transition-colors font-heading font-medium"
+                                >
+                                    <MdArchive className="text-navy-400" size={18} />
+                                    Archive Chat
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
             </motion.div>
 
             {/* Scrollable Messages Area */}
@@ -317,6 +413,9 @@ export const ChatWindow = () => {
                         {messages.map((msg, i) => {
                             const isMyMsg = isMe(msg);
                             const showTime = i === 0 || new Date(msg.created_at) - new Date(messages[i-1].created_at) > 5 * 60 * 1000;
+                            const isEditing = editingMessageId === msg.id;
+                            const hovered = hoveredMessageId === msg.id;
+                            const editable = canEdit(msg);
 
                             return (
                                 <motion.div 
@@ -326,6 +425,8 @@ export const ChatWindow = () => {
                                     exit={{ opacity: 0 }}
                                     transition={{ duration: 0.2 }}
                                     className={`flex flex-col ${isMyMsg ? 'items-end' : 'items-start'}`}
+                                    onMouseEnter={() => setHoveredMessageId(msg.id)}
+                                    onMouseLeave={() => setHoveredMessageId(null)}
                                 >
                                     {showTime && (
                                         <span className="text-xs font-sans text-navy-400 my-2 self-center bg-white px-2 py-1 rounded-full border border-navy-100">
@@ -333,104 +434,132 @@ export const ChatWindow = () => {
                                         </span>
                                     )}
                                     
-                                    <div className={`max-w-[70%] rounded-2xl p-1.5 shadow-sm text-sm font-sans break-words ${
-                                        isMyMsg 
-                                            ? 'bg-terracotta-500 text-white rounded-tr-none shadow-lg shadow-terracotta-500/20' 
-                                            : 'bg-white border border-navy-200 text-navy-800 rounded-tl-none'
-                                    }`}>
-                                        {msg.attachment_type === 'image' && msg.attachment_data ? (
-                                            <div className="mb-1">
-                                                <a href={msg.attachment_data.url} target="_blank" rel="noreferrer">
-                                                    <img 
-                                                        src={msg.attachment_data.url} 
-                                                        alt={msg.attachment_data.name} 
-                                                        className="w-full h-auto rounded-xl max-h-60 object-cover cursor-ZoomIn hover:opacity-95 transition-opacity"
-                                                    />
-                                                </a>
-                                            </div>
-                                        ) : msg.attachment_type === 'file' && msg.attachment_data ? (
-                                            <div className="mb-1">
-                                                <a 
-                                                    href={msg.attachment_data.url} 
-                                                    target="_blank" 
-                                                    rel="noreferrer"
-                                                    className={`flex items-center gap-3 p-3 rounded-xl transition-colors group/file cursor-pointer ${
-                                                        isMyMsg ? 'bg-terracotta-600 hover:bg-terracotta-700' : 'bg-navy-50 hover:bg-navy-100'
-                                                    }`}
-                                                >
-                                                    <div className={`w-10 h-10 rounded-lg shadow-sm flex items-center justify-center group-hover/file:scale-105 transition-transform ${
-                                                        isMyMsg ? 'bg-white/20 text-white' : 'bg-white text-terracotta-500'
-                                                    }`}>
-                                                        <MdDescription size={20} />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h4 className="font-bold text-sm truncate">{msg.attachment_data.name}</h4>
-                                                        <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isMyMsg ? 'text-terracotta-100' : 'text-navy-400'}`}>
-                                                            {msg.attachment_data.size}
-                                                        </p>
-                                                    </div>
-                                                </a>
-                                            </div>
-                                        ) : msg.attachment_type === 'inspection_request' && msg.attachment_data ? (
-                                            <div className="mb-2 p-3 bg-white border border-navy-100 rounded-xl shadow-sm text-navy-900 w-64 space-y-3">
-                                                <div className="font-bold font-heading text-[15px] pb-2 border-b border-navy-50 flex items-center justify-between">
-                                                    <span>Inspection Request</span>
-                                                    {msg.attachment_data.status === 'pending' && <span className="text-[10px] uppercase font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded-md">Pending</span>}
-                                                    {msg.attachment_data.status === 'confirmed' && <span className="text-[10px] uppercase font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-md">Confirmed</span>}
-                                                    {msg.attachment_data.status === 'declined' && <span className="text-[10px] uppercase font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md">Declined</span>}
-                                                    {msg.attachment_data.status === 'rescheduled' && <span className="text-[10px] uppercase font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">Proposed</span>}
-                                                </div>
-                                                
-                                                <div className="space-y-1.5 text-xs">
-                                                    <p className="flex items-center gap-2"><MdEvent className="text-navy-400" size={16}/> <span className="font-medium">{format(new Date(msg.attachment_data.date), 'MMM d, yyyy')}</span></p>
-                                                    <p className="flex items-center gap-2"><MdAccessTime className="text-navy-400" size={16}/> <span className="font-medium">{msg.attachment_data.time}</span></p>
-                                                    {msg.attachment_data.note && (
-                                                        <p className="mt-2 text-navy-600 italic bg-navy-50 p-2 rounded-lg">"{msg.attachment_data.note}"</p>
-                                                    )}
-                                                </div>
+                                    <div className={`relative group max-w-[70%] flex items-end gap-1.5 ${isMyMsg ? 'flex-row-reverse' : 'flex-row'}`}>
+                                        {/* Edit button for my messages — shown on hover */}
+                                        {isMyMsg && editable && hovered && !isEditing && (
+                                            <motion.button
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                onClick={() => startEditing(msg)}
+                                                className="p-1.5 rounded-full bg-white border border-navy-200 shadow-sm text-navy-400 hover:text-terracotta-500 hover:border-terracotta-300 transition-colors shrink-0 mb-4"
+                                                title="Edit message"
+                                            >
+                                                <MdEdit size={14} />
+                                            </motion.button>
+                                        )}
 
-                                                {/* Action Buttons for Pending or Rescheduled requests */}
-                                                {(msg.attachment_data.status === 'pending' || (msg.attachment_data.status === 'rescheduled' && msg.attachment_data.proposed_by !== user.id)) && (
-                                                    <div className="pt-2 border-t border-navy-50 flex flex-col gap-2 mt-2">
-                                                        {/* Only the other party can see Accept/Decline */}
-                                                        {((msg.attachment_data.status === 'pending' && user.id === conversation.host_id) || 
-                                                          (msg.attachment_data.status === 'rescheduled' && user.id !== msg.attachment_data.proposed_by)) ? (
-                                                            <>
-                                                                <button 
-                                                                    onClick={() => handleInspectionAction(msg.id, 'confirmed')}
-                                                                    className="w-full py-2 bg-teal-500 hover:bg-teal-600 text-white font-bold rounded-lg text-xs transition-colors shadow-sm"
-                                                                >
-                                                                    Accept Request
-                                                                </button>
-                                                                <button 
-                                                                    onClick={() => handleInspectionAction(msg.id, 'declined')}
-                                                                    className="w-full py-2 bg-navy-50 hover:bg-navy-100 text-navy-600 font-bold rounded-lg text-xs transition-colors"
-                                                                >
-                                                                    Decline
-                                                                </button>
-                                                            </>
-                                                        ) : (
-                                                            <div className="text-center text-xs font-medium text-navy-500 py-1">
-                                                                Waiting for response...
-                                                            </div>
+                                        <div className={`rounded-2xl p-1.5 shadow-sm text-sm font-sans break-words ${
+                                            isMyMsg 
+                                                ? 'bg-terracotta-500 text-white rounded-tr-none shadow-lg shadow-terracotta-500/20' 
+                                                : 'bg-white border border-navy-200 text-navy-800 rounded-tl-none'
+                                        }`}>
+                                            {msg.attachment_type === 'image' && msg.attachment_data ? (
+                                                <div className="mb-1">
+                                                    <a href={msg.attachment_data.url} target="_blank" rel="noreferrer">
+                                                        <img 
+                                                            src={msg.attachment_data.url} 
+                                                            alt={msg.attachment_data.name} 
+                                                            className="w-full h-auto rounded-xl max-h-60 object-cover cursor-ZoomIn hover:opacity-95 transition-opacity"
+                                                        />
+                                                    </a>
+                                                </div>
+                                            ) : msg.attachment_type === 'file' && msg.attachment_data ? (
+                                                <div className="mb-1">
+                                                    <a 
+                                                        href={msg.attachment_data.url} 
+                                                        target="_blank" 
+                                                        rel="noreferrer"
+                                                        className={`flex items-center gap-3 p-3 rounded-xl transition-colors group/file cursor-pointer ${
+                                                            isMyMsg ? 'bg-terracotta-600 hover:bg-terracotta-700' : 'bg-navy-50 hover:bg-navy-100'
+                                                        }`}
+                                                    >
+                                                        <div className={`w-10 h-10 rounded-lg shadow-sm flex items-center justify-center group-hover/file:scale-105 transition-transform ${
+                                                            isMyMsg ? 'bg-white/20 text-white' : 'bg-white text-terracotta-500'
+                                                        }`}>
+                                                            <MdDescription size={20} />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h4 className="font-bold text-sm truncate">{msg.attachment_data.name}</h4>
+                                                            <p className={`text-[10px] font-bold uppercase tracking-wider mt-0.5 ${isMyMsg ? 'text-terracotta-100' : 'text-navy-400'}`}>
+                                                                {msg.attachment_data.size}
+                                                            </p>
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                            ) : msg.attachment_type === 'inspection_request' && msg.attachment_data ? (
+                                                <div className="mb-2 p-3 bg-white border border-navy-100 rounded-xl shadow-sm text-navy-900 w-64 space-y-3">
+                                                    <div className="font-bold font-heading text-[15px] pb-2 border-b border-navy-50 flex items-center justify-between">
+                                                        <span>Inspection Request</span>
+                                                        {msg.attachment_data.status === 'pending' && <span className="text-[10px] uppercase font-bold text-amber-500 bg-amber-50 px-2 py-1 rounded-md">Pending</span>}
+                                                        {msg.attachment_data.status === 'confirmed' && <span className="text-[10px] uppercase font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-md">Confirmed</span>}
+                                                        {msg.attachment_data.status === 'declined' && <span className="text-[10px] uppercase font-bold text-red-600 bg-red-50 px-2 py-1 rounded-md">Declined</span>}
+                                                        {msg.attachment_data.status === 'rescheduled' && <span className="text-[10px] uppercase font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">Proposed</span>}
+                                                    </div>
+                                                    
+                                                    <div className="space-y-1.5 text-xs">
+                                                        <p className="flex items-center gap-2"><MdEvent className="text-navy-400" size={16}/> <span className="font-medium">{format(new Date(msg.attachment_data.date), 'MMM d, yyyy')}</span></p>
+                                                        <p className="flex items-center gap-2"><MdAccessTime className="text-navy-400" size={16}/> <span className="font-medium">{msg.attachment_data.time}</span></p>
+                                                        {msg.attachment_data.note && (
+                                                            <p className="mt-2 text-navy-600 italic bg-navy-50 p-2 rounded-lg">"{msg.attachment_data.note}"</p>
                                                         )}
                                                     </div>
-                                                )}
-                                                
-                                                {/* Confirmed State visually */}
-                                                {msg.attachment_data.status === 'confirmed' && (
-                                                    <div className="pt-2 border-t border-navy-50 flex items-center justify-center gap-1.5 text-teal-600 text-xs font-bold mt-2">
-                                                        <MdCheckCircle size={14} /> See you then!
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ) : null}
-                                        
-                                        {msg.content && (
-                                            <div className={`px-2.5 py-1 ${msg.attachment_type ? 'mt-1' : ''}`}>
-                                                {msg.content}
-                                            </div>
-                                        )}
+
+                                                    {(msg.attachment_data.status === 'pending' || (msg.attachment_data.status === 'rescheduled' && msg.attachment_data.proposed_by !== user.id)) && (
+                                                        <div className="pt-2 border-t border-navy-50 flex flex-col gap-2 mt-2">
+                                                            {((msg.attachment_data.status === 'pending' && user.id === conversation.host_id) || 
+                                                              (msg.attachment_data.status === 'rescheduled' && user.id !== msg.attachment_data.proposed_by)) ? (
+                                                                <>
+                                                                    <button onClick={() => handleInspectionAction(msg.id, 'confirmed')} className="w-full py-2 bg-teal-500 hover:bg-teal-600 text-white font-bold rounded-lg text-xs transition-colors shadow-sm">Accept Request</button>
+                                                                    <button onClick={() => handleInspectionAction(msg.id, 'declined')} className="w-full py-2 bg-navy-50 hover:bg-navy-100 text-navy-600 font-bold rounded-lg text-xs transition-colors">Decline</button>
+                                                                </>
+                                                            ) : (
+                                                                <div className="text-center text-xs font-medium text-navy-500 py-1">Waiting for response...</div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    
+                                                    {msg.attachment_data.status === 'confirmed' && (
+                                                        <div className="pt-2 border-t border-navy-50 flex items-center justify-center gap-1.5 text-teal-600 text-xs font-bold mt-2">
+                                                            <MdCheckCircle size={14} /> See you then!
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : null}
+
+                                            {/* Message content (text) - show inline edit if editing */}
+                                            {isEditing ? (
+                                                <div className="px-2 py-1 flex items-center gap-1.5">
+                                                    <textarea
+                                                        ref={editInputRef}
+                                                        value={editContent}
+                                                        onChange={e => setEditContent(e.target.value)}
+                                                        onKeyDown={e => {
+                                                            if (e.key === 'Enter' && !e.shiftKey) {
+                                                                e.preventDefault();
+                                                                commitEdit(msg);
+                                                            }
+                                                            if (e.key === 'Escape') cancelEditing();
+                                                        }}
+                                                        className="bg-terracotta-600 text-white text-sm rounded-lg px-2 py-1 resize-none focus:outline-none focus:ring-2 focus:ring-white/30 min-w-[120px]"
+                                                        rows={1}
+                                                        style={{ minHeight: '28px', maxHeight: '100px' }}
+                                                    />
+                                                    <button onClick={() => commitEdit(msg)} className="p-1 bg-white/20 rounded-lg hover:bg-white/30 transition-colors shrink-0">
+                                                        <MdCheck size={14} className="text-white" />
+                                                    </button>
+                                                    <button onClick={cancelEditing} className="p-1 bg-white/10 rounded-lg hover:bg-white/20 transition-colors shrink-0">
+                                                        <MdClose size={14} className="text-white/80" />
+                                                    </button>
+                                                </div>
+                                            ) : msg.content && (
+                                                <div className={`px-2.5 py-1 ${msg.attachment_type ? 'mt-1' : ''}`}>
+                                                    {msg.content}
+                                                    {msg.is_edited && (
+                                                        <span className={`text-[10px] ml-1.5 opacity-70 italic`}>edited</span>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     
                                     {isMyMsg && (
@@ -517,7 +646,6 @@ export const ChatWindow = () => {
                             <MdAttachFile size={22} />
                         </button>
                         
-                        {/* Only show the inspection schedule button to the tenant/seeker, assuming they initiate it usually */}
                         {user?.id === conversation?.tenant_id && (
                             <button 
                                 type="button" 

@@ -87,7 +87,8 @@ async function fetchPropertiesFromDB(searchParams, user) {
         profile_picture
       )
     `, { count: 'exact' })
-    .eq('is_active', true);
+    .eq('is_active', true)
+    .eq('approval_status', 'approved');
 
   if (!Number.isNaN(minPrice)) {
     query = query.gte('price_per_month', minPrice);

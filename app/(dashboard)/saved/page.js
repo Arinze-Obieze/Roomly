@@ -23,6 +23,8 @@ export default function SavedPage() {
       return;
     }
 
+    let isMounted = true;
+
     const fetchSaved = async () => {
       try {
         const { data, error } = await supabase
@@ -89,16 +91,18 @@ export default function SavedPage() {
             };
         });
 
-        setProperties(formatted.filter(Boolean));
+        if (isMounted) setProperties(formatted.filter(Boolean));
       } catch (error) {
         console.error('Error fetching saved properties:', error);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     fetchSaved();
-  }, [user, authLoading]);
+    
+    return () => { isMounted = false; };
+  }, [user, authLoading, router, supabase]);
 
   if (loading || authLoading) {
     return (

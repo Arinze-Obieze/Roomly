@@ -267,7 +267,7 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
                         }}
                         className="bg-navy-950/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-bold border border-white/10 hover:bg-navy-900 transition-colors cursor-pointer"
                     >
-                        See % match
+                        Login to see %
                     </div>
                 )}
             </div>

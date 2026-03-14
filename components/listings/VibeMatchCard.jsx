@@ -46,22 +46,37 @@ export default function VibeMatchCard({ property }) {
   const supabase = createClient();
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchLifestyle = async () => {
-      if (!user) {
-        setLoading(false);
-        return;
+      try {
+        if (!user) return;
+        
+        await supabase.auth.getSession();
+        const { data, error } = await supabase
+          .from('user_lifestyles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (error && error.code !== 'PGRST116') throw error;
+        
+        if (isMounted) {
+          setLifestyle(data);
+        }
+      } catch (err) {
+        console.error('Error fetching vibe match rules:', err);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-      await supabase.auth.getSession();
-      const { data } = await supabase
-        .from('user_lifestyles')
-        .select('*')
-        .eq('user_id', user.id)
-        .single();
-      setLifestyle(data);
-      setLoading(false);
     };
+    
     fetchLifestyle();
-  }, [user]);
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [user, supabase.auth]);
 
   if (!user) return null; // Or show "Sign in to see match"
   if (loading) return <div className="animate-pulse bg-slate-100 h-32 rounded-xl mb-6"></div>;

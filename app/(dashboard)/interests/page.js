@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { 
   MdFavorite, 
@@ -21,6 +21,7 @@ export default function InterestsPage() {
   const [activeTab, setActiveTab] = useState('seeker'); // 'seeker' or 'landlord'
   const [loading, setLoading] = useState(true);
   const [interests, setInterests] = useState([]);
+  const mounted = useRef(true);
 
   const fetchInterests = async (type) => {
     setLoading(true);
@@ -28,19 +29,25 @@ export default function InterestsPage() {
       const endpoint = type === 'landlord' ? '/api/landlord/interests' : '/api/seeker/interests';
       const response = await fetch(endpoint);
       const data = await response.json();
-      setInterests(data.data || []);
+      if (mounted.current) {
+        setInterests(data.data || []);
+      }
     } catch (error) {
       console.error('Error fetching interests:', error);
-      toast.error('Failed to load interests');
+      if (mounted.current) toast.error('Failed to load interests');
     } finally {
-      setLoading(false);
+      if (mounted.current) setLoading(false);
     }
   };
 
   useEffect(() => {
+    mounted.current = true;
     if (user) {
       fetchInterests(activeTab);
     }
+    return () => {
+      mounted.current = false;
+    };
   }, [user, activeTab]);
 
   const handleUpdateStatus = async (id, status) => {

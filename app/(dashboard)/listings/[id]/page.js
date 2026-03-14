@@ -16,6 +16,7 @@ import PropertyStats from '@/components/listings/PropertyStats';
 import HostSidebar from '@/components/listings/HostSidebar';
 import ContactHostModal from '@/components/modals/ContactHostModal';
 import VibeMatchCard from '@/components/listings/VibeMatchCard';
+import ReportModal from '@/components/modals/ReportModal';
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -28,6 +29,7 @@ export default function PropertyDetailsPage() {
   const [isSaved, setIsSaved] = useState(false);
 
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   // Check if current user is the host
   const isOwner = user?.id === property?.host?.id;
@@ -64,6 +66,8 @@ export default function PropertyDetailsPage() {
 
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchProperty = async () => {
       const supabase = createClient();
       try {
@@ -99,7 +103,7 @@ export default function PropertyDetailsPage() {
                 .select('*', { count: 'exact', head: true })
                 .eq('user_id', user.id)
                 .eq('property_id', params.id);
-            setIsSaved(count > 0);
+            if (isMounted) setIsSaved(count > 0);
         }
 
         // Transform media
@@ -117,29 +121,35 @@ export default function PropertyDetailsPage() {
                 };
             }) || [];
             
-        setProperty({
-           ...data,
-           media: media.length > 0 ? media : [{ url: '/placeholder-property.jpg', type: 'image' }],
-           host: {
-             name: data.users?.full_name || 'Unknown Host',
-             avatar: data.users?.profile_picture,
-             id: data.users?.id,
-             privacy_setting: data.users?.privacy_setting,
-             last_seen: data.users?.last_seen,
-             average_response_time_ms: data.users?.average_response_time_ms
-           }
-        });
+        if (isMounted) {
+          setProperty({
+             ...data,
+             media: media.length > 0 ? media : [{ url: '/placeholder-property.jpg', type: 'image' }],
+             host: {
+               name: data.users?.full_name || 'Unknown Host',
+               avatar: data.users?.profile_picture,
+               id: data.users?.id,
+               privacy_setting: data.users?.privacy_setting,
+               last_seen: data.users?.last_seen,
+               average_response_time_ms: data.users?.average_response_time_ms
+             }
+          });
+        }
       } catch (err) {
         console.error('Error fetching property:', err);
-        toast.error('Could not load property details');
+        if (isMounted) toast.error('Could not load property details');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     if (params.id) {
       fetchProperty();
     }
+    
+    return () => {
+      isMounted = false;
+    };
   }, [params.id, user]);
 
   const handleToggleSave = async () => {
@@ -202,6 +212,7 @@ export default function PropertyDetailsPage() {
          onShare={handleShare}
          onToggleSave={handleToggleSave}
          isSaved={isSaved}
+         onReport={() => setIsReportOpen(true)}
        />
 
        <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8">
@@ -324,6 +335,14 @@ export default function PropertyDetailsPage() {
          host={property.host}
          propertyTitle={property.title}
          onSend={handleSendMessage}
+       />
+
+       <ReportModal 
+         isOpen={isReportOpen}
+         onClose={() => setIsReportOpen(false)}
+         itemType="property"
+         itemId={property.id}
+         itemTitle={property.title}
        />
     </div>
   );

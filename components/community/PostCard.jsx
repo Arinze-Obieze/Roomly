@@ -31,6 +31,7 @@ export default function PostCard({ post, onVote, onDelete }) {
   const [score, setScore] = useState(post.score);
   const [isVoting, setIsVoting] = useState(false);
   const [shared, setShared] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   const categoryStyle = CATEGORY_STYLES[post.category] || CATEGORY_STYLES.general;
   const categoryLabel = CATEGORY_LABELS[post.category] || 'General';
@@ -244,6 +245,10 @@ export default function PostCard({ post, onVote, onDelete }) {
               <motion.button 
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
+                onClick={() => {
+                  if (!user) toast.error('Please login to report content');
+                  else setIsReportOpen(true);
+                }}
                 className="flex items-center gap-1 text-navy-400 hover:text-terracotta-500 transition-colors text-xs font-heading font-medium"
               >
                 <MdReport size={16} />
@@ -268,6 +273,16 @@ export default function PostCard({ post, onVote, onDelete }) {
           </AnimatePresence>
         </div>
       </div>
+
+      <ReportModal 
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        itemType="post"
+        itemId={post.id}
+        itemTitle={`"${post.title}"`}
+      />
     </motion.div>
   );
 }
+
+import ReportModal from '@/components/modals/ReportModal';

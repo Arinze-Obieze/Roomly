@@ -238,6 +238,7 @@ export async function handleCreateProperty(req) {
       // Filter columns (require db_migration_filter_columns.sql to be run first)
       room_type: form.get('room_type') || null,
       house_rules: houseRules,
+      approval_status: 'pending',
       // Note: bills_included is a GENERATED column in Postgres — no need to insert it
     };
 

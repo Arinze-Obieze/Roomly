@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import BuddyDashboard from '@/components/buddy/BuddyDashboard';
@@ -19,8 +19,10 @@ export default function BuddyPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const router = useRouter();
   const supabase = createClient();
+  const mounted = useRef(true);
 
   useEffect(() => {
+    mounted.current = true;
     if (!authLoading && !user) {
       router.push('/login');
       return;
@@ -28,6 +30,9 @@ export default function BuddyPage() {
     if (user) {
       fetchGroups();
     }
+    return () => {
+      mounted.current = false;
+    };
   }, [user, authLoading, router]);
 
   const fetchGroups = async () => {
@@ -62,14 +67,14 @@ export default function BuddyPage() {
           };
         }));
         
-        setGroups(groupsWithCounts);
+        if (mounted.current) setGroups(groupsWithCounts);
       }
     } catch (error) {
       if (error.name !== 'AbortError') {
         console.error('Error fetching buddy groups:', error);
       }
     } finally {
-      setLoading(false);
+      if (mounted.current) setLoading(false);
     }
   };
 

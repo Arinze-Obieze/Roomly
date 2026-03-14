@@ -14,6 +14,7 @@ import PropertyGallery from '@/components/listings/PropertyGallery';
 import PropertyHeader from '@/components/listings/PropertyHeader';
 import PropertyStats from '@/components/listings/PropertyStats';
 import HostSidebar from '@/components/listings/HostSidebar';
+import ReportModal from '@/components/modals/ReportModal';
 
 export default function RoomDetailsPage() {
   const params = useParams();
@@ -24,6 +25,7 @@ export default function RoomDetailsPage() {
   const { user, openLoginModal } = useAuthContext();
   const { isPropertySaved, toggleSave } = useSavedProperties();
   const [contacting, setContacting] = useState(false);
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
   // Check if current user is the host
   const isOwner = user?.id === property?.host?.id;
@@ -86,15 +88,21 @@ export default function RoomDetailsPage() {
   };
 
   useEffect(() => {
+    let isMounted = true;
+    const controller = new AbortController();
+
     const fetchProperty = async () => {
       try {
-        const response = await fetch(`/api/properties/${params.id}`);
+        const response = await fetch(`/api/properties/${params.id}`, {
+          signal: controller.signal
+        });
+        
         if (!response.ok) {
            throw new Error('Failed to fetch property');
         }
         const data = await response.json();
         
-        // Transform media if necessary (API should handle it, but ensuring)
+        // Transform media if necessary
         const media = data.property_media
             ?.sort((a, b) => a.display_order - b.display_order)
             .map(m => ({
@@ -103,27 +111,35 @@ export default function RoomDetailsPage() {
                 id: m.id
             })) || [];
             
-        setProperty({
-           ...data,
-           media: media.length > 0 ? media : [{ url: '/placeholder-property.jpg', type: 'image' }],
-           host: {
-             name: data.users?.full_name || 'Host',
-             avatar: data.users?.profile_picture,
-             verified: data.users?.is_verified,
-             id: data.users?.id || data.listed_by_user_id
-           }
-        });
+        if (isMounted) {
+          setProperty({
+             ...data,
+             media: media.length > 0 ? media : [{ url: '/placeholder-property.jpg', type: 'image' }],
+             host: {
+               name: data.users?.full_name || 'Host',
+               avatar: data.users?.profile_picture,
+               verified: data.users?.is_verified,
+               id: data.users?.id || data.listed_by_user_id
+             }
+          });
+        }
       } catch (err) {
+        if (err.name === 'AbortError') return;
         console.error('Error fetching property:', err);
-        toast.error('Could not load property details');
+        if (isMounted) toast.error('Could not load property details');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     if (params.id) {
       fetchProperty();
     }
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
   }, [params.id]);
 
   const handleToggleSave = async () => {
@@ -175,6 +191,7 @@ export default function RoomDetailsPage() {
          onShare={handleShare}
          onToggleSave={handleToggleSave}
          isSaved={isSaved}
+         onReport={() => setIsReportOpen(true)}
        />
 
        <div className="max-w-4xl mx-auto p-4 md:p-6 lg:p-8">
@@ -271,12 +288,12 @@ export default function RoomDetailsPage() {
                         )
                     ) : (
                         <div className="text-center py-4">
-                            <p className="text-slate-600 mb-4">Sign up to see how compatible you are with this room and host.</p>
+                            <p className="text-slate-600 mb-4">Login to see how compatible you are with this room and host.</p>
                             <button 
-                                onClick={() => openLoginModal('Sign up to check compatibility.')}
+                                onClick={() => openLoginModal('Login to check compatibility.')}
                                 className="text-terracotta-600 font-bold hover:underline"
                             >
-                                Check Compatibility
+                                Login to Check Compatibility
                             </button>
                         </div>
                     )}
@@ -303,6 +320,14 @@ export default function RoomDetailsPage() {
              </div>
           </div>
        </div>
+
+       <ReportModal 
+         isOpen={isReportOpen}
+         onClose={() => setIsReportOpen(false)}
+         itemType="property"
+         itemId={property.id}
+         itemTitle={property.title}
+       />
     </div>
   );
 }

@@ -113,10 +113,19 @@ export default function MyListingCard({ property, onEdit, onDelete }) {
             )}
           </button>
         </div>
-        <div className="absolute top-3 left-3 bg-slate-900/80 backdrop-blur-sm px-3 py-1 rounded-full">
-          <span className="text-white text-xs font-medium capitalize">
-            {property.property_type}
-          </span>
+        <div className="absolute top-3 left-3 flex flex-col gap-2">
+          <div className="bg-slate-900/80 backdrop-blur-sm px-3 py-1 rounded-full w-fit">
+            <span className="text-white text-xs font-medium capitalize">
+              {property.property_type}
+            </span>
+          </div>
+          {property.approval_status === 'pending' && (
+            <div className="bg-amber-500/90 backdrop-blur-sm px-3 py-1 rounded-full w-fit">
+              <span className="text-white text-xs font-bold uppercase tracking-wider">
+                Pending Approval
+              </span>
+            </div>
+          )}
         </div>
       </div>
 

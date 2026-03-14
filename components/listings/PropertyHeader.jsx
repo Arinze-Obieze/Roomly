@@ -1,8 +1,8 @@
 'use client';
 
-import { MdArrowBack, MdShare, MdFavorite, MdFavoriteBorder } from 'react-icons/md';
+import { MdArrowBack, MdShare, MdFavorite, MdFavoriteBorder, MdReport } from 'react-icons/md';
 
-export default function PropertyHeader({ title, onBack, onShare, onToggleSave, isSaved }) {
+export default function PropertyHeader({ title, onBack, onShare, onToggleSave, isSaved, onReport }) {
   return (
     <div className="sticky top-0 z-20 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 py-3 flex items-center gap-4">
       <button 
@@ -29,6 +29,15 @@ export default function PropertyHeader({ title, onBack, onShare, onToggleSave, i
         >
           {isSaved ? <MdFavorite className="text-xl text-red-500" /> : <MdFavoriteBorder className="text-xl" />}
         </button>
+        {onReport && (
+          <button 
+            onClick={onReport}
+            className="p-2 hover:bg-rose-50 rounded-full text-rose-500 transition-colors"
+            title="Report this listing"
+          >
+            <MdReport className="text-xl" />
+          </button>
+        )}
       </div>
     </div>
   );

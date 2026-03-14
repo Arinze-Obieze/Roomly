@@ -31,6 +31,7 @@ export default function CommunityFeed() {
   const [category, setCategory] = useState('all');
   const [cityFilter, setCityFilter] = useState('');
   const [debouncedCity, setDebouncedCity] = useState('');
+  const [sortBy, setSortBy] = useState('recent');
   const { confirm } = useConfirmation();
 
   const observer = useRef();
@@ -47,12 +48,12 @@ export default function CommunityFeed() {
   useEffect(() => {
     setPage(1);
     setPosts([]);
-  }, [category]);
+  }, [category, sortBy]);
 
   const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/community/posts?page=${page}&limit=10&category=${category}&city=${debouncedCity}`);
+      const res = await fetch(`/api/community/posts?page=${page}&limit=10&category=${category}&city=${debouncedCity}&sortBy=${sortBy}`);
       if (!res.ok) throw new Error('Failed to fetch posts');
       
       const data = await res.json();
@@ -67,7 +68,7 @@ export default function CommunityFeed() {
     } finally {
       setLoading(false);
     }
-  }, [page, category, debouncedCity]);
+  }, [page, category, debouncedCity, sortBy]);
 
   useEffect(() => {
     fetchPosts();
@@ -142,15 +143,27 @@ export default function CommunityFeed() {
 
         {/* Filters */}
         <div className="bg-white p-4 rounded-2xl border border-navy-200 space-y-4 shadow-xl shadow-navy-950/5">
-          <div className="relative">
-            <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-400" size={20} />
-            <input 
-              type="text" 
-              placeholder="Filter by City (e.g. Dublin)" 
-              value={cityFilter}
-              onChange={(e) => setCityFilter(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-navy-50 border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500 font-sans placeholder-navy-400"
-            />
+          <div className="flex gap-3">
+            <div className="relative flex-1">
+              <MdSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-navy-400" size={20} />
+              <input 
+                type="text" 
+                placeholder="Filter by City (e.g. Dublin)" 
+                value={cityFilter}
+                onChange={(e) => setCityFilter(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-navy-50 border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500 font-sans placeholder-navy-400"
+              />
+            </div>
+            
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="px-4 py-2 rounded-xl bg-navy-50 border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500/20 focus:border-terracotta-500 font-sans font-medium text-navy-600 outline-none appearance-none"
+              style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1.5em 1.5em', paddingRight: '2.5rem' }}
+            >
+              <option value="recent">Recent</option>
+              <option value="top">Top Posts</option>
+            </select>
           </div>
           
           <div className="flex gap-2 overflow-x-auto pb-2 custom-scrollbar">

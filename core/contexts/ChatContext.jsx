@@ -201,6 +201,61 @@ export const ChatProvider = ({ children }) => {
         }
     });
 
+    // Edit Message Mutation (Optimistic, 15-min window)
+    const EDIT_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+    const editMessageMutation = useMutation({
+        mutationFn: async ({ messageId, conversationId, newContent }) => {
+            const { data, error } = await supabase
+                .from('messages')
+                .update({ content: newContent, is_edited: true, edited_at: new Date().toISOString() })
+                .eq('id', messageId)
+                .eq('sender_id', user.id)
+                .select()
+                .single();
+            if (error) throw error;
+            return data;
+        },
+        onMutate: async ({ messageId, conversationId, newContent }) => {
+            await queryClient.cancelQueries(['messages', conversationId]);
+            const previous = queryClient.getQueryData(['messages', conversationId]);
+            queryClient.setQueryData(['messages', conversationId], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map(page =>
+                        page.map(m => m.id === messageId ? { ...m, content: newContent, is_edited: true } : m)
+                    )
+                };
+            });
+            return { previous, conversationId };
+        },
+        onError: (err, vars, context) => {
+            toast.error('Failed to edit message');
+            if (context?.previous) queryClient.setQueryData(['messages', context.conversationId], context.previous);
+        },
+        onSettled: (data, error, variables) => {
+            queryClient.invalidateQueries(['messages', variables.conversationId]);
+        }
+    });
+
+    // Archive / Un-archive Conversation Mutation
+    const archiveConversationMutation = useMutation({
+        mutationFn: async ({ conversationId, archive }) => {
+            const response = await fetch('/api/conversations/archive', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId, archive })
+            });
+            if (!response.ok) throw new Error('Failed to archive conversation');
+            return response.json();
+        },
+        onSuccess: (data, variables) => {
+            queryClient.invalidateQueries(['conversations', user?.id]);
+            toast.success(variables.archive ? 'Chat archived' : 'Chat restored');
+        },
+        onError: () => toast.error('Failed to archive conversation')
+    });
+
         // Start Conversation Mutation
     const startConversationMutation = useMutation({
         mutationFn: async ({ propertyId, hostId, content, attachmentType = null, attachmentData = null }) => {
@@ -318,8 +373,12 @@ export const ChatProvider = ({ children }) => {
         }))
         : [];
 
+    const activeConversations = conversationsList.filter(c => !c.archived_by?.includes(user?.id));
+    const archivedConversations = conversationsList.filter(c => c.archived_by?.includes(user?.id));
+
     const value = {
-        conversations: conversationsList,
+        conversations: activeConversations,
+        archivedConversations,
         messages: conversationMessages,
         loading: conversationsQuery.isLoading && conversationsList.length === 0,
         
@@ -337,7 +396,10 @@ export const ChatProvider = ({ children }) => {
         
         sendMessage: (conversationId, content, attachmentType, attachmentData) => sendMessageMutation.mutateAsync({ conversationId, content, attachmentType, attachmentData }),
         startConversation: (pid, hid, content, attachmentType, attachmentData) => startConversationMutation.mutateAsync({ propertyId: pid, hostId: hid, content, attachmentType, attachmentData }),
-        
+        editMessage: (messageId, conversationId, newContent) => editMessageMutation.mutateAsync({ messageId, conversationId, newContent }),
+        archiveConversation: (conversationId, archive) => archiveConversationMutation.mutateAsync({ conversationId, archive }),
+
+        EDIT_WINDOW_MS,
         unreadCount: unreadCountQuery.data || 0
     };
 

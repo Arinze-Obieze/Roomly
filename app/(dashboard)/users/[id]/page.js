@@ -4,8 +4,10 @@ import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/core/utils/supabase/client';
-import { MdPerson, MdLocationOn, MdCalendarToday, MdArrowBack, MdCheckCircle } from 'react-icons/md';
+import { MdPerson, MdLocationOn, MdCalendarToday, MdArrowBack, MdCheckCircle, MdReport } from 'react-icons/md';
 import { ListingCard } from '@/components/dashboard/ui/ListingCard';
+import ReportModal from '@/components/modals/ReportModal';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
@@ -15,10 +17,14 @@ export default function HostProfilePage() {
   const [host, setHost] = useState(null);
   const [listings, setListings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { user } = useAuthContext();
+  const [isReportOpen, setIsReportOpen] = useState(false);
 
 
 
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchHostData = async () => {
       const supabase = createClient();
       try {
@@ -88,19 +94,25 @@ export default function HostProfilePage() {
              };
           });
 
-        setHost(userData);
-        setListings(transformedListings);
+        if (isMounted) {
+          setHost(userData);
+          setListings(transformedListings);
+        }
       } catch (err) {
         console.error('Error fetching host profile:', err);
-        toast.error('Could not load profile');
+        if (isMounted) toast.error('Could not load profile');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
 
     if (params.id) {
         fetchHostData();
     }
+    
+    return () => {
+        isMounted = false;
+    };
   }, [params.id]);
 
   if (loading) {
@@ -178,6 +190,19 @@ export default function HostProfilePage() {
           {host.full_name}&apos;s Profile
         </h1>
 
+        <motion.button 
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={() => {
+            if (!user) toast.error('Please login to report content');
+            else setIsReportOpen(true);
+          }}
+          className="p-2 hover:bg-rose-50 rounded-full transition-colors flex items-center gap-1.5 text-rose-500 font-medium text-sm"
+          title="Report this user"
+        >
+          <MdReport className="text-xl" />
+          <span className="hidden sm:inline">Report</span>
+        </motion.button>
       </motion.div>
 
       <div className="container max-w-5xl mx-auto px-4 py-8">
@@ -316,6 +341,14 @@ export default function HostProfilePage() {
 
         </div>
       </div>
+
+      <ReportModal 
+        isOpen={isReportOpen}
+        onClose={() => setIsReportOpen(false)}
+        itemType="user"
+        itemId={host.id}
+        itemTitle={host.full_name}
+      />
     </motion.div>
   );
 }
