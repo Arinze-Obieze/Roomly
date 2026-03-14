@@ -29,10 +29,9 @@ export const ChatList = ({ activeTab, onTabChange }) => {
     return c.tenant_id === user?.id;
   });
 
-  const archivedList = archivedConversations.filter(c => {
-    if (activeTab === 'received') return c.host_id === user?.id;
-    return c.tenant_id === user?.id;
-  });
+  // Archived view shows ALL archived conversations (both sent & received)
+  // regardless of the current received/sent tab — it's its own inbox
+  const archivedList = archivedConversations;
 
   const displayedList = showArchived ? archivedList : activeConversations;
 
