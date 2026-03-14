@@ -29,6 +29,7 @@ export const ChatWindow = () => {
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
+        isLoadingMessages,
         EDIT_WINDOW_MS
     } = useChat();
     const { user } = useAuthContext();
@@ -393,6 +394,28 @@ export const ChatWindow = () => {
                 className="flex-1 overflow-y-auto px-4 md:px-6 py-4"
             >
                 <div className="max-w-3xl mx-auto space-y-4">
+
+                    {/* Message loading skeleton */}
+                    {isLoadingMessages && (
+                        <div className="space-y-5 py-2">
+                            {[1, 2, 3, 4, 5, 6].map((i) => (
+                                <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`flex flex-col gap-1 ${i % 2 === 0 ? 'items-end' : 'items-start'}`}>
+                                        <div
+                                            className={`animate-pulse rounded-2xl ${
+                                                i % 2 === 0 ? 'bg-terracotta-200 rounded-tr-none' : 'bg-navy-200 rounded-tl-none'
+                                            }`}
+                                            style={{
+                                                width: `${120 + (i * 37) % 160}px`,
+                                                height: `${32 + (i * 13) % 28}px`
+                                            }}
+                                        />
+                                        <div className="w-12 h-2.5 bg-navy-100 rounded-full animate-pulse" />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                     {hasNextPage && (
                         <div className="flex justify-center">
                             <motion.button 

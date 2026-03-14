@@ -402,8 +402,9 @@ export const ChatProvider = ({ children }) => {
         }))
         : [];
 
-    const activeConversations = conversationsList.filter(c => !c.archived_by?.includes(user?.id));
-    const archivedConversations = conversationsList.filter(c => c.archived_by?.includes(user?.id));
+    // Normalize archived_by: Supabase may return null instead of [] if column is NULL
+    const activeConversations = conversationsList.filter(c => !(c.archived_by ?? []).includes(user?.id));
+    const archivedConversations = conversationsList.filter(c => (c.archived_by ?? []).includes(user?.id));
 
     const value = {
         conversations: activeConversations,
@@ -415,7 +416,7 @@ export const ChatProvider = ({ children }) => {
         hasNextConversations: conversationsQuery.hasNextPage,
         isFetchingNextConversations: conversationsQuery.isFetchingNextPage,
 
-        isLoadingMessages: messagesQuery.isLoading,
+        isLoadingMessages: messagesQuery.isLoading || messagesQuery.isFetching,
         isFetchingNextPage: messagesQuery.isFetchingNextPage,
         hasNextPage: messagesQuery.hasNextPage,
         fetchNextPage: messagesQuery.fetchNextPage,
