@@ -409,6 +409,7 @@ export const ChatProvider = ({ children }) => {
     const value = {
         conversations: activeConversations,
         archivedConversations,
+        allConversations: conversationsList, // full list, used by ChatWindow to look up archived convs
         messages: conversationMessages,
         loading: conversationsQuery.isLoading && conversationsList.length === 0,
         
@@ -416,7 +417,7 @@ export const ChatProvider = ({ children }) => {
         hasNextConversations: conversationsQuery.hasNextPage,
         isFetchingNextConversations: conversationsQuery.isFetchingNextPage,
 
-        isLoadingMessages: messagesQuery.isLoading || messagesQuery.isFetching,
+        isLoadingMessages: messagesQuery.isLoading,
         isFetchingNextPage: messagesQuery.isFetchingNextPage,
         hasNextPage: messagesQuery.hasNextPage,
         fetchNextPage: messagesQuery.fetchNextPage,

@@ -26,6 +26,7 @@ export const ChatWindow = () => {
         editMessage,
         archiveConversation,
         conversations,
+        allConversations,
         fetchNextPage,
         hasNextPage,
         isFetchingNextPage,
@@ -53,7 +54,8 @@ export const ChatWindow = () => {
     const [prevScrollHeight, setPrevScrollHeight] = useState(null);
     const supabase = createClient();
 
-    const conversation = conversations.find(c => c.id === activeConversation);
+    // Look up from allConversations so archived chats still show correct header info
+    const conversation = (allConversations ?? conversations).find(c => c.id === activeConversation);
     const otherParty = conversation ? (conversation.tenant_id === user?.id ? conversation.host : conversation.tenant) : null;
     const isMe = (msg) => msg.sender_id === user.id;
 
@@ -395,8 +397,8 @@ export const ChatWindow = () => {
             >
                 <div className="max-w-3xl mx-auto space-y-4">
 
-                    {/* Message loading skeleton */}
-                    {isLoadingMessages && (
+                    {/* Message loading skeleton — only while no messages loaded yet */}
+                    {isLoadingMessages && messages.length === 0 && (
                         <div className="space-y-5 py-2">
                             {[1, 2, 3, 4, 5, 6].map((i) => (
                                 <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>

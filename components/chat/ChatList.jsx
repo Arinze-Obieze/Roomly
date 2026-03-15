@@ -7,10 +7,9 @@ import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdInbox, MdSend, MdCheckCircle, MdArchive, MdUnarchive, MdMoreVert } from 'react-icons/md';
 import { formatDistanceToNow } from 'date-fns';
 
-export const ChatList = ({ activeTab, onTabChange }) => {
+export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived }) => {
   const { 
-      conversations, 
-      archivedConversations,
+      allConversations,
       activeConversation, 
       setActiveConversation, 
       loading,
@@ -20,19 +19,21 @@ export const ChatList = ({ activeTab, onTabChange }) => {
       archiveConversation
   } = useChat();
   const { user } = useAuthContext();
-  const [showArchived, setShowArchived] = useState(false);
   const [archivingId, setArchivingId] = useState(null);
 
-  // Determine which list to show based on sidebar state
-  const activeConversations = conversations.filter(c => {
-    if (activeTab === 'received') return c.host_id === user?.id;
-    return c.tenant_id === user?.id;
-  });
+  // Derive all views from the single source of truth (allConversations)
+  // so tab switching never hits a stale pre-filtered list from context
+  const isArchived = (c) => (c.archived_by ?? []).includes(user?.id);
 
-  // Archived view shows ALL archived conversations (both sent & received)
-  // regardless of the current received/sent tab — it's its own inbox
-  const archivedList = archivedConversations;
+  const receivedConversations = (allConversations ?? []).filter(c =>
+    c.host_id === user?.id && !isArchived(c)
+  );
+  const sentConversations = (allConversations ?? []).filter(c =>
+    c.tenant_id === user?.id && !isArchived(c)
+  );
+  const archivedList = (allConversations ?? []).filter(isArchived);
 
+  const activeConversations = activeTab === 'received' ? receivedConversations : sentConversations;
   const displayedList = showArchived ? archivedList : activeConversations;
 
   const handleArchiveToggle = async (e, conv, archive) => {
@@ -83,7 +84,7 @@ export const ChatList = ({ activeTab, onTabChange }) => {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => { onTabChange('received'); setShowArchived(false); }}
+            onClick={() => onTabChange('received')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-heading font-medium transition-all ${
               activeTab === 'received' && !showArchived
                 ? 'bg-terracotta-500 text-white shadow-lg shadow-terracotta-500/20' 
@@ -97,7 +98,7 @@ export const ChatList = ({ activeTab, onTabChange }) => {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={() => { onTabChange('sent'); setShowArchived(false); }}
+            onClick={() => onTabChange('sent')}
             className={`flex-1 flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-heading font-medium transition-all ${
               activeTab === 'sent' && !showArchived
                 ? 'bg-terracotta-500 text-white shadow-lg shadow-terracotta-500/20' 
@@ -113,7 +114,7 @@ export const ChatList = ({ activeTab, onTabChange }) => {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setShowArchived(v => !v)}
-            title={showArchived ? 'Back to inbox' : `Archived (${archivedConversations.length})`}
+            title={showArchived ? 'Back to inbox' : `Archived (${archivedList.length})`}
             className={`p-2.5 rounded-lg text-sm font-heading font-medium transition-all shrink-0 ${
               showArchived
                 ? 'bg-navy-800 text-white shadow-md' 

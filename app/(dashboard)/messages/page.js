@@ -9,7 +9,15 @@ import { MdSend } from 'react-icons/md';
 
 export default function MessagesPage() {
     const [activeTab, setActiveTab] = useState('received');
-    const { activeConversation } = useChat();
+    const [showArchived, setShowArchived] = useState(false);
+    const { activeConversation, setActiveConversation } = useChat();
+
+    // When switching tabs, always exit archive view and clear active conversation
+    const handleTabChange = (tab) => {
+        setActiveTab(tab);
+        setShowArchived(false);
+        setActiveConversation(null);
+    };
 
     return (
         <motion.main 
@@ -26,7 +34,7 @@ export default function MessagesPage() {
                         activeConversation ? 'hidden md:flex' : 'flex'
                     }`}
                 >
-                    <ChatList activeTab={activeTab} onTabChange={setActiveTab} />
+                    <ChatList activeTab={activeTab} onTabChange={handleTabChange} showArchived={showArchived} setShowArchived={setShowArchived} />
                 </motion.div>
 
                 {/* Chat Window - Takes remaining space */}
