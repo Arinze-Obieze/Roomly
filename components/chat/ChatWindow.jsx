@@ -57,6 +57,7 @@ export const ChatWindow = () => {
     // Look up from allConversations so archived chats still show correct header info
     const conversation = (allConversations ?? conversations).find(c => c.id === activeConversation);
     const otherParty = conversation ? (conversation.tenant_id === user?.id ? conversation.host : conversation.tenant) : null;
+    const isArchivedConversation = (conversation?.archived_by ?? []).includes(user?.id);
     const isMe = (msg) => msg.sender_id === user.id;
 
     // Close header menu on outside click
@@ -195,11 +196,12 @@ export const ChatWindow = () => {
     };
 
     // --- Archive Handler ---
-    const handleArchive = async () => {
+    const handleArchiveToggle = async () => {
         setShowHeaderMenu(false);
         try {
-            await archiveConversation(activeConversation, true);
-            setActiveConversation(null);
+            const shouldArchive = !isArchivedConversation;
+            await archiveConversation(activeConversation, shouldArchive);
+            if (shouldArchive) setActiveConversation(null);
         } catch (e) {
             // Toast shown in context
         }
@@ -378,11 +380,20 @@ export const ChatWindow = () => {
                                 className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-navy-100 overflow-hidden z-30"
                             >
                                 <button
-                                    onClick={handleArchive}
+                                    onClick={handleArchiveToggle}
                                     className="w-full px-4 py-3 text-sm text-left flex items-center gap-3 text-navy-700 hover:bg-navy-50 transition-colors font-heading font-medium"
                                 >
-                                    <MdArchive className="text-navy-400" size={18} />
-                                    Archive Chat
+                                    {isArchivedConversation ? (
+                                        <>
+                                            <MdDone className="text-teal-500" size={18} />
+                                            Restore Chat
+                                        </>
+                                    ) : (
+                                        <>
+                                            <MdArchive className="text-navy-400" size={18} />
+                                            Archive Chat
+                                        </>
+                                    )}
                                 </button>
                             </motion.div>
                         )}

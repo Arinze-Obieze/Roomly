@@ -15,7 +15,8 @@ import { NotificationsProvider } from "@/core/contexts/NotificationsContext";
 
 export default function DashboardLayout({ children }) {
   const pathname = usePathname();
-  const hideMobileChrome = pathname?.startsWith("/listings/new");
+  const hideMobileChrome =
+    pathname?.startsWith("/listings/new") || pathname?.startsWith("/messages");
 
   return (
     <FilterProvider>

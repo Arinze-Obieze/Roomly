@@ -1,13 +1,15 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatList } from '@/components/chat/ChatList';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { useChat } from '@/core/contexts/ChatContext';
-import { MdSend } from 'react-icons/md';
+import { MdSend, MdArrowBack } from 'react-icons/md';
 
 export default function MessagesPage() {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState('received');
     const [showArchived, setShowArchived] = useState(false);
     const { activeConversation, setActiveConversation } = useChat();
@@ -24,8 +26,20 @@ export default function MessagesPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3 }}
-            className="h-[calc(100dvh-8.5rem)] lg:h-[calc(100dvh-5.5rem)] flex flex-col bg-white overflow-hidden"
+            className="h-[100dvh] lg:h-[calc(100dvh-5.5rem)] flex flex-col bg-white overflow-hidden"
         >
+            {/* Mobile-only top bar for navigating out of Messages */}
+            <div className="lg:hidden flex items-center gap-2 px-3 py-2 border-b border-navy-200 bg-white">
+                <button
+                    onClick={() => router.back()}
+                    className="p-2 -ml-1 text-navy-500 hover:bg-navy-50 rounded-full transition-colors"
+                    aria-label="Back"
+                >
+                    <MdArrowBack size={22} />
+                </button>
+                <h1 className="text-sm font-heading font-bold text-navy-950">Messages</h1>
+            </div>
+
             <div className="flex-1 flex min-h-0">
                 {/* Sidebar - Fixed width, full height */}
                 <motion.div 

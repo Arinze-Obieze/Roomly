@@ -264,7 +264,11 @@ export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived
                     </button>
 
                     {/* Archive / Unarchive quick action — appears on hover */}
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div
+                      className={`absolute right-3 top-1/2 -translate-y-1/2 transition-opacity ${
+                        showArchived ? 'opacity-100 md:opacity-0 md:group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
+                      }`}
+                    >
                       {showArchived ? (
                         <button
                           onClick={(e) => handleArchiveToggle(e, conv, false)}
