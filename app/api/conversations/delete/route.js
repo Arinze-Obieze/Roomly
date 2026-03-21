@@ -1,4 +1,5 @@
 import { createClient } from '@/core/utils/supabase/server';
+import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
 
 export async function POST(request) {
@@ -30,7 +31,8 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        const { error: deleteError } = await supabase
+        const supabaseAdmin = createAdminClient();
+        const { error: deleteError } = await supabaseAdmin
             .from('conversations')
             .delete()
             .eq('id', conversationId);

@@ -201,7 +201,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
 
   const queryStart = Date.now();
   const { data, error, count } = await query;
-  console.log(`[PERF_DEBUG] DB Query Time: ${Date.now() - queryStart}ms`);
+
 
   if (error) {
     console.error('[DB] Error:', error);
@@ -247,8 +247,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
         missingProfile = true;
     }
 
-    console.log(`[Properties] User ${user.id}: ${Object.keys(scoreMap).length} scores loaded from DB, missingProfile=${missingProfile}`);
-    console.log(`[PERF_DEBUG] Interests + Scores Fetch Time: ${Date.now() - interestStart}ms`);
+
   }
 
   const transformedData = data.map(property => {

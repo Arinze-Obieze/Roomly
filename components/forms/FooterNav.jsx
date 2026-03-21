@@ -44,7 +44,7 @@ export default function FooterNav({ currentStep, STEPS, handleBack, handleNext, 
         ) : (
           <SubmitButton
             onClick={() => {
-              console.log('[FooterNav] Publish Listing button clicked');
+
               handleSubmit();
             }}
             disabled={isSubmitting}
