@@ -185,9 +185,9 @@ export const FilterContent = ({ variant }) => {
                     <span className="absolute left-2 top-2 text-navy-400 text-xs font-bold">€</span>
                     <input 
                         type="number"
-                        value={priceRange[0]}
+                        value={priceRange[0] === 0 ? '' : priceRange[0]}
                         onChange={(e) => {
-                            const val = Number(e.target.value);
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
                             setPriceRange([val, priceRange[1]]);
                             updateFilters({ minPrice: val });
                         }}
@@ -201,9 +201,9 @@ export const FilterContent = ({ variant }) => {
                     <span className="absolute left-2 top-2 text-navy-400 text-xs font-bold">€</span>
                     <input 
                         type="number"
-                        value={priceRange[1]}
+                        value={priceRange[1] === 0 ? '' : priceRange[1]}
                         onChange={(e) => {
-                            const val = Number(e.target.value);
+                            const val = e.target.value === '' ? 0 : Number(e.target.value);
                             setPriceRange([priceRange[0], val]);
                             updateFilters({ maxPrice: val });
                         }}

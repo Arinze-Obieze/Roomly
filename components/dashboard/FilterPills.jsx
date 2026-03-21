@@ -286,8 +286,11 @@ export default function FilterPills({ onOpenFilters }) {
                         <span className="absolute left-3 top-2.5 text-navy-400 text-xs">€</span>
                         <input 
                           type="number"
-                          value={priceRange[0]}
-                          onChange={(e) => setPriceRange([Number(e.target.value), priceRange[1]])}
+                          value={priceRange[0] === 0 ? '' : priceRange[0]}
+                          onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setPriceRange([val, priceRange[1]]);
+                          }}
                           className="w-full pl-7 pr-2 py-2 border border-navy-200 rounded-xl text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 outline-none"
                         />
                       </div>
@@ -298,8 +301,11 @@ export default function FilterPills({ onOpenFilters }) {
                         <span className="absolute left-3 top-2.5 text-navy-400 text-xs">€</span>
                         <input 
                           type="number"
-                          value={priceRange[1]}
-                          onChange={(e) => setPriceRange([priceRange[0], Number(e.target.value)])}
+                          value={priceRange[1] === 0 ? '' : priceRange[1]}
+                          onChange={(e) => {
+                              const val = e.target.value === '' ? 0 : Number(e.target.value);
+                              setPriceRange([priceRange[0], val]);
+                          }}
                           className="w-full pl-7 pr-2 py-2 border border-navy-200 rounded-xl text-sm focus:border-terracotta-500 focus:ring-1 focus:ring-terracotta-500 outline-none"
                         />
                       </div>
