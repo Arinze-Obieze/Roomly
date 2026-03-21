@@ -32,7 +32,7 @@ export default function HostProfilePage() {
         
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('id, full_name, profile_picture, bio, created_at, is_verified, privacy_setting, last_seen, average_response_time_ms')
+          .select('id, full_name, profile_picture, bio, created_at, is_verified, privacy_setting, last_seen, average_response_time_ms, show_online_status, show_response_time')
           .eq('id', userId)
           .single();
 
@@ -150,6 +150,7 @@ export default function HostProfilePage() {
   }
 
   const isOnline = host?.privacy_setting === 'public' && 
+                   host?.show_online_status !== false &&
                    host?.last_seen && 
                    (new Date() - new Date(host.last_seen)) < 5 * 60 * 1000;
 
@@ -251,7 +252,7 @@ export default function HostProfilePage() {
                   <span>Joined {new Date(host.created_at).getFullYear()}</span>
                 </div>
 
-                {host?.average_response_time_ms > 0 && (
+                {host?.show_response_time !== false && host?.average_response_time_ms > 0 && (
                    <div className="text-xs font-medium text-emerald-600 mb-4 bg-emerald-50 px-3 py-1.5 rounded-full inline-flex items-center border border-emerald-100">
                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2"></span>
                      Usually responds in {formatResponseTime(host.average_response_time_ms)}

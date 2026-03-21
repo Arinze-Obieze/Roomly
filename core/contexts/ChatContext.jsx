@@ -285,6 +285,43 @@ export const ChatProvider = ({ children }) => {
         }
     });
 
+    // Delete Conversation Mutation (Optimistic)
+    const deleteConversationMutation = useMutation({
+        mutationFn: async (conversationId) => {
+            const response = await fetch('/api/conversations/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId })
+            });
+            if (!response.ok) throw new Error('Failed to delete conversation');
+            return response.json();
+        },
+        onMutate: async (conversationId) => {
+            await queryClient.cancelQueries(['conversations', user?.id]);
+            const previous = queryClient.getQueryData(['conversations', user?.id]);
+
+            queryClient.setQueryData(['conversations', user?.id], (old) => {
+                if (!old) return old;
+                return {
+                    ...old,
+                    pages: old.pages.map(page => page.filter(conv => conv.id !== conversationId))
+                };
+            });
+
+            return { previous };
+        },
+        onError: (err, vars, context) => {
+            if (context?.previous) queryClient.setQueryData(['conversations', user?.id], context.previous);
+            toast.error('Failed to delete conversation');
+        },
+        onSuccess: () => {
+            toast.success('Chat deleted');
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries(['conversations', user?.id]);
+        }
+    });
+
         // Start Conversation Mutation
     const startConversationMutation = useMutation({
         mutationFn: async ({ propertyId, hostId, content, attachmentType = null, attachmentData = null }) => {
@@ -429,6 +466,7 @@ export const ChatProvider = ({ children }) => {
         startConversation: (pid, hid, content, attachmentType, attachmentData) => startConversationMutation.mutateAsync({ propertyId: pid, hostId: hid, content, attachmentType, attachmentData }),
         editMessage: (messageId, conversationId, newContent) => editMessageMutation.mutateAsync({ messageId, conversationId, newContent }),
         archiveConversation: (conversationId, archive) => archiveConversationMutation.mutateAsync({ conversationId, archive }),
+        deleteConversation: (conversationId) => deleteConversationMutation.mutateAsync(conversationId),
 
         EDIT_WINDOW_MS,
         unreadCount: unreadCountQuery.data || 0

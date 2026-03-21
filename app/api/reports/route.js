@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
+import { createAdminClient } from '@/core/utils/supabase/admin';
 
 export async function POST(request) {
   try {
     const supabase = await createClient();
+    const admin = createAdminClient();
     
     // Check authentication
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -27,7 +29,7 @@ export async function POST(request) {
     }
 
     // Insert the report
-    const { data: report, error: reportError } = await supabase
+    const { data: report, error: reportError } = await admin
       .from('reports')
       .insert({
         reporter_id: user.id,
@@ -41,7 +43,10 @@ export async function POST(request) {
 
     if (reportError) {
       console.error("[POST /api/reports] DB Insert Error:", reportError);
-      return NextResponse.json({ error: 'Failed to submit report. Please try again.' }, { status: 500 });
+      return NextResponse.json(
+        { error: reportError?.message || 'Failed to submit report. Please try again.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ success: true, report_id: report.id }, { status: 201 });

@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
-import { MdInbox, MdSend, MdCheckCircle, MdArchive, MdUnarchive, MdMoreVert } from 'react-icons/md';
+import { useConfirmation } from '@/core/contexts/ConfirmationContext';
+import { MdInbox, MdSend, MdCheckCircle, MdArchive, MdUnarchive, MdDelete } from 'react-icons/md';
 import { formatDistanceToNow } from 'date-fns';
 
 export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived }) => {
@@ -16,10 +17,13 @@ export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived
       fetchNextConversations,
       hasNextConversations,
       isFetchingNextConversations,
-      archiveConversation
+      archiveConversation,
+      deleteConversation
   } = useChat();
   const { user } = useAuthContext();
+  const { confirm } = useConfirmation();
   const [archivingId, setArchivingId] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
 
   // Derive all views from the single source of truth (allConversations)
   // so tab switching never hits a stale pre-filtered list from context
@@ -43,6 +47,26 @@ export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived
       await archiveConversation(conv.id, archive);
     } finally {
       setArchivingId(null);
+    }
+  };
+
+  const handleDelete = async (e, conv) => {
+    e.stopPropagation();
+    const isConfirmed = await confirm({
+      title: 'Delete chat?',
+      message: 'This will permanently delete the chat and all messages for both participants.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      type: 'danger'
+    });
+    if (!isConfirmed) return;
+
+    setDeletingId(conv.id);
+    try {
+      await deleteConversation(conv.id);
+      if (activeConversation === conv.id) setActiveConversation(null);
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -236,7 +260,7 @@ export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived
                         )}
                       </div>
 
-                      <div className="flex-1 min-w-0 pr-8">
+                      <div className="flex-1 min-w-0 pr-20">
                         <div className="flex justify-between items-start mb-0.5">
                           <h3 className={`font-heading text-sm truncate pr-2 ${
                             isActive ? 'text-terracotta-700 font-bold' : hasUnread ? 'text-navy-950 font-bold' : 'text-navy-900 font-medium'
@@ -266,28 +290,45 @@ export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived
                     {/* Archive / Unarchive quick action — appears on hover */}
                     <div
                       className={`absolute right-3 top-1/2 -translate-y-1/2 transition-opacity ${
-                        showArchived ? 'opacity-100 md:opacity-0 md:group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
+                        showArchived
+                          ? 'opacity-100 md:opacity-0 md:group-hover:opacity-100'
+                          : 'opacity-100 md:opacity-0 md:group-hover:opacity-100'
                       }`}
                     >
-                      {showArchived ? (
+                      <div className="flex items-center gap-2">
+                        {showArchived ? (
+                          <button
+                            onClick={(e) => handleArchiveToggle(e, conv, false)}
+                            disabled={isArchiving}
+                            title="Restore chat"
+                            className="p-2 rounded-full bg-white border border-navy-200 shadow-sm text-navy-400 hover:text-teal-500 hover:border-teal-300 transition-colors disabled:opacity-50"
+                          >
+                            {isArchiving ? <div className="w-4 h-4 border-2 border-navy-300 border-t-transparent rounded-full animate-spin" /> : <MdUnarchive size={16} />}
+                          </button>
+                        ) : (
+                          <button
+                            onClick={(e) => handleArchiveToggle(e, conv, true)}
+                            disabled={isArchiving}
+                            title="Archive chat"
+                            className="p-2 rounded-full bg-white border border-navy-200 shadow-sm text-navy-400 hover:text-navy-700 hover:border-navy-400 transition-colors disabled:opacity-50"
+                          >
+                            {isArchiving ? <div className="w-4 h-4 border-2 border-navy-300 border-t-transparent rounded-full animate-spin" /> : <MdArchive size={16} />}
+                          </button>
+                        )}
+
                         <button
-                          onClick={(e) => handleArchiveToggle(e, conv, false)}
-                          disabled={isArchiving}
-                          title="Restore chat"
-                          className="p-2 rounded-full bg-white border border-navy-200 shadow-sm text-navy-400 hover:text-teal-500 hover:border-teal-300 transition-colors disabled:opacity-50"
+                          onClick={(e) => handleDelete(e, conv)}
+                          disabled={deletingId === conv.id}
+                          title="Delete chat"
+                          className="p-2 rounded-full bg-white border border-navy-200 shadow-sm text-navy-400 hover:text-red-500 hover:border-red-300 transition-colors disabled:opacity-50"
                         >
-                          {isArchiving ? <div className="w-4 h-4 border-2 border-navy-300 border-t-transparent rounded-full animate-spin" /> : <MdUnarchive size={16} />}
+                          {deletingId === conv.id ? (
+                            <div className="w-4 h-4 border-2 border-navy-300 border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <MdDelete size={16} />
+                          )}
                         </button>
-                      ) : (
-                        <button
-                          onClick={(e) => handleArchiveToggle(e, conv, true)}
-                          disabled={isArchiving}
-                          title="Archive chat"
-                          className="p-2 rounded-full bg-white border border-navy-200 shadow-sm text-navy-400 hover:text-navy-700 hover:border-navy-400 transition-colors disabled:opacity-50"
-                        >
-                          {isArchiving ? <div className="w-4 h-4 border-2 border-navy-300 border-t-transparent rounded-full animate-spin" /> : <MdArchive size={16} />}
-                        </button>
-                      )}
+                      </div>
                     </div>
                   </motion.div>
                 );

@@ -163,6 +163,12 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
     }
   }, [data.id, openLoginModal, user]);
 
+  const handleHostProfileClick = useCallback((e) => {
+    e.stopPropagation();
+    if (!data.host?.id) return;
+    router.push(`/users/${data.host.id}`);
+  }, [data.host?.id, router]);
+
   return (
     <div 
       onClick={() => onSelect?.()}
@@ -304,13 +310,18 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
              {data.title}
            </h3>
            {data.host?.avatar && (
-             <div className="shrink-0 -mt-8 relative z-10" title={`Hosted by ${data.host.name}`}>
+             <button
+                type="button"
+                onClick={handleHostProfileClick}
+                className="shrink-0 -mt-8 relative z-10 rounded-full focus:outline-none focus:ring-2 focus:ring-primary/40"
+                title={`Hosted by ${data.host.name}`}
+             >
                  <img 
                     src={data.host.avatar} 
                     alt={data.host.name} 
                     className="w-12 h-12 rounded-full border-4 border-white shadow-md object-cover bg-navy-50" 
                  />
-             </div>
+             </button>
            )}
         </div>
 

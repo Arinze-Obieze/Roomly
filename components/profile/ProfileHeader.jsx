@@ -3,11 +3,13 @@
 import { motion } from 'framer-motion';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdEdit, MdCalendarToday } from 'react-icons/md';
+import { useRouter } from 'next/navigation';
 
 import Image from 'next/image';
 
 export default function ProfileHeader({ isEditing, onToggleEdit, hideEditButton }) {
   const { user } = useAuthContext();
+  const router = useRouter();
 
   if (!user) return null;
 
@@ -53,7 +55,15 @@ export default function ProfileHeader({ isEditing, onToggleEdit, hideEditButton 
           </div>
         </div>
 
-        <div>
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => router.push(`/users/${user.id}`)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-heading font-medium transition-all shadow-lg bg-navy-100 text-navy-700 hover:bg-navy-200 shadow-navy-950/5"
+          >
+            View Public Profile
+          </motion.button>
           {!hideEditButton && (
             <motion.button
               whileHover={{ scale: 1.05 }}

@@ -88,7 +88,9 @@ export default function PropertyDetailsPage() {
               is_verified,
               privacy_setting,
               last_seen,
-              average_response_time_ms
+              average_response_time_ms,
+              show_online_status,
+              show_response_time
             )
           `)
           .eq('id', params.id)
@@ -131,7 +133,9 @@ export default function PropertyDetailsPage() {
                id: data.users?.id,
                privacy_setting: data.users?.privacy_setting,
                last_seen: data.users?.last_seen,
-               average_response_time_ms: data.users?.average_response_time_ms
+               average_response_time_ms: data.users?.average_response_time_ms,
+               show_online_status: data.users?.show_online_status,
+               show_response_time: data.users?.show_response_time
              }
           });
         }

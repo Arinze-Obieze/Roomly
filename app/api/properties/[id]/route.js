@@ -107,7 +107,11 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
         full_name,
         profile_picture,
         is_verified,
-        privacy_setting
+        privacy_setting,
+        last_seen,
+        average_response_time_ms,
+        show_online_status,
+        show_response_time
       )
     `)
     .eq('id', id)

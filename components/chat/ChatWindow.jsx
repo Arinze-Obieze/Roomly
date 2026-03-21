@@ -4,10 +4,11 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
+import { useConfirmation } from '@/core/contexts/ConfirmationContext';
 import { 
     MdSend, MdMoreVert, MdArrowBack, MdCheckCircle, MdDoneAll, MdAttachFile, MdClose, 
     MdDescription, MdCloudUpload, MdAccessTime, MdEvent, MdEdit, MdArchive, MdDone,
-    MdCheck
+    MdCheck, MdDelete
 } from 'react-icons/md';
 import { format, differenceInMilliseconds } from 'date-fns';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
@@ -25,6 +26,7 @@ export const ChatWindow = () => {
         sendMessage,
         editMessage,
         archiveConversation,
+        deleteConversation,
         conversations,
         allConversations,
         fetchNextPage,
@@ -40,6 +42,7 @@ export const ChatWindow = () => {
     const [attachmentParams, setAttachmentParams] = useState(null);
     const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
     const [showHeaderMenu, setShowHeaderMenu] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // Editing state
     const [editingMessageId, setEditingMessageId] = useState(null);
@@ -53,6 +56,7 @@ export const ChatWindow = () => {
     const headerMenuRef = useRef(null);
     const [prevScrollHeight, setPrevScrollHeight] = useState(null);
     const supabase = createClient();
+    const { confirm } = useConfirmation();
 
     // Look up from allConversations so archived chats still show correct header info
     const conversation = (allConversations ?? conversations).find(c => c.id === activeConversation);
@@ -204,6 +208,28 @@ export const ChatWindow = () => {
             if (shouldArchive) setActiveConversation(null);
         } catch (e) {
             // Toast shown in context
+        }
+    };
+
+    const handleDelete = async () => {
+        setShowHeaderMenu(false);
+        const isConfirmed = await confirm({
+            title: 'Delete chat?',
+            message: 'This will permanently delete the chat and all messages for both participants.',
+            confirmText: 'Delete',
+            cancelText: 'Cancel',
+            type: 'danger'
+        });
+        if (!isConfirmed) return;
+
+        setIsDeleting(true);
+        try {
+            await deleteConversation(activeConversation);
+            setActiveConversation(null);
+        } catch (e) {
+            // Toast shown in context
+        } finally {
+            setIsDeleting(false);
         }
     };
 
@@ -394,6 +420,18 @@ export const ChatWindow = () => {
                                             Archive Chat
                                         </>
                                     )}
+                                </button>
+                                <button
+                                    onClick={handleDelete}
+                                    disabled={isDeleting}
+                                    className="w-full px-4 py-3 text-sm text-left flex items-center gap-3 text-red-600 hover:bg-red-50 transition-colors font-heading font-medium disabled:opacity-60"
+                                >
+                                    {isDeleting ? (
+                                        <div className="w-4 h-4 border-2 border-red-300 border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <MdDelete className="text-red-500" size={18} />
+                                    )}
+                                    Delete Chat
                                 </button>
                             </motion.div>
                         )}

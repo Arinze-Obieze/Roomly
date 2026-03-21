@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { useEffect, useState } from 'react';
+import imageCompression from 'browser-image-compression';
 import { 
   MdHome, 
   MdLocationOn, 
@@ -132,17 +133,42 @@ export default function CreateListingForm({ onClose, initialData = null }) {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
-  const handleFileChange = (e, type) => {
+  const handleFileChange = async (e, type) => {
     const files = Array.from(e.target.files);
+    
+    let processedFiles = [];
+
+    if (type === 'photos' && files.length > 0) {
+      const toastId = toast.loading('Optimizing images...');
+      try {
+        const options = {
+          maxSizeMB: 0.8,
+          maxWidthOrHeight: 1920,
+          useWebWorker: true,
+        };
+        for (let f of files) {
+          if (f.type.startsWith('image/')) {
+            try {
+              const compressedFile = await imageCompression(f, options);
+              processedFiles.push(compressedFile);
+            } catch (err) {
+              console.error('Compression error:', err);
+              processedFiles.push(f);
+            }
+          }
+        }
+        toast.success('Images optimized!', { id: toastId });
+      } catch (error) {
+        toast.dismiss(toastId);
+      }
+    } else {
+      processedFiles = files.filter(f => type === 'videos' ? f.type.startsWith('video/') : false);
+    }
+
     setFormData(prev => {
       const current = prev[type] || [];
       let max = type === 'photos' ? 10 : 5;
-      let filtered = files.filter(f => {
-        if (type === 'photos') return f.type.startsWith('image/');
-        if (type === 'videos') return f.type.startsWith('video/');
-        return false;
-      });
-      let newFiles = [...current, ...filtered].slice(0, max);
+      let newFiles = [...current, ...processedFiles].slice(0, max);
       return { ...prev, [type]: newFiles };
     });
   };

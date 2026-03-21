@@ -119,7 +119,12 @@ export default function RoomDetailsPage() {
                name: data.users?.full_name || 'Host',
                avatar: data.users?.profile_picture,
                verified: data.users?.is_verified,
-               id: data.users?.id || data.listed_by_user_id
+               id: data.users?.id || data.listed_by_user_id,
+               privacy_setting: data.users?.privacy_setting,
+               last_seen: data.users?.last_seen,
+               average_response_time_ms: data.users?.average_response_time_ms,
+               show_online_status: data.users?.show_online_status,
+               show_response_time: data.users?.show_response_time
              }
           });
         }
@@ -314,7 +319,7 @@ export default function RoomDetailsPage() {
                         : 'Message Host'
                   }
                   onEditListing={() => router.push('/my-properties')}
-                  onViewProfile={() => router.push(user && !property.isBlurry ? `/users/${property.host.id}` : '#')}
+                  onViewProfile={() => property.host?.id && router.push(`/users/${property.host.id}`)}
                   isPrivate={property.isBlurry}
                 />
              </div>

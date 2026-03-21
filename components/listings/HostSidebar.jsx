@@ -12,8 +12,9 @@ export default function HostSidebar({
   contactButtonText,
   isPrivate
 }) {
-  const isOnline = host?.privacy_setting === 'public' && 
-                   host?.last_seen && 
+  const isOnline = host?.privacy_setting === 'public' &&
+                   host?.show_online_status !== false &&
+                   host?.last_seen &&
                    (new Date() - new Date(host.last_seen)) < 5 * 60 * 1000;
 
   const formatResponseTime = (ms) => {
@@ -83,7 +84,7 @@ export default function HostSidebar({
               {contacting ? 'Loading...' : (contactButtonText || 'Contact Host')}
             </button>
         )}
-        {host?.average_response_time_ms > 0 && (
+        {host?.show_response_time !== false && host?.average_response_time_ms > 0 && (
           <p className="text-xs text-center text-slate-500 mt-4 flex items-center justify-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
             Usually responds in {formatResponseTime(host.average_response_time_ms)}
