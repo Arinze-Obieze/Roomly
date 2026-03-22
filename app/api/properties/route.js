@@ -96,7 +96,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
         .limit(500),
     ]);
 
-    missingProfile = !lifestyleCheck.data && !prefsCheck.data;
+    missingProfile = !lifestyleCheck.data;
 
     acceptedPrivateIds = (acceptedInterests.data || []).map(r => r.property_id);
     const scorePrivateIds = (privateScoreIds.data || []).map(r => r.property_id);
@@ -114,6 +114,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
         page,
         pageSize,
         sortBy,
+        allowedPrivateIds,
         acceptedPrivateIds,
       });
     } catch (e) {
@@ -160,31 +161,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
   const shouldCount = page > 1 && !cursor;
   const selectOptions = shouldCount ? { count: 'estimated' } : {};
 
-  let query = adminSb
-    .from('properties')
-    .select(`
-      *,
-      property_media (id, url, media_type, display_order, is_primary),
-      users!listed_by_user_id (id, full_name, profile_picture)
-    `, selectOptions)
-    .eq('is_active', true)
-    .eq('approval_status', 'approved');
-
-  // Privacy gate for non-score sorts:
-  // - anon: never show private
-  // - authed: show public + own private + a bounded set of eligible private IDs (score>=70 or accepted interest)
-  if (user) {
-    const baseOr = `privacy_setting.neq.private,listed_by_user_id.eq.${user.id}`;
-    if (allowedPrivateIds.length > 0) {
-      // Keep this bounded to avoid PostgREST URL length issues with UUID lists
-      const safeIds = allowedPrivateIds.slice(0, 120).join(',');
-      query = query.or(`${baseOr},id.in.(${safeIds})`);
-    } else {
-      query = query.or(baseOr);
-    }
-  } else {
-    query = query.neq('privacy_setting', 'private');
-  }
+  let query = buildVisiblePropertiesQuery(adminSb, user, allowedPrivateIds, selectOptions);
 
   // Price filters
   if (!Number.isNaN(minPrice)) query = query.gte('price_per_month', minPrice);
@@ -455,7 +432,35 @@ async function fetchPerPageUserContext(supabase, user, propertyIds) {
   return { interests, scoreMap };
 }
 
-async function fetchScoreDrivenPage({ searchParams, user, supabase, adminSb, page, pageSize, sortBy, acceptedPrivateIds }) {
+function buildVisiblePropertiesQuery(adminSb, user, allowedPrivateIds = [], selectOptions = {}) {
+  let query = adminSb
+    .from('properties')
+    .select(`
+      *,
+      property_media (id, url, media_type, display_order, is_primary),
+      users!listed_by_user_id (id, full_name, profile_picture)
+    `, selectOptions)
+    .eq('is_active', true)
+    .eq('approval_status', 'approved');
+
+  // Keep the visibility rule identical across all code paths so "recommended"
+  // can change ranking without changing which public listings are discoverable.
+  if (user) {
+    const baseOr = `privacy_setting.neq.private,listed_by_user_id.eq.${user.id}`;
+    if (allowedPrivateIds.length > 0) {
+      const safeIds = allowedPrivateIds.slice(0, 120).join(',');
+      query = query.or(`${baseOr},id.in.(${safeIds})`);
+    } else {
+      query = query.or(baseOr);
+    }
+  } else {
+    query = query.neq('privacy_setting', 'private');
+  }
+
+  return query;
+}
+
+async function fetchScoreDrivenPage({ searchParams, user, supabase, adminSb, page, pageSize, sortBy, allowedPrivateIds, acceptedPrivateIds }) {
   const offset = (page - 1) * pageSize;
   const needed = offset + pageSize;
 
@@ -532,6 +537,40 @@ async function fetchScoreDrivenPage({ searchParams, user, supabase, adminSb, pag
 
   // If we hit the scan cap, don't claim there are more pages (prevents infinite empty paging).
   if (scoreOffset >= MAX_SCORE_SCAN) hasMoreScores = false;
+
+  // Backfill with otherwise-visible listings so public properties stay visible
+  // even when a user's compatibility rows are incomplete.
+  if (collected.length < needed) {
+    const seenIds = new Set(collected.map(item => item.id));
+    const fallbackLimit = Math.min(Math.max(needed + (pageSize * 2), 60), 200);
+
+    let fallbackQuery = buildVisiblePropertiesQuery(adminSb, user, allowedPrivateIds)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(fallbackLimit);
+
+    fallbackQuery = applyPropertyFilters(fallbackQuery, filters);
+
+    const { data: fallbackProps, error: fallbackError } = await fallbackQuery;
+    if (fallbackError) throw fallbackError;
+
+    const missingProps = (fallbackProps || []).filter(prop => !seenIds.has(prop.id));
+    if (missingProps.length > 0) {
+      const missingIds = missingProps.map(prop => prop.id);
+      const { interests, scoreMap } = await fetchPerPageUserContext(supabase, user, missingIds);
+      for (const prop of missingProps) {
+        collected.push(transformProperty(prop, interests, scoreMap, user, false, supabase));
+      }
+    }
+  }
+
+  if (sortBy === 'match') {
+    collected = collected.sort((a, b) => {
+      const aScore = typeof a.matchScore === 'number' ? a.matchScore : -1;
+      const bScore = typeof b.matchScore === 'number' ? b.matchScore : -1;
+      return bScore - aScore || (new Date(b.createdAt) - new Date(a.createdAt));
+    });
+  }
 
   // Re-rank for recommended by blending freshness + quality into the collected window.
   // Formula (locked): recommended = 0.70*match + 0.20*freshness + 0.10*quality

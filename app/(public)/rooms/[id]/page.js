@@ -277,12 +277,12 @@ export default function RoomDetailsPage() {
                           </div>
                         ) : property.missingProfile ? (
                           <div className="text-center py-4 bg-terracotta-50 rounded-xl border border-terracotta-100">
-                             <p className="text-terracotta-800 text-sm font-medium mb-3">Complete your profile to see your match score.</p>
+                             <p className="text-terracotta-800 text-sm font-medium mb-3">Complete your lifestyle in Profile to see your match score.</p>
                              <button 
                                  onClick={() => router.push('/profile?tab=lifestyle')}
                                  className="px-6 py-2 bg-terracotta-600 text-white font-bold rounded-xl shadow-md hover:bg-terracotta-700 transition-colors text-sm"
                              >
-                                 Complete Profile
+                                 Complete Lifestyle
                              </button>
                           </div>
                         ) : (

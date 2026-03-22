@@ -266,13 +266,10 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
                     /* Logged in but no score explicitly found -- maybe computing or missing profile */
                     data.missingProfile ? (
                        <button
-                           onClick={(e) => {
-                               e.stopPropagation();
-                               router.push('/profile?tab=lifestyle');
-                           }}
-                           className="bg-terracotta-500/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-bold border border-white/10 hover:bg-terracotta-600 transition-colors animate-pulse"
+                           onClick={handleCompleteProfile}
+                           className="bg-terracotta-500/90 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg text-[11px] font-bold border border-white/10 hover:bg-terracotta-600 transition-colors"
                        >
-                           Complete profile for match
+                           Complete your lifestyle in Profile to see match
                        </button>
                     ) : (
                        <div className="bg-navy-900/70 backdrop-blur-md text-white/70 px-3 py-1.5 rounded-full text-xs font-medium border border-white/10 flex items-center gap-1.5 animate-pulse">
