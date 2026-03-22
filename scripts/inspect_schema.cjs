@@ -3,10 +3,14 @@ const fs = require('fs');
 require('dotenv').config({ path: '.env' });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SECRET_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseKey =
+  process.env.SUPABASE_SECRET_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_SECRET_SERVICE_ROLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase URL or Key in .env.local');
+  console.error('Missing Supabase URL or Key in .env / .env.local');
   process.exit(1);
 }
 
@@ -16,7 +20,10 @@ const TABLES_TO_CHECK = [
   'user_lifestyles',
   'match_preferences',
   'properties',
-  'property_interests'
+  'property_interests',
+  'compatibility_scores',
+  'conversations',
+  'messages'
 ];
 
 async function inspectSchema() {
@@ -28,7 +35,7 @@ async function inspectSchema() {
 
   log(`=== Roomly Schema Inspection: ${new Date().toISOString()} ===`);
   log(`URL: ${supabaseUrl}`);
-  log(`Key type: ${process.env.SUPABASE_SECRET_SERVICE_ROLE_KEY ? 'Service Role' : 'Anon'}\n`);
+  log(`Key type: ${(process.env.SUPABASE_SECRET_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_ROLE_KEY) ? 'Service Role' : 'Anon'}\n`);
 
   // First, try dynamic discovery
   try {

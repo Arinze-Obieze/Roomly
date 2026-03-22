@@ -1,12 +1,25 @@
-=== Roomly Schema Inspection: 2026-03-22T01:08:48.967Z ===
+=== Roomly Schema Inspection: 2026-03-22T04:46:00.676Z ===
 URL: https://aiovmhiokeisdizhcxvm.supabase.co
-Key type: Anon
+Key type: Service Role
 
-[ERROR]    user_lifestyles: TypeError: fetch failed (code: )
-[EXISTS]   match_preferences | rows≈5 | columns(17): user_id, age_min, age_max, gender_preference, accepted_smoking, accepted_pets, budget_min, budget_max, stay_duration_min, stay_duration_max, location_areas, created_at, updated_at, move_in_window, occupation_preference, cleanliness_tolerance, guests_tolerance
-           sample: {"user_id":"06fa1dec-4d85-40c8-8aae-9943b391dd1e","age_min":20,"age_max":30,"gender_preference":"male","accepted_smoking":["no"],"accepted_pets":true,"budget_min":0,"budget_max":2000,"stay_duration_min":6,"stay_duration_max":12,"location_areas":["Ennis"],"created_at":"2026-01-14T16:28:42.416359+00:0
-[EXISTS]   properties | rows≈7 | columns(49): id, title, description, property_type, price_per_month, state, city, street, bedrooms, bathrooms, square_meters, available_from, amenities, listed_by_user_id, is_active, status, created_at, updated_at, privacy_setting, custom_fees, rental_type, offering_type, year_built, ber_rating, latitude, longitude, transport_options, is_gaeltacht, deposit, bills_option, custom_bills, couples_allowed, payment_methods, occupation_preference, gender_preference, age_min, age_max, lifestyle_priorities, partner_description, is_immediate, min_stay_months, accept_viewings, deal_breakers, fixed_term_duration, is_public, bills_included, room_type, house_rules, approval_status
-           sample: {"id":"a113a77f-ab66-4980-aab5-aecc183044a0","title":"Charming 4-Bedroom Detached House For Sale","description":"A beautifully presented 4-bedroom detached home located in the popular Manor Farm area of Cork City. This family residence offers spacious living accommodation with an open-plan kitchen/d
+[EXISTS]   user_lifestyles | rows≈6 | columns(22): user_id, cleanliness_level, schedule_type, smoking_status, drinking_habits, cannabis_friendly, dietary_preference, social_level, noise_tolerance, pets, interests, overnight_guests, created_at, updated_at, occupation, primary_role, current_city, move_in_urgency, preferred_room_types, preferred_property_types, min_stay, max_stay
+           sample: {"user_id":"06fa1dec-4d85-40c8-8aae-9943b391dd1e","cleanliness_level":2,"schedule_type":"9-5","smoking_status":"no","drinking_habits":"social","cannabis_friendly":false,"dietary_preference":"omnivore","social_level":2,"noise_tolerance":2,"pets":{"has_pets":false,"description":"","accepts_pets":true}
+[EXISTS]   match_preferences | rows≈355 | columns(17): user_id, age_min, age_max, gender_preference, accepted_smoking, accepted_pets, budget_min, budget_max, stay_duration_min, stay_duration_max, location_areas, created_at, updated_at, move_in_window, occupation_preference, cleanliness_tolerance, guests_tolerance
+           sample: {"user_id":"592ac246-9153-4549-9b9b-2ab97b9e2198","age_min":23,"age_max":53,"gender_preference":null,"accepted_smoking":null,"accepted_pets":true,"budget_min":531,"budget_max":849,"stay_duration_min":6,"stay_duration_max":13,"location_areas":["Dublin"],"created_at":"2026-03-22T01:18:44.22817+00:00",
+[EXISTS]   properties | rows≈1086 | columns(49): id, title, description, property_type, price_per_month, state, city, street, bedrooms, bathrooms, square_meters, available_from, amenities, listed_by_user_id, is_active, status, created_at, updated_at, privacy_setting, custom_fees, rental_type, offering_type, year_built, ber_rating, latitude, longitude, transport_options, is_gaeltacht, deposit, bills_option, custom_bills, couples_allowed, payment_methods, occupation_preference, gender_preference, age_min, age_max, lifestyle_priorities, partner_description, is_immediate, min_stay_months, accept_viewings, deal_breakers, fixed_term_duration, is_public, bills_included, room_type, house_rules, approval_status
+           sample: {"id":"69ab2081-f0e1-4e88-adbd-f5a2051ba0f4","title":"Charming Apartment in Waterford","description":"Accusantium truculenter acsi cedo contabesco veniam. Summisse viridis cariosus tondeo pax defendo capitulus utor appono vigilo. Adflicto suus antea coniuratio audentia atque substantia.\nDefaeco asp
 [EXISTS]   property_interests | rows≈0 | columns(0): 
+[EXISTS]   compatibility_scores | rows≈3194 | columns(5): id, seeker_id, property_id, score, computed_at
+           sample: {"id":"d0fe4e65-8f27-45a0-ab20-41d826cca1bb","seeker_id":"70485964-79f3-488d-9abc-fdf0b0967c7f","property_id":"000be85a-45df-4945-9faf-f922b118d5a1","score":36,"computed_at":"2026-03-22T03:50:33.794+00:00"}
+[EXISTS]   conversations | rows≈2 | columns(10): id, property_id, tenant_id, host_id, last_message, last_message_at, created_at, unread_count_tenant, unread_count_host, archived_by
+           sample: {"id":"30868996-1f97-4766-92fc-5f34bd1a18b1","property_id":"d8c91e68-7a31-48d9-925a-8a629ba70195","tenant_id":"8b643592-f517-4c82-86f3-ded8f86bdc90","host_id":"f4ee7219-b60b-488f-85ef-e4afa48c3e83","last_message":"Hi Estevan Kozey, I'm a young professional ","last_message_at":"2026-03-22T01:42:12.36
+[EXISTS]   messages | rows≈2 | columns(10): id, conversation_id, sender_id, content, is_read, created_at, attachment_type, attachment_data, is_edited, edited_at
+           sample: {"id":"bd1bb4a4-27d7-4b88-8b59-9a558fd6bc08","conversation_id":"30868996-1f97-4766-92fc-5f34bd1a18b1","sender_id":"8b643592-f517-4c82-86f3-ded8f86bdc90","content":"Hi Estevan Kozey, I'm a young professional ","is_read":false,"created_at":"2026-03-22T01:42:12.486775+00:00","attachment_type":null,"att
 
 === Storage Buckets ===
+  - listing-images (public: true)
+  - property-media (public: true)
+  - avatars (public: true)
+  - buddy_attachments (public: true)
+  - message_attachments (public: true)
+  - support_attachments (public: true)

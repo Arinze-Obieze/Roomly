@@ -216,10 +216,18 @@ export default function HomeDashboard() {
                 <div
                   ref={sentinelRef}
                   className="h-24 flex items-center justify-center mt-6"
-                  aria-hidden="true"
                 >
                   {isAppending && (
                     <GlobalSpinner size="md" color="primary" />
+                  )}
+                  {hasMore && !loading && !isAppending && (
+                    <button
+                      type="button"
+                      onClick={() => loadNextPage()}
+                      className="px-5 py-2.5 rounded-xl bg-white border border-navy-200 text-navy-700 font-semibold shadow-sm hover:shadow-md hover:border-navy-300 transition-all"
+                    >
+                      Load more
+                    </button>
                   )}
                   {!hasMore && properties.length > 0 && !loading && !isAppending && (
                     <p className="text-sm text-navy-400 font-sans">

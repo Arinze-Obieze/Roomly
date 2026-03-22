@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { createClient } from '@/core/utils/supabase/client';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { MdLocationOn, MdCheckCircle } from 'react-icons/md';
 import { useChat } from '@/core/contexts/ChatContext';
@@ -38,12 +37,37 @@ export default function PropertyDetailsPage() {
   // Check if current user is the host
   const isOwner = user?.id === property?.host?.id;
 
-  const handleContactHost = () => {
+  const handleContactHost = async () => {
     if (!user) {
         router.push('/login');
         return;
     }
-    setIsContactModalOpen(true);
+
+    if (property?.contactGate === 'profile_required') {
+      router.push('/profile?tab=lifestyle');
+      return;
+    }
+
+    if (property?.contactGate === 'interest_required') {
+      try {
+        const res = await fetch('/api/interests/show-interest', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ propertyId: property.id }),
+        });
+        const payload = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(payload.error || 'Failed to submit interest');
+        toast.success(payload.message || 'Interest submitted!');
+        setProperty(prev => prev ? { ...prev, interestStatus: payload.status || 'pending', contactAllowed: false } : prev);
+      } catch (e) {
+        toast.error(e.message || 'Failed to submit interest');
+      }
+      return;
+    }
+
+    if (property?.contactAllowed) {
+      setIsContactModalOpen(true);
+    }
   };
 
   const handleSendMessage = async (message) => {
@@ -73,66 +97,32 @@ export default function PropertyDetailsPage() {
     let isMounted = true;
     
     const fetchProperty = async () => {
-      const supabase = createClient();
       try {
-        const { data, error } = await supabase
-          .from('properties')
-          .select(`
-            *,
-            property_media (
-              id,
-              url,
-              media_type,
-              display_order
-            ),
-            users:listed_by_user_id (
-              id,
-              full_name,
-              profile_picture,
-              is_verified,
-              privacy_setting,
-              last_seen,
-              average_response_time_ms,
-              show_online_status,
-              show_response_time
-            )
-          `)
-          .eq('id', params.id)
-          .single();
+        const res = await fetch(`/api/properties/${params.id}`);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || 'Could not load property details');
+        }
 
-        if (error) throw error;
-        
-        if (error) throw error;
-
-        // Transform media
-        const media = data.property_media
-            ?.sort((a, b) => a.display_order - b.display_order)
-            .map(m => {
-                let url = m.url;
-                if (!url.startsWith('http')) {
-                    url = supabase.storage.from('property-media').getPublicUrl(m.url).data.publicUrl;
-                }
-                return {
-                    url,
-                    type: m.media_type || 'image',
-                    id: m.id
-                };
-            }) || [];
+        const media = (data.property_media || [])
+          .slice()
+          .sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0))
+          .map(m => ({ url: m.url, type: m.media_type || 'image', id: m.id }));
             
         if (isMounted) {
           setProperty({
-             ...data,
-             media: media.length > 0 ? media : [{ url: '/placeholder-property.jpg', type: 'image' }],
-             host: {
-               name: data.users?.full_name || 'Unknown Host',
-               avatar: data.users?.profile_picture,
-               id: data.users?.id,
-               privacy_setting: data.users?.privacy_setting,
-               last_seen: data.users?.last_seen,
-               average_response_time_ms: data.users?.average_response_time_ms,
-               show_online_status: data.users?.show_online_status,
-               show_response_time: data.users?.show_response_time
-             }
+            ...data,
+            media: media.length > 0 ? media : [{ url: '/placeholder-property.jpg', type: 'image' }],
+            host: {
+              name: data.users?.full_name || 'Unknown Host',
+              avatar: data.users?.profile_picture,
+              id: data.users?.id,
+              privacy_setting: data.users?.privacy_setting,
+              last_seen: data.users?.last_seen,
+              average_response_time_ms: data.users?.average_response_time_ms,
+              show_online_status: data.users?.show_online_status,
+              show_response_time: data.users?.show_response_time
+            }
           });
         }
       } catch (err) {
@@ -150,7 +140,7 @@ export default function PropertyDetailsPage() {
     return () => {
       isMounted = false;
     };
-  }, [params.id, user]);
+  }, [params.id]);
 
   const handleToggleSave = () => {
     if (!user) return router.push('/login');
@@ -217,7 +207,9 @@ export default function PropertyDetailsPage() {
                        </div>
                      </div>
                      <div className="text-right">
-                       <div className="text-2xl font-bold text-terracotta-600">€{property.price_per_month}</div>
+                       <div className="text-2xl font-bold text-terracotta-600">
+                         {property.isBlurry ? (property.price_range || '€—') : `€${property.price_per_month}`}
+                       </div>
                        <div className="text-navy-500 text-sm">per month</div>
                      </div>
                    </div>
@@ -310,6 +302,14 @@ export default function PropertyDetailsPage() {
                   onContactHost={handleContactHost}
                   onEditListing={() => router.push('/my-properties')}
                   onViewProfile={() => router.push(`/users/${property.host.id}`)}
+                  contactButtonText={
+                    property.contactGate === 'profile_required'
+                      ? 'Complete profile to contact'
+                      : property.contactGate === 'interest_required'
+                        ? (property.interestStatus === 'pending' ? 'Interest Sent' : 'Show Interest')
+                        : 'Contact Host'
+                  }
+                  isPrivate={!!property.isBlurry}
                 />
              </div>
           </div>

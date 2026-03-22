@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
-import { cachedFetch } from '@/core/utils/redis';
+import { cachedFetch, getCachedInt } from '@/core/utils/redis';
 import { handleCreateProperty } from '@/core/services/properties/create-property.service';
 import crypto from 'crypto';
 
@@ -10,14 +10,14 @@ export const bodySizeLimit = '20mb';
 
 // ── Cache key generation ───────────────────────────────────────────────────
 // Per-user, per-query (includes page so each paginated slice is cached)
-const generateCacheKey = (searchParams, userId) => {
+const generateCacheKey = (searchParams, userId, versions = {}) => {
   const params = {};
   for (const [key, value] of searchParams.entries()) {
     params[key] = value;
   }
   const hash = crypto
     .createHash('md5')
-    .update(JSON.stringify({ params, userId: userId || 'anon' }))
+    .update(JSON.stringify({ params, userId: userId || 'anon', versions }))
     .digest('hex');
   return `properties:list:${hash}`;
 };
@@ -32,7 +32,11 @@ export async function GET(request) {
     // noStore=1 is set by the client when it calls refresh() to bypass Redis
     const skipCache = searchParams.get('noStore') === '1';
 
-    const cacheKey = generateCacheKey(searchParams, user?.id);
+    const versions = {
+      global: await getCachedInt('v:properties:global', 1),
+      user: user?.id ? await getCachedInt(`v:properties:user:${user.id}`, 1) : 0,
+    };
+    const cacheKey = generateCacheKey(searchParams, user?.id, versions);
 
     // 5-min TTL; skip entirely on refresh
     const data = skipCache
@@ -42,7 +46,7 @@ export async function GET(request) {
     return NextResponse.json(data);
   } catch (error) {
     console.error('[Properties GET] Error:', error);
-    return NextResponse.json({ error: 'Failed to fetch properties' }, { status: 500 });
+    return NextResponse.json({ error: error?.message || 'Failed to fetch properties' }, { status: 500 });
   }
 }
 
@@ -51,102 +55,64 @@ async function fetchPropertiesFromDB(searchParams, user) {
   const page      = Math.max(1, parseInt(searchParams.get('page')     || '1'));
   const pageSize  = Math.min(50, parseInt(searchParams.get('pageSize')|| '12')); // cap at 50
   const sortBy    = searchParams.get('sortBy');
-  const isRanked  = (sortBy === 'match' || sortBy === 'recommended') && user;
 
   const supabase = await createClient();
   const adminSb  = createAdminClient();
 
-  // ── Pre-fetch user context ─────────────────────────────────────────────
-  let interests                = [];
-  let scoreMap                 = {};
-  let allowedPrivateIds        = [];
-  let missingProfile           = false;
-  let globalRankedIds          = null; // only set for ranked queries
+  // ── Pre-fetch user context (bounded, no O(N) scans) ─────────────────────
+  let missingProfile = false;
+  let allowedPrivateIds = [];
+  let acceptedPrivateIds = [];
 
   if (user) {
-    const [interestData, scoreData, profileCheck] = await Promise.all([
-      supabase.from('property_interests').select('property_id, status').eq('seeker_id', user.id),
-      supabase.from('compatibility_scores').select('property_id, score').eq('seeker_id', user.id),
-      supabase.from('user_lifestyles').select('user_id').eq('user_id', user.id).single(),
+    const [lifestyleCheck, prefsCheck, acceptedInterests, privateScoreIds] = await Promise.all([
+      supabase.from('user_lifestyles').select('user_id').eq('user_id', user.id).maybeSingle(),
+      supabase.from('match_preferences').select('user_id').eq('user_id', user.id).maybeSingle(),
+      supabase
+        .from('property_interests')
+        .select('property_id')
+        .eq('seeker_id', user.id)
+        .eq('status', 'accepted')
+        .limit(2000),
+      supabase
+        .from('compatibility_scores')
+        .select('property_id')
+        .eq('seeker_id', user.id)
+        .gte('score', 70)
+        .order('score', { ascending: false })
+        .limit(500),
     ]);
 
-    interests = interestData.data || [];
-    const scores = scoreData.data || [];
+    missingProfile = !lifestyleCheck.data && !prefsCheck.data;
 
-    scores.forEach(s => {
-      scoreMap[s.property_id] = s.score;
-      if (s.score >= 70) allowedPrivateIds.push(s.property_id);
-    });
-
-    interests.forEach(i => {
-      if (i.status === 'accepted') allowedPrivateIds.push(i.property_id);
-    });
-
-    if (profileCheck.error?.code === 'PGRST116') missingProfile = true;
-
-    // ── Global rank for match/recommended sort ─────────────────────────
-    // Sort ALL scored property IDs globally by blended score (compatibility +
-    // recency), then paginate by slicing. This avoids the "per-page sort" bug
-    // where page 2 could contain higher-scored items than page 1.
-    if (isRanked && scores.length > 0) {
-      const now = Date.now();
-      const ranked = scores
-        .map(s => {
-          const ageHours = Math.max(0, (now - new Date(s.created_at ?? 0).getTime()) / 36e5);
-          const recency  = Math.max(0, 100 - (ageHours / 6.72));
-          return {
-            id:    s.property_id,
-            score: (s.score * 0.7) + (recency * 0.3),
-          };
-        })
-        .sort((a, b) => b.score - a.score);
-
-      globalRankedIds = ranked.map(r => r.id);
-    }
+    acceptedPrivateIds = (acceptedInterests.data || []).map(r => r.property_id);
+    const scorePrivateIds = (privateScoreIds.data || []).map(r => r.property_id);
+    allowedPrivateIds = Array.from(new Set([...acceptedPrivateIds, ...scorePrivateIds]));
   }
 
-  // ── Branch: globally-ranked query ─────────────────────────────────────
-  if (isRanked && globalRankedIds) {
-    const from  = (page - 1) * pageSize;
-    const slice = globalRankedIds.slice(from, from + pageSize);
-    const total = globalRankedIds.length;
-
-    if (slice.length === 0) {
-      return {
-        data: [],
-        pagination: { page, pageSize, total, hasMore: false },
-      };
-    }
-
-    const { data, error } = await adminSb
-      .from('properties')
-      .select(`
-        *,
-        property_media (id, url, media_type, display_order, is_primary),
-        users!listed_by_user_id (id, full_name, profile_picture)
-      `)
-      .in('id', slice)
-      .eq('is_active', true)
-      .eq('approval_status', 'approved');
-
-    if (error) throw error;
-
-    // Re-sort to honour the pre-computed rank order (DB IN doesn't guarantee order)
-    const orderMap = new Map(slice.map((id, idx) => [id, idx]));
-    const sorted   = (data || []).sort((a, b) => (orderMap.get(a.id) ?? 99) - (orderMap.get(b.id) ?? 99));
-
-    return {
-      data: sorted.map(p => transformProperty(p, interests, scoreMap, user, missingProfile, supabase)),
-      pagination: {
+  // ── Match / Recommended: score-driven ranking (avoids loading all scores) ──
+  if ((sortBy === 'match' || sortBy === 'recommended') && user && !missingProfile) {
+    try {
+      return await fetchScoreDrivenPage({
+        searchParams,
+        user,
+        supabase,
+        adminSb,
         page,
         pageSize,
-        total,
-        hasMore: from + pageSize < total,
-      },
-    };
+        sortBy,
+        acceptedPrivateIds,
+      });
+    } catch (e) {
+      console.error('[Properties] score-driven fetch failed, falling back to standard sort:', e?.message || e);
+      // Fall through to standard query (newest/price) so the UI stays usable.
+    }
   }
 
-  // ── Standard (non-ranked) query ────────────────────────────────────────
+  // ── Standard query (all sort modes, including match/recommended) ──────────
+  // Privacy is enforced at the DB level here. The match/recommended post-sort
+  // runs below after fetch. This is the single source of truth for what a user
+  // is allowed to see.
   const priceRange    = searchParams.get('priceRange');
   const minPrice      = parseInt(searchParams.get('minPrice')  || '');
   const maxPrice      = parseInt(searchParams.get('maxPrice')  || '');
@@ -173,11 +139,14 @@ async function fetchPropertiesFromDB(searchParams, user) {
     .eq('is_active', true)
     .eq('approval_status', 'approved');
 
-  // Privacy masking
+  // Privacy gate for non-score sorts:
+  // - anon: never show private
+  // - authed: show public + own private + a bounded set of eligible private IDs (score>=70 or accepted interest)
   if (user) {
     const baseOr = `privacy_setting.neq.private,listed_by_user_id.eq.${user.id}`;
     if (allowedPrivateIds.length > 0) {
-      const safeIds = allowedPrivateIds.slice(0, 80).join(',');
+      // Keep this bounded to avoid PostgREST URL length issues with UUID lists
+      const safeIds = allowedPrivateIds.slice(0, 120).join(',');
       query = query.or(`${baseOr},id.in.(${safeIds})`);
     } else {
       query = query.or(baseOr);
@@ -235,13 +204,19 @@ async function fetchPropertiesFromDB(searchParams, user) {
   // Sort
   switch (sortBy) {
     case 'price_low':
-      query = query.order('price_per_month', { ascending: true }).order('created_at', { ascending: false });
+      query = query
+        .order('price_per_month', { ascending: true })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       break;
     case 'price_high':
-      query = query.order('price_per_month', { ascending: false }).order('created_at', { ascending: false });
+      query = query
+        .order('price_per_month', { ascending: false })
+        .order('created_at', { ascending: false })
+        .order('id', { ascending: false });
       break;
     default:
-      query = query.order('created_at', { ascending: false });
+      query = query.order('created_at', { ascending: false }).order('id', { ascending: false });
   }
 
   const from = (page - 1) * pageSize;
@@ -251,13 +226,20 @@ async function fetchPropertiesFromDB(searchParams, user) {
   const { data, error, count } = await query;
   if (error) { console.error('[DB] Error:', error); throw error; }
 
+  const ids = (data || []).map(p => p.id);
+  const { interests, scoreMap } = await fetchPerPageUserContext(supabase, user, ids);
+
+  const transformed = (data || []).map(p =>
+    transformProperty(p, interests, scoreMap, user, missingProfile, supabase)
+  );
+
   return {
-    data: (data || []).map(p => transformProperty(p, interests, scoreMap, user, missingProfile, supabase)),
+    data: transformed,
     pagination: {
       page,
       pageSize,
       total:   count,
-      hasMore: to < (count || 0) - 1,
+      hasMore: (from + pageSize) < (count || 0),
     },
   };
 }
@@ -308,16 +290,30 @@ function transformProperty(property, interests, scoreMap, user, missingProfile, 
     createdAt:        property.created_at,
   };
 
+  const visibility = isPrivate ? 'private' : 'public';
+  const contactGate =
+    missingProfile || matchScore === null
+      ? 'profile_required'
+      : (visibility === 'private' || matchScore <= 50)
+        ? 'interest_required'
+        : 'direct';
+  const contactAllowed =
+    isOwner || contactGate === 'direct' || interest?.status === 'accepted';
+
   if (maskHost) {
     const parts      = hostName.split(' ');
     const maskedName = parts.length > 1 ? `${parts[0]} ${parts[1][0]}.` : hostName;
     return {
       ...base,
+      visibility,
+      isOwner,
       title:       `Room in ${property.city}`,
       location:    `${property.city}, ${property.state}`,
       priceRange:  `€${Math.floor(property.price_per_month / 100) * 100}–${Math.ceil(property.price_per_month / 100) * 100}`,
       image,
       isBlurry:    true,
+      contactGate,
+      contactAllowed,
       amenities:   (property.amenities || []).slice(0, 3).map(a => ({ icon: 'FaWifi', label: a })),
       verified:    false,
       host: {
@@ -331,10 +327,14 @@ function transformProperty(property, interests, scoreMap, user, missingProfile, 
 
   return {
     ...base,
+    visibility,
+    isOwner,
     title:       property.title,
     location:    `${property.city}, ${property.state}`,
     image,
     images,
+    contactGate,
+    contactAllowed,
     amenities:   (property.amenities || []).map(a => ({ icon: 'FaWifi', label: a })),
     verified:    false,
     host: {
@@ -350,4 +350,204 @@ function transformProperty(property, interests, scoreMap, user, missingProfile, 
 // ── POST (create listing) ──────────────────────────────────────────────────
 export async function POST(req) {
   return handleCreateProperty(req);
+}
+
+async function fetchPerPageUserContext(supabase, user, propertyIds) {
+  if (!user || !propertyIds?.length) return { interests: [], scoreMap: {} };
+
+  const [interestData, scoreData] = await Promise.all([
+    supabase
+      .from('property_interests')
+      .select('property_id, status')
+      .eq('seeker_id', user.id)
+      .in('property_id', propertyIds),
+    supabase
+      .from('compatibility_scores')
+      .select('property_id, score')
+      .eq('seeker_id', user.id)
+      .in('property_id', propertyIds),
+  ]);
+
+  const interests = interestData.data || [];
+  const scores = scoreData.data || [];
+  const scoreMap = {};
+  scores.forEach(s => { scoreMap[s.property_id] = s.score; });
+
+  return { interests, scoreMap };
+}
+
+async function fetchScoreDrivenPage({ searchParams, user, supabase, adminSb, page, pageSize, sortBy, acceptedPrivateIds }) {
+  const offset = (page - 1) * pageSize;
+  const needed = offset + pageSize;
+
+  // Pull compatibility scores in descending order, then fetch properties in batches and apply filters.
+  // Keep batches small: UUID `in(...)` lists can exceed PostgREST URL limits.
+  const BATCH = 120;
+  const MAX_SCORE_SCAN = 5000;
+  let scoreOffset = 0;
+  let collected = [];
+  let hasMoreScores = true;
+
+  // Pre-parse filters once
+  const filters = parsePropertyFilters(searchParams);
+
+  while (collected.length < needed && hasMoreScores && scoreOffset < MAX_SCORE_SCAN) {
+    const { data: scoreRows, error } = await supabase
+      .from('compatibility_scores')
+      .select('property_id, score')
+      .eq('seeker_id', user.id)
+      .order('score', { ascending: false })
+      .range(scoreOffset, scoreOffset + BATCH - 1);
+
+    if (error) throw error;
+    if (!scoreRows || scoreRows.length === 0) {
+      hasMoreScores = false;
+      break;
+    }
+
+    const ids = scoreRows.map(r => r.property_id);
+    let query = adminSb
+      .from('properties')
+      .select(`
+        *,
+        property_media (id, url, media_type, display_order, is_primary),
+        users!listed_by_user_id (id, full_name, profile_picture)
+      `)
+      .in('id', ids)
+      .eq('is_active', true)
+      .eq('approval_status', 'approved');
+
+    query = applyPropertyFilters(query, filters);
+
+    const { data: props, error: pErr } = await query;
+    if (pErr) throw pErr;
+
+    // Map for fast lookup
+    const propMap = new Map((props || []).map(p => [p.id, p]));
+
+    // Interest statuses only for returned IDs
+    const { interests, scoreMap } = await fetchPerPageUserContext(supabase, user, ids);
+
+    for (const row of scoreRows) {
+      const prop = propMap.get(row.property_id);
+      if (!prop) continue;
+
+      // Private eligibility: accept if score>=70 OR accepted interest OR owner
+      const isPrivate = prop.privacy_setting === 'private';
+      const isOwner = prop.listed_by_user_id === user.id;
+      const isAccepted = acceptedPrivateIds.includes(prop.id) || interests.some(i => i.property_id === prop.id && i.status === 'accepted');
+      if (isPrivate && !isOwner && !isAccepted && (typeof row.score !== 'number' || row.score < 70)) {
+        continue;
+      }
+
+      // Record score for transformer
+      scoreMap[prop.id] = row.score;
+
+      collected.push(transformProperty(prop, interests, scoreMap, user, false, supabase));
+      if (collected.length >= needed) break;
+    }
+
+    scoreOffset += BATCH;
+    if (scoreRows.length < BATCH) hasMoreScores = false;
+  }
+
+  // If we hit the scan cap, don't claim there are more pages (prevents infinite empty paging).
+  if (scoreOffset >= MAX_SCORE_SCAN) hasMoreScores = false;
+
+  // Re-rank for recommended by blending freshness into the collected window.
+  if (sortBy === 'recommended') {
+    const now = new Date();
+    collected = collected
+      .map(item => {
+        const ageHours = Math.max(0, (now - new Date(item.createdAt)) / 36e5);
+        const freshness = Math.max(0, 100 - ageHours / 7.2); // ~30 days to near-zero
+        const match = typeof item.matchScore === 'number' ? item.matchScore : 0;
+        const recScore = (match * 0.7) + (freshness * 0.3);
+        return { ...item, _recScore: recScore };
+      })
+      .sort((a, b) => (b._recScore - a._recScore) || (b.matchScore - a.matchScore));
+  }
+
+  const pageItems = collected.slice(offset, offset + pageSize).map(({ _recScore, ...rest }) => rest);
+
+  return {
+    data: pageItems,
+    pagination: {
+      page,
+      pageSize,
+      total: null,
+      // If we couldn't fill this page, there is no next page of results for this query.
+      hasMore: pageItems.length === pageSize && hasMoreScores,
+    },
+  };
+}
+
+function parsePropertyFilters(searchParams) {
+  return {
+    priceRange: searchParams.get('priceRange'),
+    minPrice: parseInt(searchParams.get('minPrice') || ''),
+    maxPrice: parseInt(searchParams.get('maxPrice') || ''),
+    bedrooms: searchParams.get('bedrooms')?.split(',').map(Number).filter(Boolean),
+    propertyType: searchParams.get('propertyType'),
+    propertyTypes: searchParams.get('propertyTypes')?.split(',').map(v => v.trim()).filter(Boolean),
+    amenities: searchParams.get('amenities')?.split(',').filter(Boolean),
+    minBedrooms: parseInt(searchParams.get('minBedrooms')),
+    minBathrooms: parseInt(searchParams.get('minBathrooms')),
+    location: searchParams.get('location'),
+    search: searchParams.get('search'),
+    moveInDate: searchParams.get('moveInDate'),
+    roomType: searchParams.get('roomType'),
+    houseRules: searchParams.get('houseRules')?.split(',').filter(Boolean),
+    billsIncluded: searchParams.get('billsIncluded') === 'true',
+  };
+}
+
+function applyPropertyFilters(query, f) {
+  // Price filters
+  if (!Number.isNaN(f.minPrice)) query = query.gte('price_per_month', f.minPrice);
+  if (!Number.isNaN(f.maxPrice)) query = query.lte('price_per_month', f.maxPrice);
+  if (f.priceRange && f.priceRange !== 'all') {
+    const ranges = { budget: [0, 800], mid: [800, 1500], premium: [1500, 999999] };
+    const r = ranges[f.priceRange];
+    if (r) query = query.gte('price_per_month', r[0]).lte('price_per_month', r[1]);
+  }
+
+  // Bedroom / bathroom filters
+  if (f.bedrooms?.length > 0) query = query.in('bedrooms', f.bedrooms);
+  if (f.minBedrooms) query = query.gte('bedrooms', f.minBedrooms);
+  if (f.minBathrooms) query = query.gte('bathrooms', f.minBathrooms);
+
+  // Property type
+  if (f.propertyTypes?.length > 0) query = query.in('property_type', f.propertyTypes);
+  else if (f.propertyType && f.propertyType !== 'any') query = query.eq('property_type', f.propertyType);
+
+  // Text search
+  if (f.location) query = query.or(`city.ilike.*${f.location}*,state.ilike.*${f.location}*,street.ilike.*${f.location}*`);
+  if (f.search) query = query.or(`title.ilike.*${f.search}*,description.ilike.*${f.search}*,city.ilike.*${f.search}*,state.ilike.*${f.search}*,street.ilike.*${f.search}*`);
+
+  // Advanced filters
+  if (f.amenities?.length > 0) query = query.contains('amenities', f.amenities);
+  if (f.roomType) query = query.eq('room_type', f.roomType);
+  if (f.billsIncluded) query = query.or('bills_included.eq.true,bills_option.eq.all');
+  if (f.houseRules?.length > 0) query = query.contains('house_rules', f.houseRules);
+
+  // Move-in date
+  if (f.moveInDate && f.moveInDate !== 'any') {
+    const now = new Date();
+    const today = now.toISOString().split('T')[0];
+    if (f.moveInDate === 'immediately') {
+      query = query.lte('available_from', today);
+    } else if (f.moveInDate === 'this_month') {
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      query = query.lte('available_from', endOfMonth.toISOString().split('T')[0]);
+    } else if (f.moveInDate === 'next_month') {
+      const start = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 2, 0);
+      query = query
+        .gte('available_from', start.toISOString().split('T')[0])
+        .lte('available_from', end.toISOString().split('T')[0]);
+    }
+  }
+
+  return query;
 }

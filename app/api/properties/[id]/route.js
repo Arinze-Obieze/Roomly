@@ -3,15 +3,15 @@ export const runtime = 'nodejs';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
-import { cachedFetch, invalidatePattern } from '@/core/utils/redis';
+import { cachedFetch, getCachedInt, invalidatePattern } from '@/core/utils/redis';
 import crypto from 'crypto';
 import { recomputeForProperty } from '@/core/services/matching/recompute-compatibility.service';
 
 // Generate cache key for property details (includes user for personalized data)
-const generateCacheKey = (propertyId, userId = 'anon') => {
+const generateCacheKey = (propertyId, userId = 'anon', versions = {}) => {
   const hash = crypto
     .createHash('md5')
-    .update(`${propertyId}:${userId}`)
+    .update(`${propertyId}:${userId}:${JSON.stringify(versions)}`)
     .digest('hex');
 
   return `property:${hash}`;
@@ -48,7 +48,12 @@ export async function GET(request, { params }) {
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || 'anon';
 
-    const cacheKey = generateCacheKey(id, userId);
+    const versions = {
+      global: await getCachedInt('v:properties:global', 1),
+      user: user?.id ? await getCachedInt(`v:properties:user:${user.id}`, 1) : 0,
+      property: await getCachedInt(`v:property:${id}`, 1),
+    };
+    const cacheKey = generateCacheKey(id, userId, versions);
 
     const cachedData = await cachedFetch(cacheKey, 600, async () => {
       return fetchPropertyFromDB(supabase, adminSb, id, user);
@@ -58,6 +63,10 @@ export async function GET(request, { params }) {
 
   } catch (error) {
     console.error('[Property Details GET] Error:', error);
+
+    if (error?.statusCode === 404) {
+      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+    }
 
     return NextResponse.json(
       { error: 'Failed to fetch property' },
@@ -70,20 +79,21 @@ export async function GET(request, { params }) {
 async function fetchPropertyFromDB(supabase, adminSb, id, user) {
   let interestStatus = null;
   let matchScore = null;
+  const userId = user?.id || null;
 
-  if (user) {
+  if (userId) {
     const [{ data: interest }, { data: scoreRow }] = await Promise.all([
       supabase
         .from('property_interests')
         .select('status')
         .eq('property_id', id)
-        .eq('seeker_id', user.id)
+        .eq('seeker_id', userId)
         .maybeSingle(),
       supabase
         .from('compatibility_scores')
         .select('score')
         .eq('property_id', id)
-        .eq('seeker_id', user.id)
+        .eq('seeker_id', userId)
         .maybeSingle(),
     ]);
 
@@ -122,7 +132,31 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
 
   const isMutualInterest = interestStatus === 'accepted';
   const isPrivate = property.privacy_setting === 'private';
-  const shouldMask = isPrivate && !isMutualInterest;
+  const isOwner = !!userId && property.listed_by_user_id === userId;
+
+  // Eligibility for opening a private listing by ID:
+  // - owner can always view
+  // - accepted interest can view
+  // - match >= 70 can view, but still masked until accepted
+  if (isPrivate && !isOwner && !isMutualInterest) {
+    if (typeof matchScore !== 'number' || matchScore < 70) {
+      const err = new Error('Not found');
+      err.statusCode = 404;
+      throw err;
+    }
+  }
+
+  const shouldMask = isPrivate && !isOwner && !isMutualInterest;
+
+  const visibility = isPrivate ? 'private' : 'public';
+  const contactGate =
+    matchScore === null
+      ? 'profile_required'
+      : (visibility === 'private' || matchScore <= 50)
+        ? 'interest_required'
+        : 'direct';
+  const contactAllowed =
+    isOwner || contactGate === 'direct' || interestStatus === 'accepted';
 
   // Normalize media URLs
   if (property.property_media?.length) {
@@ -168,8 +202,12 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
   return {
     ...property,
     isPrivate,
+    visibility,
+    isOwner,
     interestStatus,
-    matchScore
+    matchScore,
+    contactGate,
+    contactAllowed,
   };
 }
 

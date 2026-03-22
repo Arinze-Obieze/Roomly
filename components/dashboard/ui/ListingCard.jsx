@@ -24,6 +24,13 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
   const { user, openLoginModal } = useAuthContext();
   const { isPropertySaved, toggleSave } = useSavedProperties();
   const isOwner = user?.id === data.host?.id;
+  const contactGate = useMemo(() => {
+    if (data?.contactGate) return data.contactGate;
+    if (data?.missingProfile || data?.matchScore == null) return 'profile_required';
+    if (data?.isPrivate || data?.matchScore <= 50) return 'interest_required';
+    return 'direct';
+  }, [data?.contactGate, data?.isPrivate, data?.matchScore, data?.missingProfile]);
+  const contactAllowed = data?.contactAllowed ?? (contactGate === 'direct');
   
   const isSaved = isPropertySaved(data.id);
   const [imgSrc, setImgSrc] = useState(data.image);
@@ -138,7 +145,7 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
   const handleShowInterest = useCallback(async (e) => {
     e.stopPropagation();
     if (!user) {
-      openLoginModal('Sign up to show interest in this private listing.');
+      openLoginModal('Sign up to show interest in this listing.');
       return;
     }
 
@@ -163,6 +170,15 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
     }
   }, [data.id, openLoginModal, user]);
 
+  const handleCompleteProfile = useCallback((e) => {
+    e.stopPropagation();
+    if (!user) {
+      openLoginModal('Sign up to complete your profile and contact hosts.');
+      return;
+    }
+    router.push('/profile?tab=lifestyle');
+  }, [openLoginModal, router, user]);
+
   const handleHostProfileClick = useCallback((e) => {
     e.stopPropagation();
     if (!data.host?.id) return;
@@ -172,7 +188,7 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
   return (
     <div 
       onClick={() => onSelect?.(data.id)}
-      className="group bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-navy-950/5 hover:-translate-y-1 border border-navy-200 flex flex-col h-full [content-visibility:auto] [contain-intrinsic-size:420px]"
+      className="group bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-navy-950/5 hover:-translate-y-1 border border-navy-200 flex flex-col h-full"
     >
       {/* Image Container */}
       <div className="relative aspect-[4/3] w-full bg-navy-100 overflow-hidden">
@@ -368,7 +384,18 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
         )}
 
         {/* Blur State Action */}
-        {data.isBlurry && (
+        {contactGate === 'profile_required' && !isOwner && (
+          <div className="mt-2">
+            <button
+              onClick={handleCompleteProfile}
+              className="w-full py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all active:scale-[0.98] bg-terracotta-500 text-white hover:bg-terracotta-600 shadow-lg shadow-terracotta-500/20"
+            >
+              Complete profile to contact
+            </button>
+          </div>
+        )}
+
+        {contactGate === 'interest_required' && !isOwner && (
             <div className="mt-2">
                  <button
                     onClick={handleShowInterest}

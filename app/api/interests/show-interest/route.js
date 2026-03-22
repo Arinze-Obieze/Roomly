@@ -9,7 +9,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
-import { invalidatePattern } from '@/core/utils/redis';
+import { bumpCacheVersion } from '@/core/utils/redis';
 import { Notifier } from '@/core/services/notifications/notifier';
 
 export async function POST(request) {
@@ -56,10 +56,23 @@ export async function POST(request) {
       .eq('property_id', propertyId)
       .single();
 
-    // 3. For PUBLIC listings, interest is auto-accepted immediately.
-    //    For PRIVATE listings, it starts as 'pending' for landlord review.
+    // 3. Product rule:
+    //    - No score → browse-only (must complete profile before interest/contact)
+    //    - PRIVATE listings → pending (host review)
+    //    - PUBLIC listings:
+    //        score <= 50 → pending (host review required to unlock chat)
+    //        score >= 51 → accepted (direct contact allowed anyway; accepted for audit/history)
+    if (scoreRow?.score == null) {
+      return NextResponse.json(
+        { error: 'Complete your lifestyle and match preferences to show interest.' },
+        { status: 400 }
+      );
+    }
+
     const isPrivateListing = property.privacy_setting === 'private' || property.is_public === false;
-    const initialStatus = isPrivateListing ? 'pending' : 'accepted';
+    const initialStatus = isPrivateListing
+      ? 'pending'
+      : (scoreRow.score <= 50 ? 'pending' : 'accepted');
 
     // 4. Upsert the interest record (prevent duplicates via unique index)
     const { data: interest, error: insertError } = await supabase
@@ -93,9 +106,10 @@ export async function POST(request) {
       throw insertError;
     }
 
-    // 5. Invalidate relevant caches
-    await invalidatePattern(`seeker:interests:*`);
-    await invalidatePattern(`landlord:interests:*`);
+    // 5. Bump relevant cache versions (no Redis KEYS scans)
+    await bumpCacheVersion(`v:interests:seeker:${user.id}`);
+    await bumpCacheVersion(`v:interests:landlord:${property.listed_by_user_id}`);
+    await bumpCacheVersion(`v:properties:user:${user.id}`); // interest affects blur/unlock state
 
     // 6. Notify Landlord
     try {
@@ -116,7 +130,7 @@ export async function POST(request) {
       success: true,
       status: initialStatus,
       interest,
-      message: isPrivateListing
+      message: initialStatus === 'pending'
         ? 'Interest submitted! The landlord will review your profile.'
         : 'Interest shown! You can now message the landlord.',
     });

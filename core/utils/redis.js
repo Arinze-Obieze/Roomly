@@ -251,3 +251,33 @@ export const isRedisAvailable = async () => {
     return false;
   }
 };
+
+/**
+ * Get an integer value from Redis (raw string), with a default fallback.
+ * Useful for cache versioning keys.
+ */
+export const getCachedInt = async (key, defaultValue = 0) => {
+  try {
+    await checkRedisHealth();
+    const value = await callRedis('GET', key);
+    const parsed = value == null ? NaN : parseInt(value, 10);
+    return Number.isFinite(parsed) ? parsed : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+/**
+ * Bump (INCR) a cache version key and return the new value.
+ * Intentionally does not set TTL.
+ */
+export const bumpCacheVersion = async (key) => {
+  try {
+    await checkRedisHealth();
+    const next = await callRedis('INCR', key);
+    const parsed = next == null ? NaN : parseInt(next, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  } catch {
+    return 0;
+  }
+};
