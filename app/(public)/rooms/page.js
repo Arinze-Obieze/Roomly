@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters";
 import { DEFAULT_FILTERS } from "@/core/contexts/FilterContext";
@@ -17,7 +17,7 @@ import GlobalSpinner from "@/components/ui/GlobalSpinner";
 
 export default function RoomsPage() {
   const router = useRouter();
-  const loadMoreRef = useRef(null);
+  const observer = useRef();
   
   const { 
     properties, 
@@ -56,20 +56,19 @@ export default function RoomsPage() {
     }
   };
 
-  // Infinite scroll
-  useEffect(() => {
-    if (!loadMoreRef.current) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          loadNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-    observer.observe(loadMoreRef.current);
-    return () => observer.disconnect();
-  }, [hasMore, loading, loadNextPage]);
+  // Stable robust Infinite scroll
+  const loadMoreRef = useCallback((node) => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadNextPage();
+      }
+    }, { rootMargin: '200px' });
+    
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore, loadNextPage]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">

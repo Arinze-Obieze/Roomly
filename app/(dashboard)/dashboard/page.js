@@ -15,14 +15,14 @@ import SupportWidget from "@/components/dashboard/widgets/SupportWidget";
 import GlobalSpinner from "@/components/ui/GlobalSpinner";
 import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuthContext } from "@/core/contexts/AuthContext";
 import { useFilters } from "@/components/dashboard/filters/useFilters";
 import { MdGroups, MdChat, MdSearch } from "react-icons/md";
 
 export default function HomeDashboard() {
   const router = useRouter();
-  const loadMoreRef = useRef(null);
+  const observer = useRef();
   const { user } = useAuthContext();
   const { resetFilters } = useFilters();
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -43,23 +43,19 @@ export default function HomeDashboard() {
     debounceMs: 300
   });
 
-  // Infinite scroll implementation
-  useEffect(() => {
-    if (!loadMoreRef.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries[0].isIntersecting && hasMore && !loading) {
-          loadNextPage();
-        }
-      },
-      { threshold: 0.1 }
-    );
-
-    observer.observe(loadMoreRef.current);
-
-    return () => observer.disconnect();
-  }, [hasMore, loading, loadNextPage]);
+  // Stable robust Infinite scroll implementation
+  const loadMoreRef = useCallback((node) => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadNextPage();
+      }
+    }, { rootMargin: '200px' });
+    
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore, loadNextPage]);
 
   // Scroll direction detection for auto-hiding mobile filters
   useEffect(() => {
