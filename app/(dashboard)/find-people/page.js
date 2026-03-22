@@ -259,7 +259,11 @@ export default function FindPeoplePage() {
           {featureState.data.map((seeker) => (
             <article key={seeker.user_id} className="bg-white border border-navy-200 rounded-3xl p-5 shadow-sm hover:shadow-md hover:shadow-navy-950/5 transition-all">
               <div className="flex items-start justify-between gap-3 mb-4">
-                <div className="flex items-center gap-3 min-w-0">
+                <button
+                  type="button"
+                  onClick={() => !seeker.isBlurry && router.push(`/users/${seeker.user_id}`)}
+                  className={`flex items-center gap-3 min-w-0 text-left ${!seeker.isBlurry ? 'cursor-pointer hover:opacity-80 transition-opacity' : 'cursor-default'}`}
+                >
                   <div className="relative w-12 h-12 rounded-full bg-navy-50 overflow-hidden shrink-0">
                     {seeker.profile_picture ? (
                       <img 
@@ -292,7 +296,7 @@ export default function FindPeoplePage() {
                       </div>
                     )}
                   </div>
-                </div>
+                </button>
                 <div className="bg-teal-50 text-teal-700 border border-teal-100 rounded-xl px-2.5 py-1 text-xs font-heading font-bold shrink-0">
                   {seeker.match_score}% Match
                 </div>
