@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useState, useRef } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, useRef } from 'react';
 import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from './AuthContext';
 import { toast } from 'react-hot-toast';
@@ -13,7 +13,7 @@ export const useChat = () => useContext(ChatContext);
 export const ChatProvider = ({ children }) => {
     const { user } = useAuthContext();
     const [activeConversation, setActiveConversation] = useState(null);
-    const supabase = createClient();
+    const supabase = useMemo(() => createClient(), []);
     const queryClient = useQueryClient();
     const activeConversationRef = useRef(activeConversation);
 
@@ -24,13 +24,12 @@ export const ChatProvider = ({ children }) => {
     // Fetch User's Conversations (Infinite)
     const conversationsQuery = useInfiniteQuery({
         queryKey: ['conversations', user?.id],
-        queryFn: async ({ pageParam = 0 }) => {
+        queryFn: async ({ pageParam = null }) => {
             if (!user) return [];
             const PAGE_SIZE = 20;
-            const from = pageParam;
-            const to = from + PAGE_SIZE - 1;
+            const cursor = pageParam && typeof pageParam === 'object' ? pageParam : null;
 
-            const { data, error } = await supabase
+            let q = supabase
                 .from('conversations')
                 .select(`
                     *,
@@ -40,14 +39,24 @@ export const ChatProvider = ({ children }) => {
                 `)
                 .or(`tenant_id.eq.${user.id},host_id.eq.${user.id}`)
                 .order('last_message_at', { ascending: false })
-                .range(from, to);
+                .limit(PAGE_SIZE);
+
+            // Keyset pagination by timestamp (avoids large offset scans).
+            // Note: ties on the same timestamp are rare; if needed, add an RPC for strict keyset with (last_message_at, id).
+            if (cursor?.last_message_at) {
+                q = q.lt('last_message_at', cursor.last_message_at);
+            }
+
+            const { data, error } = await q;
 
             if (error) throw error;
             return data;
         },
         getNextPageParam: (lastPage, allPages) => {
             if (lastPage.length < 20) return undefined;
-            return allPages.length * 20;
+            const last = lastPage[lastPage.length - 1];
+            if (!last?.last_message_at) return undefined;
+            return { last_message_at: last.last_message_at };
         },
         enabled: !!user,
         staleTime: 5 * 60 * 1000,
@@ -55,19 +64,14 @@ export const ChatProvider = ({ children }) => {
         refetchOnMount: false,
     });
 
-    // Fetch Unread Count
+    // Fetch total unread count (fast RPC, avoids scanning messages)
     const unreadCountQuery = useQuery({
-        queryKey: ['unread-count', user?.id],
+        queryKey: ['chat-unread-count', user?.id],
         queryFn: async () => {
             if (!user) return 0;
-            const { count, error } = await supabase
-                .from('messages')
-                .select('*', { count: 'exact', head: true })
-                .eq('is_read', false)
-                .neq('sender_id', user.id);
-            
+            const { data, error } = await supabase.rpc('get_chat_unread_count');
             if (error) throw error;
-            return count || 0;
+            return data || 0;
         },
         enabled: !!user,
         staleTime: 30 * 1000,
@@ -80,23 +84,31 @@ export const ChatProvider = ({ children }) => {
             if (!activeConversation) return [];
             
             const PAGE_SIZE = 50;
-            const from = pageParam || 0;
-            const to = from + PAGE_SIZE - 1;
+            const cursor = pageParam && typeof pageParam === 'object' ? pageParam : null;
 
-            const { data, error } = await supabase
+            let q = supabase
                 .from('messages')
                 .select('*')
                 .eq('conversation_id', activeConversation)
                 .order('created_at', { ascending: false })
-                .range(from, to);
+                .order('id', { ascending: false })
+                .limit(PAGE_SIZE);
+
+            if (cursor?.created_at && cursor?.id) {
+                q = q.or(`created_at.lt.${cursor.created_at},and(created_at.eq.${cursor.created_at},id.lt.${cursor.id})`);
+            }
+
+            const { data, error } = await q;
 
             if (error) throw error;
             
-            return data.reverse();
+            return data;
         },
         getNextPageParam: (lastPage, allPages) => {
-            if (lastPage.length < 50) return undefined;
-            return allPages.length * 50;
+            if (!lastPage || lastPage.length < 50) return undefined;
+            const last = lastPage[lastPage.length - 1];
+            if (!last?.created_at || !last?.id) return undefined;
+            return { created_at: last.created_at, id: last.id };
         },
         enabled: !!activeConversation,
         staleTime: Infinity,
@@ -116,7 +128,8 @@ export const ChatProvider = ({ children }) => {
                 .eq('is_read', false);
         },
         onSuccess: () => {
-            queryClient.invalidateQueries(['unread-count', user?.id]);
+            queryClient.invalidateQueries(['chat-unread-count', user?.id]);
+            queryClient.invalidateQueries(['conversations', user?.id]);
         }
     });
 
@@ -166,8 +179,9 @@ export const ChatProvider = ({ children }) => {
                 };
 
                 const newPages = [...old.pages];
-                const lastPageIndex = newPages.length - 1;
-                newPages[lastPageIndex] = [...newPages[lastPageIndex], newMessage];
+                if (newPages.length === 0) newPages.push([]);
+                // We paginate newest → older (DESC), so new messages belong at the start.
+                newPages[0] = [newMessage, ...(newPages[0] || [])];
                 
                 return { ...old, pages: newPages };
             });
@@ -197,7 +211,7 @@ export const ChatProvider = ({ children }) => {
         onSettled: (data, error, variables) => {
             queryClient.invalidateQueries(['messages', variables.conversationId]);
             queryClient.invalidateQueries(['conversations', user?.id]);
-            queryClient.invalidateQueries(['unread-count', user?.id]);
+            queryClient.invalidateQueries(['chat-unread-count', user?.id]);
         }
     });
 
@@ -364,61 +378,78 @@ export const ChatProvider = ({ children }) => {
         if (!user) return;
 
         const channel = supabase
-            .channel('global-chat-updates')
+            .channel(`chat-conversations:${user.id}`)
             .on('postgres_changes', { 
                 event: '*', schema: 'public', table: 'conversations', 
                 filter: `tenant_id=eq.${user.id}` 
-            }, () => queryClient.invalidateQueries(['conversations', user.id]))
+            }, () => {
+                queryClient.invalidateQueries(['conversations', user.id]);
+                queryClient.invalidateQueries(['chat-unread-count', user.id]);
+            })
             .on('postgres_changes', { 
                 event: '*', schema: 'public', table: 'conversations', 
                 filter: `host_id=eq.${user.id}` 
-            }, () => queryClient.invalidateQueries(['conversations', user.id]))
+            }, () => {
+                queryClient.invalidateQueries(['conversations', user.id]);
+                queryClient.invalidateQueries(['chat-unread-count', user.id]);
+            })
+            .subscribe();
+
+        return () => {
+            supabase.removeChannel(channel);
+        };
+    }, [user, queryClient, supabase]);
+
+    // Subscribe to messages only for the active conversation.
+    // Avoids a global "all messages" subscription that would not scale.
+    useEffect(() => {
+        if (!user || !activeConversation) return;
+
+        const channel = supabase
+            .channel(`chat-messages:${activeConversation}`)
             .on('postgres_changes', {
-                event: 'INSERT', schema: 'public', table: 'messages'
+                event: 'INSERT',
+                schema: 'public',
+                table: 'messages',
+                filter: `conversation_id=eq.${activeConversation}`
             }, (payload) => {
                 const msg = payload.new;
-                
+
+                queryClient.setQueryData(['messages', activeConversation], (old) => {
+                    if (!old) return old;
+                    const pages = [...old.pages];
+                    if (pages.length === 0) pages.push([]);
+                    const firstPage = pages[0] || [];
+                    if (firstPage.some(m => m.id === msg.id)) return old;
+                    pages[0] = [msg, ...firstPage];
+                    return { ...old, pages };
+                });
+
                 if (msg.sender_id !== user.id) {
-                    queryClient.invalidateQueries(['unread-count', user.id]);
-                }
-                
-                const currentConversation = activeConversationRef.current;
-
-                if (currentConversation && msg.conversation_id === currentConversation) {
-                    queryClient.setQueryData(['messages', currentConversation], (old) => {
-                        if (!old) return old;
-                        const pages = [...old.pages];
-                        const lastPage = pages[pages.length - 1];
-                        
-                        if (lastPage.some(m => m.id === msg.id)) return old;
-
-                        pages[pages.length - 1] = [...lastPage, msg];
-                        return { ...old, pages };
-                    });
-                    
-                    if (msg.sender_id !== user.id) {
-                        markReadMutation.mutate(currentConversation);
-                    }
+                    markReadMutation.mutate(activeConversation);
                 }
 
                 queryClient.invalidateQueries(['conversations', user.id]);
+                queryClient.invalidateQueries(['chat-unread-count', user.id]);
             })
             .on('postgres_changes', {
-                event: 'UPDATE', schema: 'public', table: 'messages'
+                event: 'UPDATE',
+                schema: 'public',
+                table: 'messages',
+                filter: `conversation_id=eq.${activeConversation}`
             }, (payload) => {
                 const msg = payload.new;
-                const currentConversation = activeConversationRef.current;
 
-                if (currentConversation && msg.conversation_id === currentConversation) {
-                    queryClient.setQueryData(['messages', currentConversation], (old) => {
-                        if (!old) return old;
-                        const pages = [...old.pages];
-                        const newPages = pages.map(page => 
+                queryClient.setQueryData(['messages', activeConversation], (old) => {
+                    if (!old) return old;
+                    return {
+                        ...old,
+                        pages: old.pages.map(page =>
                             page.map(m => m.id === msg.id ? { ...m, ...msg } : m)
-                        );
-                        return { ...old, pages: newPages };
-                    });
-                }
+                        )
+                    };
+                });
+
                 queryClient.invalidateQueries(['conversations', user.id]);
             })
             .subscribe();
@@ -426,10 +457,11 @@ export const ChatProvider = ({ children }) => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [user, queryClient]);
+    }, [user, activeConversation, queryClient, supabase, markReadMutation]);
 
+    // Stored in cache as newest → older (DESC pages). Present to UI as oldest → newest.
     const conversationMessages = messagesQuery.data 
-        ? messagesQuery.data.pages.flat() 
+        ? messagesQuery.data.pages.flat().slice().reverse()
         : [];
     
     const conversationsList = conversationsQuery.data

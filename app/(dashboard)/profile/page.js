@@ -42,8 +42,8 @@ export default function ProfilePage() {
       setFetchingData(true);
       try {
         const [lifestyleRes, prefsRes] = await Promise.all([
-          supabase.from('user_lifestyles').select('*').eq('user_id', user.id).single(),
-          supabase.from('match_preferences').select('*').eq('user_id', user.id).single()
+          supabase.from('user_lifestyles').select('*').eq('user_id', user.id).maybeSingle(),
+          supabase.from('match_preferences').select('*').eq('user_id', user.id).maybeSingle()
         ]);
         setData({
           lifestyle: lifestyleRes.data ?? null,
@@ -63,15 +63,18 @@ export default function ProfilePage() {
 
   const refreshData = async () => {
       if (!user) return;
-      const [lifestyleRes, prefsRes] = await Promise.all([
-        supabase.from('user_lifestyles').select('*').eq('user_id', user.id).single(),
-        supabase.from('match_preferences').select('*').eq('user_id', user.id).single()
-      ]);
-      
-      setData({
-        lifestyle: lifestyleRes.data,
-        preferences: prefsRes.data
-      });
+      try {
+        const [lifestyleRes, prefsRes] = await Promise.all([
+          supabase.from('user_lifestyles').select('*').eq('user_id', user.id).maybeSingle(),
+          supabase.from('match_preferences').select('*').eq('user_id', user.id).maybeSingle()
+        ]);
+        setData({
+          lifestyle: lifestyleRes.data ?? null,
+          preferences: prefsRes.data ?? null
+        });
+      } catch (err) {
+        console.error('[profile] refreshData error:', err);
+      }
   };
 
   if (loading || !user) {

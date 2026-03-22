@@ -6,7 +6,7 @@ import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import GroupChat from './GroupChat';
 import InviteMemberModal from './InviteMemberModal';
-import { MdPersonAdd, MdChat, MdHomeWork, MdSettings, MdPerson, MdExitToApp, MdDeleteOutline, MdArrowForward } from 'react-icons/md';
+import { MdPersonAdd, MdChat, MdHomeWork, MdSettings, MdPerson, MdExitToApp, MdDeleteOutline, MdArrowForward, MdArrowBack } from 'react-icons/md';
 import dayjs from 'dayjs';
 import { useRouter } from 'next/navigation';
 import { useConfirmation } from '@/core/contexts/ConfirmationContext';
@@ -98,6 +98,24 @@ export default function BuddyDashboard({ group, onBack, onAction }) {
       supabase.removeChannel(channel);
     };
   }, [group?.id, user?.id]);
+
+  useEffect(() => {
+    // Hide the App Header (Desktop & Mobile) when inside a group
+    const headers = document.querySelectorAll('header');
+    headers.forEach(h => {
+      h.style.display = 'none';
+      h.dataset.buddyHidden = 'true';
+    });
+    
+    return () => {
+      headers.forEach(h => {
+        if (h.dataset.buddyHidden === 'true') {
+          h.style.display = '';
+          delete h.dataset.buddyHidden;
+        }
+      });
+    };
+  }, []);
 
   const fetchMembers = async () => {
     const { data } = await supabase
@@ -282,18 +300,32 @@ export default function BuddyDashboard({ group, onBack, onAction }) {
 
 
   return (
-    <div className="max-w-6xl mx-auto">
-      {/* Header */}
-      <div className="relative overflow-hidden bg-linear-to-br from-navy-900 to-navy-950 rounded-[2.5rem] shadow-xl p-8 mb-8 text-white">
+    <div className="fixed inset-0 z-[100] bg-slate-50 overflow-y-auto lg:static lg:z-auto lg:inset-auto pb-6 lg:pb-0">
+      {/* Mobile-only top bar for navigating out of Group */}
+      <div className="lg:hidden flex items-center gap-2 px-3 py-3 border-b border-navy-200 bg-white sticky top-0 z-[110] shadow-sm mb-4">
+          <button
+              onClick={onBack}
+              className="p-2 -ml-1 text-navy-500 hover:bg-navy-50 rounded-full transition-colors"
+              aria-label="Back"
+          >
+              <MdArrowBack size={22} />
+          </button>
+          <h1 className="text-base font-heading font-bold text-navy-950 truncate flex-1">{groupName || group.name}</h1>
+          <span className="text-xs font-bold text-navy-500 bg-navy-50 px-2 py-1 rounded-full border border-navy-100">{members.length} Members</span>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 lg:px-0 lg:pb-8">
+        {/* Header */}
+        <div className="hidden lg:block relative overflow-hidden bg-linear-to-br from-navy-900 to-navy-950 rounded-[2.5rem] shadow-xl p-8 mb-8 text-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-terracotta-500/20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 left-0 w-48 h-48 bg-navy-700/30 rounded-full blur-2xl transform -translate-x-1/4 translate-y-1/4"></div>
         
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-            <div>
+              <div>
                 {onBack && (
                   <button 
                     onClick={onBack}
-                    className="flex items-center gap-2 text-navy-200 hover:text-white transition-colors text-sm font-bold mb-4 group/back"
+                    className="hidden lg:flex items-center gap-2 text-navy-200 hover:text-white transition-colors text-sm font-bold mb-4 group/back"
                   >
                     <div className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center group-hover/back:bg-white/20 transition-all">
                       <MdArrowForward className="rotate-180" size={14} />
@@ -628,6 +660,7 @@ export default function BuddyDashboard({ group, onBack, onAction }) {
         onClose={() => setIsInviteOpen(false)} 
         groupId={group.id}
       />
+      </div>
     </div>
   );
 }

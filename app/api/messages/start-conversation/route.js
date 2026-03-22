@@ -38,7 +38,11 @@ export async function POST(request) {
     // 1. Fetch target user and property to verify roles/ownership
     const [{ data: targetUser }, { data: property }] = await Promise.all([
       adminSupabase.from('users').select('id').eq('id', targetId).maybeSingle(),
-      adminSupabase.from('properties').select('id, listed_by_user_id').eq('id', propertyId).maybeSingle(),
+      adminSupabase
+        .from('properties')
+        .select('id, listed_by_user_id, privacy_setting, is_public')
+        .eq('id', propertyId)
+        .maybeSingle(),
     ]);
 
     if (!targetUser) return NextResponse.json({ error: 'Target user not found' }, { status: 404 });
@@ -59,7 +63,10 @@ export async function POST(request) {
     // Mirrors the DB-level RLS policy. Using the user-scoped supabase client
     // (not adminSb) so this is consistent with what RLS would enforce.
     if (isSeekerContactingLandlord) {
-      const isPrivateProp = property.privacy_setting === 'private' || property.is_public === false;
+      // Fail closed: if we can't prove it's public, treat as private.
+      const isPrivateProp =
+        property.privacy_setting === 'private' ||
+        property.is_public !== true;
 
       const [{ data: interestRow }, { data: scoreRow }] = await Promise.all([
         supabase

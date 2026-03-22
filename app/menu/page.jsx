@@ -18,7 +18,8 @@ import {
   MdNotificationsNone,
   MdVerified,
   MdChevronRight,
-  MdPeopleAlt
+  MdPeopleAlt,
+  MdAssignment
 } from 'react-icons/md';
 import { FaRegEdit } from 'react-icons/fa';
 import { useAuthContext } from '@/core/contexts/AuthContext';
@@ -43,6 +44,7 @@ export default function MenuPage() {
   };
 
   const moreItems = [
+    { icon: MdAssignment, label: 'My Interests', path: '/interests', description: 'Track your property requests' },
     { icon: MdFavoriteBorder, label: 'Saved', path: '/saved', description: 'Your favorite properties' },
     { icon: MdGroups, label: 'Community', path: '/dashboard/community', description: 'Join the community hub' },
     { icon: MdPeopleAlt, label: 'Find People', path: '/find-people', description: 'Source 70%+ matched seekers' },

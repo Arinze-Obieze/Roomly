@@ -95,7 +95,7 @@ export default function BuddyPage() {
 
   if (activeGroup) {
     return (
-      <div className="min-h-screen bg-slate-50 p-4 lg:p-8">
+      <div className="min-h-screen bg-slate-50 lg:p-8">
         <BuddyDashboard 
           group={activeGroup} 
           onBack={() => setActiveGroupId(null)} 

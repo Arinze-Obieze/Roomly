@@ -3,7 +3,7 @@ import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 import { sanitizeText, sanitizeLength } from '@/core/utils/sanitizers';
-import { cachedFetch, invalidatePattern } from '@/core/utils/redis';
+import { cachedFetch, deleteCached } from '@/core/utils/redis';
 import crypto from 'crypto';
 
 // Generate cache key from group ID
@@ -142,17 +142,25 @@ export async function POST(request) {
     
     let sanitizedAttachmentData = null;
     if (attachmentData && typeof attachmentData === 'object') {
-        const urlToValidate = attachmentData.url || attachmentData.image;
-        if (urlToValidate) {
-            try {
-                const parsedUrl = new URL(urlToValidate);
-                if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-                    return NextResponse.json({ error: 'Invalid URL protocol' }, { status: 400 });
-                }
-            } catch (e) {
-                // Allow relative URLs starting with '/'
-                if (!urlToValidate.startsWith('/')) {
-                    return NextResponse.json({ error: 'Invalid attachment URL' }, { status: 400 });
+        // For private buckets we store a storage `path` (e.g. `${groupId}/file.ext`) rather than a public URL.
+        if (attachmentData.path) {
+            if (typeof attachmentData.path !== 'string' || !attachmentData.path.startsWith(`${groupId}/`)) {
+                return NextResponse.json({ error: 'Invalid attachment path' }, { status: 400 });
+            }
+        } else {
+            // Legacy support: allow URL-based attachments (public buckets / older messages)
+            const urlToValidate = attachmentData.url || attachmentData.image;
+            if (urlToValidate) {
+                try {
+                    const parsedUrl = new URL(urlToValidate);
+                    if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                        return NextResponse.json({ error: 'Invalid URL protocol' }, { status: 400 });
+                    }
+                } catch (e) {
+                    // Allow relative URLs starting with '/'
+                    if (!urlToValidate.startsWith('/')) {
+                        return NextResponse.json({ error: 'Invalid attachment URL' }, { status: 400 });
+                    }
                 }
             }
         }
@@ -176,7 +184,7 @@ export async function POST(request) {
 
     // Invalidate messages cache for this group when new message is added
     const cacheKey = generateCacheKey(groupId);
-    await invalidatePattern(cacheKey);
+    await deleteCached(cacheKey);
 
     return NextResponse.json({ success: true, data: message });
 

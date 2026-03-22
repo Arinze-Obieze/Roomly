@@ -43,6 +43,7 @@ export const ChatWindow = () => {
     const [isInspectionModalOpen, setIsInspectionModalOpen] = useState(false);
     const [showHeaderMenu, setShowHeaderMenu] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
+    const [signedUrlByPath, setSignedUrlByPath] = useState({});
 
     // Editing state
     const [editingMessageId, setEditingMessageId] = useState(null);
@@ -124,15 +125,24 @@ export const ChatWindow = () => {
                 .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
             if (error) throw error;
-
-            const { data: { publicUrl } } = supabase.storage
-                .from('message_attachments')
-                .getPublicUrl(filePath);
-
-            return { publicUrl, filePath };
+            return { filePath };
         } catch (error) {
             console.error('Upload Error:', error);
             toast.error('Failed to upload file');
+            return null;
+        }
+    };
+
+    const getSignedUrl = async (path) => {
+        if (!path) return null;
+        if (signedUrlByPath[path]) return signedUrlByPath[path];
+        try {
+            const res = await fetch(`/api/messages/attachment-url?conversationId=${activeConversation}&path=${encodeURIComponent(path)}`);
+            const payload = await res.json().catch(() => ({}));
+            if (!res.ok || !payload?.url) return null;
+            setSignedUrlByPath(prev => ({ ...prev, [path]: payload.url }));
+            return payload.url;
+        } catch {
             return null;
         }
     };
@@ -321,7 +331,7 @@ export const ChatWindow = () => {
                 uploadedFilePath = uploadResult.filePath;
                 finalAttachmentType = prevAttachmentParams.type;
                 finalAttachmentData = {
-                    url: uploadResult.publicUrl,
+                    path: uploadResult.filePath,
                     name: prevAttachmentParams.name,
                     size: prevAttachmentParams.size
                 };
@@ -529,20 +539,16 @@ export const ChatWindow = () => {
                                         }`}>
                                             {msg.attachment_type === 'image' && msg.attachment_data ? (
                                                 <div className="mb-1">
-                                                    <a href={msg.attachment_data.url} target="_blank" rel="noreferrer">
-                                                        <img 
-                                                            src={msg.attachment_data.url} 
-                                                            alt={msg.attachment_data.name} 
-                                                            className="w-full h-auto rounded-xl max-h-60 object-cover cursor-ZoomIn hover:opacity-95 transition-opacity"
-                                                        />
-                                                    </a>
+                                                    <SignedMessageAttachmentImage
+                                                        attachmentData={msg.attachment_data}
+                                                        getSignedUrl={getSignedUrl}
+                                                    />
                                                 </div>
                                             ) : msg.attachment_type === 'file' && msg.attachment_data ? (
                                                 <div className="mb-1">
-                                                    <a 
-                                                        href={msg.attachment_data.url} 
-                                                        target="_blank" 
-                                                        rel="noreferrer"
+                                                    <SignedMessageAttachmentFile
+                                                        attachmentData={msg.attachment_data}
+                                                        getSignedUrl={getSignedUrl}
                                                         className={`flex items-center gap-3 p-3 rounded-xl transition-colors group/file cursor-pointer ${
                                                             isMyMsg ? 'bg-terracotta-600 hover:bg-terracotta-700' : 'bg-navy-50 hover:bg-navy-100'
                                                         }`}
@@ -558,7 +564,7 @@ export const ChatWindow = () => {
                                                                 {msg.attachment_data.size}
                                                             </p>
                                                         </div>
-                                                    </a>
+                                                    </SignedMessageAttachmentFile>
                                                 </div>
                                             ) : msg.attachment_type === 'inspection_request' && msg.attachment_data ? (
                                                 <div className="mb-2 p-3 bg-white border border-navy-100 rounded-xl shadow-sm text-navy-900 w-64 space-y-3">
@@ -773,3 +779,64 @@ export const ChatWindow = () => {
         </div>
     );
 };
+
+function SignedMessageAttachmentImage({ attachmentData, getSignedUrl }) {
+    const [url, setUrl] = useState(attachmentData?.url || null);
+
+    useEffect(() => {
+        let alive = true;
+        const path = attachmentData?.path;
+        if (!url && path) {
+            getSignedUrl(path).then((signed) => {
+                if (!alive) return;
+                if (signed) setUrl(signed);
+            });
+        }
+        return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [attachmentData?.path]);
+
+    if (!url) {
+        return <div className="w-56 h-40 bg-white/10 rounded-xl animate-pulse" />;
+    }
+
+    return (
+        <a href={url} target="_blank" rel="noreferrer">
+            <img
+                src={url}
+                alt={attachmentData?.name || 'Attachment'}
+                className="w-full h-auto rounded-xl max-h-60 object-cover cursor-ZoomIn hover:opacity-95 transition-opacity"
+            />
+        </a>
+    );
+}
+
+function SignedMessageAttachmentFile({ attachmentData, getSignedUrl, className, children }) {
+    const [url, setUrl] = useState(attachmentData?.url || null);
+
+    useEffect(() => {
+        let alive = true;
+        const path = attachmentData?.path;
+        if (!url && path) {
+            getSignedUrl(path).then((signed) => {
+                if (!alive) return;
+                if (signed) setUrl(signed);
+            });
+        }
+        return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [attachmentData?.path]);
+
+    return (
+        <a
+            href={url || '#'}
+            target="_blank"
+            rel="noreferrer"
+            aria-disabled={!url}
+            onClick={(e) => { if (!url) e.preventDefault(); }}
+            className={className}
+        >
+            {children}
+        </a>
+    );
+}

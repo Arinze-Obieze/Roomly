@@ -29,7 +29,7 @@ export async function GET() {
         .from('user_lifestyles')
         .select('user_id')
         .eq('user_id', user.id)
-        .single()
+        .maybeSingle()
     ]);
 
     if (scoreError || propertyError) {

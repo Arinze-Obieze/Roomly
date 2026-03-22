@@ -4,6 +4,7 @@ import { createAdminClient } from '@/core/utils/supabase/admin';
 import { cachedFetch, getCachedInt } from '@/core/utils/redis';
 import { handleCreateProperty } from '@/core/services/properties/create-property.service';
 import crypto from 'crypto';
+import { sanitizeLength, sanitizeText } from '@/core/utils/sanitizers';
 
 export const runtime       = 'nodejs';
 export const bodySizeLimit = '20mb';
@@ -38,10 +39,11 @@ export async function GET(request) {
     };
     const cacheKey = generateCacheKey(searchParams, user?.id, versions);
 
-    // 5-min TTL; skip entirely on refresh
-    const data = skipCache
-      ? await fetchPropertiesFromDB(searchParams, user)
-      : await cachedFetch(cacheKey, 300, () => fetchPropertiesFromDB(searchParams, user));
+    // 5-min TTL; cache only for anon traffic to avoid per-user Redis key explosion.
+    const shouldUseRedisCache = !skipCache && !user;
+    const data = shouldUseRedisCache
+      ? await cachedFetch(cacheKey, 300, () => fetchPropertiesFromDB(searchParams, user))
+      : await fetchPropertiesFromDB(searchParams, user);
 
     return NextResponse.json(data);
   } catch (error) {
@@ -132,12 +134,27 @@ async function fetchPropertiesFromDB(searchParams, user) {
   const amenities     = searchParams.get('amenities')?.split(',').filter(Boolean);
   const minBedrooms   = parseInt(searchParams.get('minBedrooms'));
   const minBathrooms  = parseInt(searchParams.get('minBathrooms'));
-  const location      = searchParams.get('location');
-  const search        = searchParams.get('search');
+  const locationRaw   = searchParams.get('location');
+  const searchRaw     = searchParams.get('search');
   const moveInDate    = searchParams.get('moveInDate');
   const roomType      = searchParams.get('roomType');
   const houseRules    = searchParams.get('houseRules')?.split(',').filter(Boolean);
   const billsIncluded = searchParams.get('billsIncluded') === 'true';
+
+  // Prevent PostgREST filter injection / broken `.or(...)` filters.
+  // We intentionally restrict to a conservative character set.
+  const sanitizeOrTerm = (value) => {
+    if (!value) return '';
+    const cleaned = sanitizeLength(sanitizeText(String(value)), 80)
+      .replace(/[*(),]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+    // Allow only a safe subset (letters, numbers, spaces, common punctuation)
+    return cleaned.replace(/[^a-zA-Z0-9\s.'-]/g, '').trim();
+  };
+
+  const location = sanitizeOrTerm(locationRaw);
+  const search   = sanitizeOrTerm(searchRaw);
 
   let query = adminSb
     .from('properties')
@@ -145,7 +162,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
       *,
       property_media (id, url, media_type, display_order, is_primary),
       users!listed_by_user_id (id, full_name, profile_picture)
-    `, { count: 'exact' })
+    `, { count: 'estimated' })
     .eq('is_active', true)
     .eq('approval_status', 'approved');
 

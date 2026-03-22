@@ -23,7 +23,8 @@ const TABLES_TO_CHECK = [
   'property_interests',
   'compatibility_scores',
   'conversations',
-  'messages'
+  'messages',
+  'notifications'
 ];
 
 async function inspectSchema() {
@@ -80,6 +81,11 @@ async function inspectSchema() {
     log(`  Error listing buckets: ${be?.message}`);
   }
 
+  try {
+    const { data: triggerData } = await supabase.from('pg_trigger').select('*').limit(5);
+    log('pg_trigger data: ' + JSON.stringify(triggerData));
+  } catch(e) {}
+  
   fs.writeFileSync('schema_report.txt', lines.join('\n'));
   console.log('\n✅ Schema report saved to schema_report.txt');
 }

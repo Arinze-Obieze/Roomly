@@ -24,6 +24,7 @@ export default function TicketConversation({ ticket, onUpdate }) {
   const [sending, setSending] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [attachmentParams, setAttachmentParams] = useState(null); // { type, url, name, size, fileObj }
+  const [signedUrlByPath, setSignedUrlByPath] = useState({});
   const scrollRef = useRef(null);
   const fileInputRef = useRef(null);
   const supabase = createClient();
@@ -61,14 +62,23 @@ export default function TicketConversation({ ticket, onUpdate }) {
         .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
       if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('support_attachments')
-        .getPublicUrl(filePath);
-
-      return { publicUrl, filePath };
+      return { filePath };
     } catch (error) {
       console.error('Upload Error:', error);
+      return null;
+    }
+  };
+
+  const getSignedUrl = async (path) => {
+    if (!path) return null;
+    if (signedUrlByPath[path]) return signedUrlByPath[path];
+    try {
+      const res = await fetch(`/api/support/attachment-url?ticketId=${ticket.id}&path=${encodeURIComponent(path)}`);
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload?.url) return null;
+      setSignedUrlByPath(prev => ({ ...prev, [path]: payload.url }));
+      return payload.url;
+    } catch {
       return null;
     }
   };
@@ -139,7 +149,7 @@ export default function TicketConversation({ ticket, onUpdate }) {
         uploadedFilePath = uploadResult.filePath;
         finalAttachmentType = prevAttachmentParams.type;
         finalAttachmentData = {
-          url: uploadResult.publicUrl,
+          path: uploadResult.filePath,
           name: prevAttachmentParams.name,
           size: prevAttachmentParams.size
         };
@@ -215,16 +225,16 @@ export default function TicketConversation({ ticket, onUpdate }) {
                 }`}>
                   {msg.attachment_type === 'image' && msg.attachment_data && (
                     <div className="mb-2">
-                      <a href={msg.attachment_data.url} target="_blank" rel="noreferrer">
-                        <img src={msg.attachment_data.url} alt="" className="max-w-full rounded-lg max-h-64 object-contain" />
-                      </a>
+                      <SignedSupportAttachmentImage
+                        attachmentData={msg.attachment_data}
+                        getSignedUrl={getSignedUrl}
+                      />
                     </div>
                   )}
                   {msg.attachment_type === 'file' && msg.attachment_data && (
-                    <a 
-                      href={msg.attachment_data.url} 
-                      target="_blank" 
-                      rel="noreferrer"
+                    <SignedSupportAttachmentFile
+                      attachmentData={msg.attachment_data}
+                      getSignedUrl={getSignedUrl}
                       className={`flex items-center gap-3 p-3 rounded-xl mb-2 ${
                         isAdmin ? 'bg-navy-50 text-navy-900' : 'bg-white/10 text-white'
                       }`}
@@ -234,7 +244,7 @@ export default function TicketConversation({ ticket, onUpdate }) {
                         <div className="font-bold truncate text-xs">{msg.attachment_data.name}</div>
                         <div className="text-[10px] opacity-70">{msg.attachment_data.size}</div>
                       </div>
-                    </a>
+                    </SignedSupportAttachmentFile>
                   )}
                   {msg.content}
                 </div>
@@ -315,5 +325,60 @@ export default function TicketConversation({ ticket, onUpdate }) {
         </div>
       )}
     </div>
+  );
+}
+
+function SignedSupportAttachmentImage({ attachmentData, getSignedUrl }) {
+  const [url, setUrl] = useState(attachmentData?.url || null);
+
+  useEffect(() => {
+    let alive = true;
+    const path = attachmentData?.path;
+    if (!url && path) {
+      getSignedUrl(path).then((signed) => {
+        if (!alive) return;
+        if (signed) setUrl(signed);
+      });
+    }
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachmentData?.path]);
+
+  if (!url) return <div className="w-48 h-32 bg-navy-50 rounded-lg animate-pulse" />;
+
+  return (
+    <a href={url} target="_blank" rel="noreferrer">
+      <img src={url} alt="" className="max-w-full rounded-lg max-h-64 object-contain" />
+    </a>
+  );
+}
+
+function SignedSupportAttachmentFile({ attachmentData, getSignedUrl, className, children }) {
+  const [url, setUrl] = useState(attachmentData?.url || null);
+
+  useEffect(() => {
+    let alive = true;
+    const path = attachmentData?.path;
+    if (!url && path) {
+      getSignedUrl(path).then((signed) => {
+        if (!alive) return;
+        if (signed) setUrl(signed);
+      });
+    }
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachmentData?.path]);
+
+  return (
+    <a
+      href={url || '#'}
+      target="_blank"
+      rel="noreferrer"
+      aria-disabled={!url}
+      onClick={(e) => { if (!url) e.preventDefault(); }}
+      className={className}
+    >
+      {children}
+    </a>
   );
 }

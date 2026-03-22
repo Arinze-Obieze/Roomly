@@ -1,4 +1,4 @@
-=== Roomly Schema Inspection: 2026-03-22T04:46:00.676Z ===
+=== Roomly Schema Inspection: 2026-03-22T06:20:11.910Z ===
 URL: https://aiovmhiokeisdizhcxvm.supabase.co
 Key type: Service Role
 
@@ -10,16 +10,19 @@ Key type: Service Role
            sample: {"id":"69ab2081-f0e1-4e88-adbd-f5a2051ba0f4","title":"Charming Apartment in Waterford","description":"Accusantium truculenter acsi cedo contabesco veniam. Summisse viridis cariosus tondeo pax defendo capitulus utor appono vigilo. Adflicto suus antea coniuratio audentia atque substantia.\nDefaeco asp
 [EXISTS]   property_interests | rows≈0 | columns(0): 
 [EXISTS]   compatibility_scores | rows≈3194 | columns(5): id, seeker_id, property_id, score, computed_at
-           sample: {"id":"d0fe4e65-8f27-45a0-ab20-41d826cca1bb","seeker_id":"70485964-79f3-488d-9abc-fdf0b0967c7f","property_id":"000be85a-45df-4945-9faf-f922b118d5a1","score":36,"computed_at":"2026-03-22T03:50:33.794+00:00"}
+           sample: {"id":"3ca8f94b-e070-4773-b4d2-0c391a082b43","seeker_id":"a9e72c86-fd7a-45b7-9a0d-87e93e2f15ef","property_id":"69ab2081-f0e1-4e88-adbd-f5a2051ba0f4","score":52,"computed_at":"2026-03-22T01:34:10.555+00:00"}
 [EXISTS]   conversations | rows≈2 | columns(10): id, property_id, tenant_id, host_id, last_message, last_message_at, created_at, unread_count_tenant, unread_count_host, archived_by
            sample: {"id":"30868996-1f97-4766-92fc-5f34bd1a18b1","property_id":"d8c91e68-7a31-48d9-925a-8a629ba70195","tenant_id":"8b643592-f517-4c82-86f3-ded8f86bdc90","host_id":"f4ee7219-b60b-488f-85ef-e4afa48c3e83","last_message":"Hi Estevan Kozey, I'm a young professional ","last_message_at":"2026-03-22T01:42:12.36
 [EXISTS]   messages | rows≈2 | columns(10): id, conversation_id, sender_id, content, is_read, created_at, attachment_type, attachment_data, is_edited, edited_at
            sample: {"id":"bd1bb4a4-27d7-4b88-8b59-9a558fd6bc08","conversation_id":"30868996-1f97-4766-92fc-5f34bd1a18b1","sender_id":"8b643592-f517-4c82-86f3-ded8f86bdc90","content":"Hi Estevan Kozey, I'm a young professional ","is_read":false,"created_at":"2026-03-22T01:42:12.486775+00:00","attachment_type":null,"att
+[EXISTS]   notifications | rows≈1 | columns(9): id, user_id, type, title, message, link, is_read, data, created_at
+           sample: {"id":"5345e6a6-f3c5-4e0a-add2-c538640d0eba","user_id":"a9e72c86-fd7a-45b7-9a0d-87e93e2f15ef","type":"system","title":"New Group Member","message":"Someone joined your group \"yhj\"","link":"/dashboard/buddy?groupId=71bffbe6-7189-4e76-9ed8-2af8f33fcf06","is_read":true,"data":{"groupId":"71bffbe6-718
 
 === Storage Buckets ===
   - listing-images (public: true)
   - property-media (public: true)
   - avatars (public: true)
-  - buddy_attachments (public: true)
-  - message_attachments (public: true)
-  - support_attachments (public: true)
+  - buddy_attachments (public: false)
+  - message_attachments (public: false)
+  - support_attachments (public: false)
+pg_trigger data: null

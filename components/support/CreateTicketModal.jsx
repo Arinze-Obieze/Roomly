@@ -35,12 +35,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
         .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
       if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('support_attachments')
-        .getPublicUrl(filePath);
-
-      return { publicUrl, filePath };
+      return { filePath };
     } catch (error) {
       console.error('Upload Error:', error);
       return null;
@@ -92,7 +87,7 @@ export default function CreateTicketModal({ isOpen, onClose, onCreated }) {
         if (uploadResult) {
           finalAttachmentType = attachmentParams.type;
           finalAttachmentData = {
-            url: uploadResult.publicUrl,
+            path: uploadResult.filePath,
             name: attachmentParams.name,
             size: attachmentParams.size
           };

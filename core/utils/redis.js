@@ -17,8 +17,7 @@
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
 
-// Helper: Make REST API call to Upstash
-const callRedis = async (command, ...args) => {
+export const callRedis = async (command, ...args) => {
   if (!REDIS_URL || !REDIS_TOKEN) {
     console.log('[Redis] No Upstash credentials configured, caching disabled');
     return null;
@@ -126,22 +125,40 @@ export const deleteCached = async (keys) => {
 
 /**
  * Pattern-based cache invalidation
- * WARNING: This scans all keys, can be slow on large datasets
+ * Uses SCAN (not KEYS) to avoid blocking Redis.
+ * NOTE: Pattern invalidation is still expensive at scale; prefer versioned keys.
  */
 export const invalidatePattern = async (pattern) => {
   try {
     await checkRedisHealth();
-    
-    // For Upstash REST API, we need to use SCAN
-    // Due to API limitations, we'll use KEYS as fallback (not ideal for large DBs)
-    const keysResult = await callRedis('KEYS', pattern);
-    
-    if (keysResult && Array.isArray(keysResult) && keysResult.length > 0) {
-      await callRedis('DEL', ...keysResult);
-      console.log(`[Cache INVALIDATE] ${keysResult.length} keys matching: ${pattern}`);
-    } else {
-      console.log(`[Cache INVALIDATE] No keys matching: ${pattern}`);
-    }
+
+    let cursor = '0';
+    let deleted = 0;
+    let loops = 0;
+
+    // Safety caps to avoid runaway scans in serverless environments
+    const MAX_LOOPS = 40;
+    const COUNT = 200;
+
+    do {
+      const res = await callRedis('SCAN', cursor, 'MATCH', pattern, 'COUNT', COUNT.toString());
+      if (!res || !Array.isArray(res) || res.length < 2) break;
+
+      cursor = String(res[0] ?? '0');
+      const keys = Array.isArray(res[1]) ? res[1] : [];
+
+      // Delete in chunks (Upstash arg limits + payload size safety)
+      for (let i = 0; i < keys.length; i += 200) {
+        const chunk = keys.slice(i, i + 200);
+        if (chunk.length === 0) continue;
+        await callRedis('DEL', ...chunk);
+        deleted += chunk.length;
+      }
+
+      loops += 1;
+    } while (cursor !== '0' && loops < MAX_LOOPS);
+
+    console.log(`[Cache INVALIDATE] ${deleted} keys matching: ${pattern}`);
   } catch (err) {
     console.error('[Cache INVALIDATE] Error:', err.message);
   }

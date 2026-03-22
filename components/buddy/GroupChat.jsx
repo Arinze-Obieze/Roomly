@@ -25,6 +25,7 @@ export default function GroupChat({ groupId }) {
   const [loading, setLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [attachmentParams, setAttachmentParams] = useState(null); // { type, url, name, size, fileObj }
+  const [signedUrlByPath, setSignedUrlByPath] = useState({});
   const bottomRef = useRef(null);
   const fileInputRef = useRef(null);
   const supabase = createClient();
@@ -96,15 +97,24 @@ export default function GroupChat({ groupId }) {
         .upload(filePath, file, { cacheControl: '3600', upsert: false });
 
       if (error) throw error;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('buddy_attachments')
-        .getPublicUrl(filePath);
-
-      return { publicUrl, filePath };
+      return { filePath };
     } catch (error) {
       console.error('Upload Error:', error);
       toast.error('Failed to upload file');
+      return null;
+    }
+  };
+
+  const getSignedUrl = async (path) => {
+    if (!path) return null;
+    if (signedUrlByPath[path]) return signedUrlByPath[path];
+    try {
+      const res = await fetch(`/api/buddy/attachment-url?groupId=${groupId}&path=${encodeURIComponent(path)}`);
+      const payload = await res.json().catch(() => ({}));
+      if (!res.ok || !payload?.url) return null;
+      setSignedUrlByPath(prev => ({ ...prev, [path]: payload.url }));
+      return payload.url;
+    } catch {
       return null;
     }
   };
@@ -204,7 +214,7 @@ export default function GroupChat({ groupId }) {
             uploadedFilePath = uploadResult.filePath;
             finalAttachmentType = prevAttachmentParams.type;
             finalAttachmentData = {
-                url: uploadResult.publicUrl,
+                path: uploadResult.filePath,
                 name: prevAttachmentParams.name,
                 size: prevAttachmentParams.size
             };
@@ -313,13 +323,10 @@ export default function GroupChat({ groupId }) {
                              </div>
                         ) : msg.attachment_type === 'image' && msg.attachment_data ? (
                              <div className={`bg-white rounded-2xl p-1.5 shadow-md border ${isMe ? 'border-terracotta-100 rounded-tr-none' : 'border-navy-100 rounded-tl-none'} mb-1 max-w-xs`}>
-                                <a href={msg.attachment_data.url} target="_blank" rel="noreferrer">
-                                    <img 
-                                        src={msg.attachment_data.url} 
-                                        alt={msg.attachment_data.name} 
-                                        className="w-full h-auto rounded-xl max-h-60 object-cover cursor-ZoomIn hover:opacity-95 transition-opacity"
-                                    />
-                                </a>
+                                <SignedBuddyAttachmentImage
+                                    attachmentData={msg.attachment_data}
+                                    getSignedUrl={getSignedUrl}
+                                />
                                 {msg.content && (
                                      <div className="px-3 py-2 text-sm font-medium text-navy-800">
                                         {msg.content}
@@ -328,10 +335,9 @@ export default function GroupChat({ groupId }) {
                              </div>
                         ) : msg.attachment_type === 'file' && msg.attachment_data ? (
                              <div className={`bg-white rounded-2xl p-3 shadow-md border ${isMe ? 'border-terracotta-100 rounded-tr-none' : 'border-navy-100 rounded-tl-none'} mb-1 max-w-xs flex flex-col gap-2`}>
-                                <a 
-                                    href={msg.attachment_data.url} 
-                                    target="_blank" 
-                                    rel="noreferrer"
+                                <SignedBuddyAttachmentFile
+                                    attachmentData={msg.attachment_data}
+                                    getSignedUrl={getSignedUrl}
                                     className="flex items-center gap-3 p-3 bg-navy-50 hover:bg-navy-100 rounded-xl transition-colors group/file cursor-pointer"
                                 >
                                     <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center text-terracotta-500 group-hover/file:scale-105 transition-transform">
@@ -341,7 +347,7 @@ export default function GroupChat({ groupId }) {
                                         <h4 className="font-bold text-navy-900 text-sm truncate">{msg.attachment_data.name}</h4>
                                         <p className="text-[10px] font-bold text-navy-400 uppercase tracking-wider mt-0.5">{msg.attachment_data.size}</p>
                                     </div>
-                                </a>
+                                </SignedBuddyAttachmentFile>
                                 {msg.content && (
                                      <div className="px-1 py-1 text-sm font-medium text-navy-800">
                                         {msg.content}
@@ -458,3 +464,63 @@ export default function GroupChat({ groupId }) {
   );
 }
 
+function SignedBuddyAttachmentImage({ attachmentData, getSignedUrl }) {
+  const [url, setUrl] = useState(attachmentData?.url || null);
+
+  useEffect(() => {
+    let alive = true;
+    const path = attachmentData?.path;
+    if (!url && path) {
+      getSignedUrl(path).then((signed) => {
+        if (!alive) return;
+        if (signed) setUrl(signed);
+      });
+    }
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachmentData?.path]);
+
+  if (!url) {
+    return <div className="w-56 h-40 bg-navy-50 rounded-xl animate-pulse" />;
+  }
+
+  return (
+    <a href={url} target="_blank" rel="noreferrer">
+      <img
+        src={url}
+        alt={attachmentData?.name || 'Attachment'}
+        className="w-full h-auto rounded-xl max-h-60 object-cover cursor-ZoomIn hover:opacity-95 transition-opacity"
+      />
+    </a>
+  );
+}
+
+function SignedBuddyAttachmentFile({ attachmentData, getSignedUrl, className, children }) {
+  const [url, setUrl] = useState(attachmentData?.url || null);
+
+  useEffect(() => {
+    let alive = true;
+    const path = attachmentData?.path;
+    if (!url && path) {
+      getSignedUrl(path).then((signed) => {
+        if (!alive) return;
+        if (signed) setUrl(signed);
+      });
+    }
+    return () => { alive = false; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [attachmentData?.path]);
+
+  return (
+    <a
+      href={url || '#'}
+      target="_blank"
+      rel="noreferrer"
+      aria-disabled={!url}
+      onClick={(e) => { if (!url) e.preventDefault(); }}
+      className={className}
+    >
+      {children}
+    </a>
+  );
+}

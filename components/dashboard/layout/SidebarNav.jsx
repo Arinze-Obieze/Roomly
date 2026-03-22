@@ -8,13 +8,15 @@ import {
   MdFavoriteBorder, 
   MdChatBubbleOutline, 
   MdGroups,
-  MdPeopleAlt
+  MdPeopleAlt,
+  MdAssignment
 } from "react-icons/md";
 import { FaRegEdit } from "react-icons/fa";
 
 const NAV_ITEMS = {
   DISCOVER: { icon: MdHome, label: "Discover", path: "/dashboard", public: true },
   MY_LISTINGS: { icon: FaRegEdit, label: "My Listings", path: "/my-properties" },
+  INTERESTS: { icon: MdAssignment, label: "My Interests", path: "/interests" },
   SAVED: { icon: MdFavoriteBorder, label: "Saved", path: "/saved" },
   FIND_PEOPLE: { icon: MdPeopleAlt, label: "Find People", path: "/find-people" },
   MESSAGES: { icon: MdChatBubbleOutline, label: "Messages", path: "/messages", badge: true },
@@ -33,6 +35,7 @@ export default function SidebarNav() {
     if (user) {
       items.push(
         NAV_ITEMS.MY_LISTINGS,
+        NAV_ITEMS.INTERESTS,
         NAV_ITEMS.SAVED,
         NAV_ITEMS.FIND_PEOPLE,
         NAV_ITEMS.MESSAGES,

@@ -42,15 +42,15 @@ export async function GET(request) {
 async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
   const adminSupabase = createAdminClient();
 
-  const { data: listings, error: listingsError } = await adminSupabase
+  const { count: listingCount, error: listingCountError } = await adminSupabase
     .from('properties')
-    .select('id, title')
+    .select('id', { count: 'estimated', head: true })
     .eq('listed_by_user_id', landlordId)
     .eq('is_active', true);
 
-  if (listingsError) throw listingsError;
+  if (listingCountError) throw listingCountError;
 
-  if (!listings || listings.length === 0) {
+  if (!listingCount || listingCount === 0) {
     return {
       canUseFeature: false,
       message: 'You need at least one active listing to source matched seekers.',
@@ -59,15 +59,17 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
     };
   }
 
-  const listingIds = listings.map((l) => l.id);
-  const listingIdSet = new Set(listingIds);
-  const listingById = new Map(listings.map((l) => [l.id, l]));
-
-  // 1) Cached compatibility scores for this landlord's active listings
+  // 1) Compatibility scores for this landlord's active listings (join to avoid huge `.in(...)` lists)
   const { data: scoreRows, error: scoreError } = await adminSupabase
     .from('compatibility_scores')
-    .select('seeker_id, property_id, score')
-    .in('property_id', listingIds)
+    .select(`
+      seeker_id,
+      property_id,
+      score,
+      property:properties!inner(id, title, listed_by_user_id, is_active)
+    `)
+    .eq('property.listed_by_user_id', landlordId)
+    .eq('property.is_active', true)
     .order('score', { ascending: false })
     .limit(1000); // Increased limit to ensure we see high matches
 
@@ -76,8 +78,13 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
   // 2) Accepted interests should still be visible even when below threshold
   const { data: acceptedInterestRows, error: acceptedError } = await adminSupabase
     .from('property_interests')
-    .select('seeker_id, property_id, status')
-    .in('property_id', listingIds)
+    .select(`
+      seeker_id,
+      property_id,
+      status,
+      property:properties!inner(id, listed_by_user_id)
+    `)
+    .eq('property.listed_by_user_id', landlordId)
     .eq('status', 'accepted')
     .limit(500); // Safety limit for interests per landlord
 
@@ -95,13 +102,19 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
     const seekerId = row?.seeker_id;
     const propertyId = row?.property_id;
     const score = Number(row?.score);
-    if (!seekerId || !propertyId || !Number.isFinite(score) || !listingIdSet.has(propertyId)) continue;
+    const property = row?.property || null;
+    if (!seekerId || !propertyId || !Number.isFinite(score) || !property) continue;
 
     const key = `${seekerId}:${propertyId}`;
     const isMutualInterest = acceptedKeys.has(key);
     const current = bestBySeeker.get(seekerId);
     if (!current || score > current.match_score) {
-      bestBySeeker.set(seekerId, { property_id: propertyId, match_score: score, isMutualInterest });
+      bestBySeeker.set(seekerId, {
+        property_id: propertyId,
+        match_score: score,
+        isMutualInterest,
+        matched_property: { id: property.id, title: property.title }
+      });
     }
   }
 
@@ -112,7 +125,7 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
     if (!seekerId || !propertyId) continue;
     const current = bestBySeeker.get(seekerId);
     if (!current) {
-      bestBySeeker.set(seekerId, { property_id: propertyId, match_score: 0, isMutualInterest: true });
+      bestBySeeker.set(seekerId, { property_id: propertyId, match_score: 0, isMutualInterest: true, matched_property: { id: propertyId, title: 'Listing' } });
     }
   }
 
@@ -121,7 +134,7 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
     return {
       canUseFeature: true,
       minMatch,
-      listingCount: listings.length,
+      listingCount,
       data: [],
     };
   }
@@ -189,7 +202,7 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
       schedule_type: candidate.schedule_type || null,
       interests: Array.isArray(candidate.interests) ? candidate.interests.slice(0, 6) : [],
       match_score: Math.round(best.match_score),
-      matched_property: listingById.get(best.property_id) || null,
+      matched_property: best.matched_property || null,
     };
   });
 
@@ -201,7 +214,7 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
   return {
     canUseFeature: true,
     minMatch,
-    listingCount: listings.length,
+    listingCount,
     data: filtered,
   };
 }

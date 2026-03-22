@@ -12,8 +12,8 @@ export async function GET() {
 
     // Check if the user has completed user_lifestyles and match_preferences
     const [lifestyleRes, prefsRes] = await Promise.all([
-      supabase.from('user_lifestyles').select('user_id').eq('user_id', user.id).single(),
-      supabase.from('match_preferences').select('user_id').eq('user_id', user.id).single(),
+      supabase.from('user_lifestyles').select('user_id').eq('user_id', user.id).maybeSingle(),
+      supabase.from('match_preferences').select('user_id').eq('user_id', user.id).maybeSingle(),
     ]);
 
     const hasLifestyle = !!lifestyleRes.data;
