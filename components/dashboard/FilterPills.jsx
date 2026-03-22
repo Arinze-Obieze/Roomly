@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useFilters } from './filters/useFilters';
-import { MdTune, MdKeyboardArrowDown, MdClose, MdLocationOn, MdAttachMoney, MdHome, MdBed } from 'react-icons/md';
+import { MdTune, MdKeyboardArrowDown, MdClose, MdLocationOn, MdEuroSymbol, MdHome, MdBed } from 'react-icons/md';
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { PROPERTY_CATEGORIES } from '@/data/listingOptions';
@@ -255,7 +255,7 @@ export default function FilterPills({ onOpenFilters }) {
                 : 'bg-white border-navy-200 text-navy-600 hover:border-navy-300 hover:text-navy-900'
             }`}
           >
-            <MdAttachMoney size={16} className={filters.minPrice || filters.maxPrice ? 'text-white' : 'text-navy-400'} />
+            <MdEuroSymbol size={16} className={filters.minPrice || filters.maxPrice ? 'text-white' : 'text-navy-400'} />
             {getPriceLabel()}
             {(!filters.minPrice && !filters.maxPrice) && <MdKeyboardArrowDown size={14} className="text-navy-400" />}
           </motion.button>
