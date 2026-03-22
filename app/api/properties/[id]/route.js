@@ -79,10 +79,11 @@ export async function GET(request, { params }) {
 async function fetchPropertyFromDB(supabase, adminSb, id, user) {
   let interestStatus = null;
   let matchScore = null;
+  let missingProfile = false;
   const userId = user?.id || null;
 
   if (userId) {
-    const [{ data: interest }, { data: scoreRow }] = await Promise.all([
+    const [{ data: interest }, { data: scoreRow }, { data: lifestyleRow }] = await Promise.all([
       supabase
         .from('property_interests')
         .select('status')
@@ -95,10 +96,16 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
         .eq('property_id', id)
         .eq('seeker_id', userId)
         .maybeSingle(),
+      supabase
+        .from('user_lifestyles')
+        .select('user_id')
+        .eq('user_id', userId)
+        .maybeSingle(),
     ]);
 
     interestStatus = interest?.status;
     matchScore = scoreRow?.score ?? null;
+    missingProfile = !lifestyleRow;
   }
 
   const { data: property, error } = await adminSb
@@ -150,9 +157,9 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
 
   const visibility = isPrivate ? 'private' : 'public';
   const contactGate =
-    matchScore === null
+    missingProfile
       ? 'profile_required'
-      : (visibility === 'private' || matchScore <= 50)
+      : (visibility === 'private' || matchScore === null || matchScore <= 50)
         ? 'interest_required'
         : 'direct';
   const contactAllowed =
@@ -206,6 +213,7 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
     isOwner,
     interestStatus,
     matchScore,
+    missingProfile,
     contactGate,
     contactAllowed,
   };

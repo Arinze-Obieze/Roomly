@@ -103,25 +103,9 @@ async function fetchPropertiesFromDB(searchParams, user) {
     allowedPrivateIds = Array.from(new Set([...acceptedPrivateIds, ...scorePrivateIds]));
   }
 
-  // ── Match / Recommended: score-driven ranking (avoids loading all scores) ──
-  if ((sortBy === 'match' || sortBy === 'recommended') && user && !missingProfile) {
-    try {
-      return await fetchScoreDrivenPage({
-        searchParams,
-        user,
-        supabase,
-        adminSb,
-        page,
-        pageSize,
-        sortBy,
-        allowedPrivateIds,
-        acceptedPrivateIds,
-      });
-    } catch (e) {
-      console.error('[Properties] score-driven fetch failed, falling back to standard sort:', e?.message || e);
-      // Fall through to standard query (newest/price) so the UI stays usable.
-    }
-  }
+  // Recommendation should influence ranking, not which public listings exist
+  // in the feed. We therefore always build the result set from the standard
+  // visibility query, then apply personalized ordering after fetch.
 
   // ── Standard query (all sort modes, including match/recommended) ──────────
   // Privacy is enforced at the DB level here. The match/recommended post-sort
@@ -284,9 +268,15 @@ async function fetchPropertiesFromDB(searchParams, user) {
   const ids = pageRows.map(p => p.id);
   const { interests, scoreMap } = await fetchPerPageUserContext(supabase, user, ids);
 
-  const transformed = pageRows.map(p =>
+  let transformed = pageRows.map(p =>
     transformProperty(p, interests, scoreMap, user, missingProfile, supabase)
   );
+
+  if (sortBy === 'match') {
+    transformed = rankMatchWindow(transformed);
+  } else if (sortBy === 'recommended') {
+    transformed = rankRecommendedWindow(transformed);
+  }
 
   return {
     data: transformed,
@@ -348,9 +338,9 @@ function transformProperty(property, interests, scoreMap, user, missingProfile, 
 
   const visibility = isPrivate ? 'private' : 'public';
   const contactGate =
-    missingProfile || matchScore === null
+    missingProfile
       ? 'profile_required'
-      : (visibility === 'private' || matchScore <= 50)
+      : (visibility === 'private' || matchScore === null || matchScore <= 50)
         ? 'interest_required'
         : 'direct';
   const contactAllowed =
@@ -458,6 +448,34 @@ function buildVisiblePropertiesQuery(adminSb, user, allowedPrivateIds = [], sele
   }
 
   return query;
+}
+
+function rankMatchWindow(items) {
+  return [...items].sort((a, b) => {
+    const aScore = typeof a.matchScore === 'number' ? a.matchScore : -1;
+    const bScore = typeof b.matchScore === 'number' ? b.matchScore : -1;
+    return bScore - aScore || (new Date(b.createdAt) - new Date(a.createdAt));
+  });
+}
+
+function rankRecommendedWindow(items) {
+  const now = new Date();
+  return items
+    .map(item => {
+      const ageHours = Math.max(0, (now - new Date(item.createdAt)) / 36e5);
+      const freshness = Math.max(0, 100 - ageHours / 7.2);
+      const match = typeof item.matchScore === 'number' ? item.matchScore : 0;
+      const hasPhotos = Array.isArray(item.images) && item.images.length > 0;
+      const quality = (hasPhotos ? 50 : 0) + (item.verified ? 50 : 0);
+      const recScore = (match * 0.70) + (freshness * 0.20) + (quality * 0.10);
+      return { ...item, _recScore: recScore };
+    })
+    .sort((a, b) =>
+      (b._recScore - a._recScore) ||
+      ((b.matchScore ?? -1) - (a.matchScore ?? -1)) ||
+      (new Date(b.createdAt) - new Date(a.createdAt))
+    )
+    .map(({ _recScore, ...rest }) => rest);
 }
 
 async function fetchScoreDrivenPage({ searchParams, user, supabase, adminSb, page, pageSize, sortBy, allowedPrivateIds, acceptedPrivateIds }) {

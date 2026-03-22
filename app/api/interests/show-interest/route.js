@@ -48,29 +48,37 @@ export async function POST(request) {
       return NextResponse.json({ error: 'This listing is no longer active' }, { status: 400 });
     }
 
-    // 2. Get the seeker's compatibility score for this property (if cached)
-    const { data: scoreRow } = await supabase
-      .from('compatibility_scores')
-      .select('score')
-      .eq('seeker_id', user.id)
-      .eq('property_id', propertyId)
-      .single();
+    // 2. Get the seeker's compatibility score and lifestyle status.
+    const [{ data: scoreRow }, { data: lifestyleRow }] = await Promise.all([
+      supabase
+        .from('compatibility_scores')
+        .select('score')
+        .eq('seeker_id', user.id)
+        .eq('property_id', propertyId)
+        .maybeSingle(),
+      supabase
+        .from('user_lifestyles')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle(),
+    ]);
 
     // 3. Product rule:
-    //    - No score → browse-only (must complete profile before interest/contact)
+    //    - Missing lifestyle → browse-only (must complete profile before interest/contact)
+    //    - No score but lifestyle exists → allow pending interest so public listings remain reachable
     //    - PRIVATE listings → pending (host review)
     //    - PUBLIC listings:
     //        score <= 50 → pending (host review required to unlock chat)
     //        score >= 51 → accepted (direct contact allowed anyway; accepted for audit/history)
-    if (scoreRow?.score == null) {
+    if (!lifestyleRow) {
       return NextResponse.json(
-        { error: 'Complete your lifestyle and match preferences to show interest.' },
+        { error: 'Complete your lifestyle in Profile to show interest.' },
         { status: 400 }
       );
     }
 
     const isPrivateListing = property.privacy_setting === 'private' || property.is_public === false;
-    const initialStatus = isPrivateListing
+    const initialStatus = (scoreRow?.score == null || isPrivateListing)
       ? 'pending'
       : (scoreRow.score <= 50 ? 'pending' : 'accepted');
 
