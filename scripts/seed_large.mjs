@@ -20,8 +20,9 @@ const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
   auth: { autoRefreshToken: false, persistSession: false },
 });
 
-const NUM_USERS = 50;
-const NUM_PROPERTIES = 100;
+const NUM_USERS = 300;
+const NUM_PROPERTIES = 1000;
+const SEED_PASSWORD = 'SeedPassword123!';
 
 // Helper to wait
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -57,11 +58,11 @@ async function clearOldData() {
   const { error: p3 } = await supabaseAdmin.from('property_interests').delete().neq('id', '00000000-0000-0000-0000-000000000000');
   const { error: p4 } = await supabaseAdmin.from('compatibility_scores').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-  // Delete test users created by faker based on a specific email pattern
-  const { data: usersData, error: usersErr } = await supabaseAdmin.auth.admin.listUsers();
+  // Delete test users created by faker based on our seed email pattern
+  const { data: usersData, error: usersErr } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 });
   if (usersData && usersData.users) {
     for (const u of usersData.users) {
-      if (u.email && u.email.endsWith('@example-seed.com')) {
+      if (u.email && u.email.endsWith('@roomly.test')) {
         await supabaseAdmin.auth.admin.deleteUser(u.id);
       }
     }
@@ -77,8 +78,9 @@ async function createUsers() {
   for (let i = 0; i < NUM_USERS; i++) {
     const firstName = faker.person.firstName();
     const lastName = faker.person.lastName();
-    const email = `${faker.string.alphanumeric(8).toLowerCase()}_${i}@example-seed.com`;
-    const password = 'Password123!';
+    // Predictable emails you can use to login
+    const email = `seeduser_${i}@roomly.test`;
+    const password = SEED_PASSWORD;
 
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -129,10 +131,17 @@ async function createUsers() {
       stay_duration_max: faker.number.int({ min: 6, max: 24 }),
     });
 
-    createdUsers.push({ id: userId, isHost });
+    createdUsers.push({ id: userId, email, password, isHost });
   }
 
-  console.log('✅ Users created.');
+  // Save the user credentials to a file so you can easily reference them to log in
+  fs.writeFileSync('seeded_users.json', JSON.stringify(createdUsers.map(u => ({
+    email: u.email,
+    password: u.password,
+    role: u.isHost ? 'Host' : 'Seeker'
+  })), null, 2));
+
+  console.log('✅ Users created. Saved credentials to seeded_users.json');
   return createdUsers;
 }
 
@@ -165,20 +174,22 @@ async function createProperties(users) {
       available_from: faker.date.future({ years: 0.5 }).toISOString().split('T')[0],
       amenities: faker.helpers.arrayElements(['WiFi', 'Washing Machine', 'Dryer', 'Parking', 'Balcony', 'Garden', 'Dishwasher'], { min: 2, max: 6 }),
       listed_by_user_id: host.id,
-      is_active: faker.datatype.boolean({ probability: 0.9 }), // 90% active
+      is_active: faker.datatype.boolean({ probability: 0.95 }), // 95% active to ensure we see plenty of them
       status: faker.helpers.arrayElement(STATUSES),
       approval_status: 'approved',
-      privacy_setting: faker.datatype.boolean({ probability: 0.8 }) ? 'public' : 'private',
-      rental_type: 'monthly',
+      privacy_setting: faker.datatype.boolean({ probability: 0.85 }) ? 'public' : 'private',
+      rental_type: faker.helpers.arrayElement(['monthly', 'weekly', 'yearly']),
       offering_type: faker.helpers.arrayElement(['private_room', 'entire_place', 'shared_room']),
-      deposit: faker.number.int({ min: 400, max: 2500 }),
+      deposit: faker.number.int({ min: 200, max: 2500 }),
       bills_option: faker.helpers.arrayElement(BILLS_OPTIONS),
       couples_allowed: faker.datatype.boolean(),
-      occupation_preference: faker.helpers.arrayElement(['any', 'student', 'professional']),
-      gender_preference: faker.helpers.arrayElement(['any', 'male', 'female']),
-      age_min: faker.number.int({ min: 18, max: 25 }),
-      age_max: faker.number.int({ min: 30, max: 60 }),
-      house_rules: faker.helpers.arrayElements(['no_smoking', 'pets_allowed', 'couples_welcome', 'students_welcome'], { min: 1, max: 3 }),
+      occupation_preference: faker.helpers.arrayElement(['any', 'student', 'professional', 'any', 'any']),
+      gender_preference: faker.helpers.arrayElement(['any', 'male', 'female', 'any', 'any']),
+      age_min: faker.datatype.boolean({ probability: 0.7 }) ? faker.number.int({ min: 18, max: 25 }) : null,
+      age_max: faker.datatype.boolean({ probability: 0.7 }) ? faker.number.int({ min: 30, max: 60 }) : null,
+      min_stay_months: faker.number.int({ min: 1, max: 12 }),
+      accept_viewings: faker.datatype.boolean(),
+      house_rules: faker.helpers.arrayElements(['no_smoking', 'pets_allowed', 'couples_welcome', 'students_welcome'], { min: 0, max: 4 }),
     };
 
     const { data: property, error: pErr } = await supabaseAdmin

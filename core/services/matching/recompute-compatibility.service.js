@@ -34,6 +34,7 @@ export async function recomputeForSeeker(adminSb, seekerId) {
       `)
       .eq('is_active', true)
       .neq('listed_by_user_id', seekerId)
+      .order('id')
       .range(offset, offset + BATCH_SIZE - 1);
 
     if (propError) {
@@ -76,11 +77,18 @@ export async function recomputeForSeeker(adminSb, seekerId) {
     if (properties.length < BATCH_SIZE) hasMore = false;
   }
 
-  console.log(`[Recompute] Seeker ${seekerId}: ${scoreRows.length} scores computed`);
+  console.log(`[Recompute] Seeker ${seekerId}: ${scoreRows.length} total scores computed`);
   if (scoreRows.length > 0) {
+    // Deduplicate to prevent "ON CONFLICT DO UPDATE command cannot affect row a second time"
+    const uniqueMap = new Map();
+    for (const row of scoreRows) {
+        uniqueMap.set(`${row.seeker_id}-${row.property_id}`, row);
+    }
+    const uniqueRows = Array.from(uniqueMap.values());
+
     const { error: upsertError } = await adminSb
       .from('compatibility_scores')
-      .upsert(scoreRows, { onConflict: 'seeker_id,property_id' });
+      .upsert(uniqueRows, { onConflict: 'seeker_id,property_id' });
     if (upsertError) {
       console.error('[Recompute] Upsert error:', upsertError);
     }
@@ -130,6 +138,7 @@ export async function recomputeForProperty(adminSb, propertyId) {
         users!user_id (gender, date_of_birth, occupation)
       `)
       .neq('user_id', property.listed_by_user_id)
+      .order('user_id')
       .range(offset, offset + BATCH_SIZE - 1);
 
     if (!seekers || seekers.length === 0) {
@@ -169,9 +178,16 @@ export async function recomputeForProperty(adminSb, propertyId) {
   }
 
   if (scoreRows.length > 0) {
+    // Deduplicate to prevent "ON CONFLICT DO UPDATE command cannot affect row a second time"
+    const uniqueMap = new Map();
+    for (const row of scoreRows) {
+        uniqueMap.set(`${row.seeker_id}-${row.property_id}`, row);
+    }
+    const uniqueRows = Array.from(uniqueMap.values());
+
     await adminSb
       .from('compatibility_scores')
-      .upsert(scoreRows, { onConflict: 'seeker_id,property_id' });
+      .upsert(uniqueRows, { onConflict: 'seeker_id,property_id' });
   }
 
   return { updated: scoreRows.length };

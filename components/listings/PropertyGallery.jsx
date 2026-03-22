@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { MdGridView, MdPlayCircle } from 'react-icons/md';
+import { useState, useEffect, useCallback } from 'react';
+import { MdGridView, MdPlayCircle, MdChevronLeft, MdChevronRight } from 'react-icons/md';
 import ImageLightbox from '@/components/ui/ImageLightbox';
+import useEmblaCarousel from 'embla-carousel-react';
 
 export default function PropertyGallery({ media, title }) {
   const [activeImage, setActiveImage] = useState(0);
@@ -15,38 +16,77 @@ export default function PropertyGallery({ media, title }) {
     setIsLightboxOpen(true);
   };
 
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
+  const [selectedIndex, setSelectedIndex] = useState(0);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+  }, [emblaApi, setSelectedIndex]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+    emblaApi.on('reInit', onSelect);
+  }, [emblaApi, onSelect]);
+
+  const scrollPrev = useCallback(() => {
+    if (emblaApi) emblaApi.scrollPrev();
+  }, [emblaApi]);
+
+  const scrollNext = useCallback(() => {
+    if (emblaApi) emblaApi.scrollNext();
+  }, [emblaApi]);
+
   // Mobile Swipeable Carousel (visible on small screens)
   const renderMobileGallery = () => (
-    <div className="md:hidden aspect-[4/3] relative bg-slate-100 overflow-hidden">
-        {media[activeImage].type === 'video' ? (
-             <video src={media[activeImage].url} controls className="w-full h-full object-cover" />
-        ) : (
-             <img 
-               src={media[activeImage].url} 
-               alt={title} 
-               className="w-full h-full object-cover"
-               onClick={() => openLightbox(activeImage)}
-             />
-        )}
+    <div className="md:hidden relative bg-slate-100 overflow-hidden" ref={emblaRef}>
+        <div className="flex touch-pan-y">
+            {media.map((item, idx) => (
+                <div className="flex-[0_0_100%] min-w-0 relative aspect-[4/3] h-full" key={idx}>
+                    {item.type === 'video' ? (
+                         <video src={item.url} controls className="w-full h-full object-cover" />
+                    ) : (
+                         <img 
+                           src={item.url} 
+                           alt={title} 
+                           className="w-full h-full object-cover cursor-pointer select-none"
+                           onClick={() => openLightbox(idx)}
+                         />
+                    )}
+                </div>
+            ))}
+        </div>
         
-        <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm">
-            {activeImage + 1} / {media.length}
+        <div className="absolute bottom-4 right-4 bg-black/60 text-white text-xs px-2 py-1 rounded-md backdrop-blur-sm pointer-events-none z-10">
+            {selectedIndex + 1} / {media.length}
         </div>
 
         {media.length > 1 && (
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {media.map((_, idx) => (
-                    <div 
-                        key={idx}
-                        className={`w-1.5 h-1.5 rounded-full transition-all ${activeImage === idx ? 'bg-white scale-125' : 'bg-white/50'}`}
-                    />
-                ))}
-            </div>
+            <>
+                <button 
+                    onClick={scrollPrev}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/70 hover:bg-white backdrop-blur-md rounded-full shadow-md z-10 text-navy-900 active:scale-90 transition-all"
+                >
+                    <MdChevronLeft size={20} />
+                </button>
+                <button 
+                    onClick={scrollNext}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center bg-white/70 hover:bg-white backdrop-blur-md rounded-full shadow-md z-10 text-navy-900 active:scale-90 transition-all"
+                >
+                    <MdChevronRight size={20} />
+                </button>
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 pointer-events-none z-10">
+                    {media.map((_, idx) => (
+                        <div 
+                            key={idx}
+                            className={`w-1.5 h-1.5 rounded-full transition-all ${selectedIndex === idx ? 'bg-white scale-125 shadow-sm' : 'bg-white/60'}`}
+                        />
+                    ))}
+                </div>
+            </>
         )}
-        
-        {/* Invisible hit areas for swipe simulation (simple previous/next click zones) */}
-        <div className="absolute inset-y-0 left-0 w-1/4 z-10" onClick={() => setActiveImage(prev => (prev - 1 + media.length) % media.length)} />
-        <div className="absolute inset-y-0 right-0 w-1/4 z-10" onClick={() => setActiveImage(prev => (prev + 1) % media.length)} />
     </div>
   );
 

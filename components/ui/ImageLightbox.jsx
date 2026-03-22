@@ -1,19 +1,34 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { MdClose, MdChevronLeft, MdChevronRight, MdZoomIn, MdZoomOut } from 'react-icons/md';
+import useEmblaCarousel from 'embla-carousel-react';
 
 export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [scale, setScale] = useState(1);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true, startIndex: initialIndex });
 
   // Sync internal state when prop changes
   useEffect(() => {
     if (isOpen) {
         setCurrentIndex(initialIndex);
         setScale(1);
+        if (emblaApi) emblaApi.scrollTo(initialIndex, true);
     }
-  }, [isOpen, initialIndex]);
+  }, [isOpen, initialIndex, emblaApi]);
+
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+    setCurrentIndex(emblaApi.selectedScrollSnap());
+    setScale(1); // reset zoom when swiping
+  }, [emblaApi]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+    onSelect();
+    emblaApi.on('select', onSelect);
+  }, [emblaApi, onSelect]);
 
   // Keyboard navigation
   useEffect(() => {
@@ -30,13 +45,11 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
   }, [isOpen, currentIndex, scale]); // Re-bind if index changes to keep it fresh
 
   const handleNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % images.length);
-    setScale(1);
+    if (emblaApi) emblaApi.scrollNext();
   };
 
   const handlePrev = () => {
-    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-    setScale(1);
+    if (emblaApi) emblaApi.scrollPrev();
   };
 
   if (!isOpen) return null;
@@ -45,7 +58,7 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-navy-950/95 backdrop-blur-sm animate-in fade-in duration-200"
+      className="fixed inset-0 z-[999] flex items-center justify-center bg-navy-950/95 backdrop-blur-sm animate-in fade-in duration-200"
       onClick={onClose}
     >
       
@@ -68,10 +81,10 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
               e.stopPropagation();
               handlePrev();
             }}
-            className="absolute left-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50 hidden md:block"
+            className="absolute left-2 md:left-4 top-1/2 -translate-y-1/2 p-2 md:p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50"
             aria-label="Previous image"
           >
-            <MdChevronLeft size={40} />
+            <MdChevronLeft className="w-8 h-8 md:w-10 md:h-10" />
           </button>
 
           <button 
@@ -79,35 +92,44 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
               e.stopPropagation();
               handleNext();
             }}
-            className="absolute right-4 top-1/2 -translate-y-1/2 p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50 hidden md:block"
+            className="absolute right-2 md:right-4 top-1/2 -translate-y-1/2 p-2 md:p-3 text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all z-50"
             aria-label="Next image"
           >
-            <MdChevronRight size={40} />
+            <MdChevronRight className="w-8 h-8 md:w-10 md:h-10" />
           </button>
         </>
       )}
 
       {/* Main Image Container */}
       <div
-        className="relative w-full h-full flex items-center justify-center p-4 md:p-12 overflow-hidden"
+        className="relative w-full h-full flex items-center justify-center p-0 md:p-12 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
+        ref={emblaRef}
       >
-        {currentImage.type === 'video' ? (
-             <video 
-                src={currentImage.url} 
-                controls 
-                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
-                autoPlay
-             />
-        ) : (
-            <img
-                src={currentImage.url}
-                alt={`Gallery image ${currentIndex + 1}`}
-                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200"
-                style={{ transform: `scale(${scale})` }}
-                onClick={() => setScale(s => s === 1 ? 1.5 : 1)} // Simple toggle zoom
-            />
-        )}
+        <div className="flex w-full h-full touch-pan-y items-center">
+            {images.map((img, idx) => (
+                <div key={idx} className="flex-[0_0_100%] min-w-0 w-full h-full flex items-center justify-center relative p-4 md:p-0">
+                    {img.type === 'video' ? (
+                         <video 
+                            src={img.url} 
+                            controls={currentIndex === idx}
+                            className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+                            autoPlay={currentIndex === idx}
+                         />
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center overflow-hidden">
+                            <img
+                                src={img.url}
+                                alt={`Gallery image ${idx + 1}`}
+                                className="max-w-full max-h-full object-contain rounded-lg shadow-2xl transition-transform duration-200 select-none cursor-pointer"
+                                style={{ transform: currentIndex === idx ? `scale(${scale})` : 'scale(1)' }}
+                                onClick={() => { if (currentIndex === idx) setScale(s => s === 1 ? 1.5 : 1) }}
+                            />
+                        </div>
+                    )}
+                </div>
+            ))}
+        </div>
       </div>
 
       {/* Footer / Thumbs */}
@@ -134,19 +156,7 @@ export default function ImageLightbox({ images, initialIndex = 0, isOpen, onClos
                 </button>
             ))}
          </div>
-
-         <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onClose();
-            }}
-            className="md:hidden inline-flex items-center justify-center gap-2 bg-white text-navy-950 px-4 py-2 rounded-full text-sm font-semibold shadow-sm"
-         >
-            <MdClose size={18} />
-            Close
-         </button>
       </div>
-
     </div>
   );
 }

@@ -7,6 +7,7 @@ import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { MdLocationOn, MdCheckCircle } from 'react-icons/md';
 import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
+import { useSavedProperties } from '@/core/contexts/SavedPropertiesContext';
 import toast from 'react-hot-toast';
 
 // Components
@@ -25,8 +26,11 @@ export default function PropertyDetailsPage() {
   const [loading, setLoading] = useState(true);
   const { startConversation } = useChat();
   const { user } = useAuthContext();
+  const { isPropertySaved, toggleSave } = useSavedProperties();
   const [contacting, setContacting] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
+
+  // Derive isSaved from context instead of local state
+  const isSaved = isPropertySaved(property?.id);
 
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
@@ -98,15 +102,7 @@ export default function PropertyDetailsPage() {
 
         if (error) throw error;
         
-        // Check saved status
-        if (user) {
-            const { count } = await supabase
-                .from('saved_properties')
-                .select('*', { count: 'exact', head: true })
-                .eq('user_id', user.id)
-                .eq('property_id', params.id);
-            if (isMounted) setIsSaved(count > 0);
-        }
+        if (error) throw error;
 
         // Transform media
         const media = data.property_media
@@ -156,23 +152,9 @@ export default function PropertyDetailsPage() {
     };
   }, [params.id, user]);
 
-  const handleToggleSave = async () => {
+  const handleToggleSave = () => {
     if (!user) return router.push('/login');
-    const newStatus = !isSaved;
-    setIsSaved(newStatus); // Optimistic
-    
-    try {
-      if (newStatus) {
-        await supabase.from('saved_properties').insert({ user_id: user.id, property_id: property.id });
-        toast.success('Saved to favorites');
-      } else {
-        await supabase.from('saved_properties').delete().eq('user_id', user.id).eq('property_id', property.id);
-        toast.success('Removed from favorites');
-      }
-    } catch (err) {
-      setIsSaved(!newStatus); // Revert
-      toast.error('Failed to update favorites');
-    }
+    if (property) toggleSave(property.id);
   };
 
   const handleShare = async () => {
