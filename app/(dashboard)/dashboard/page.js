@@ -12,7 +12,8 @@ import BuddyWidget from "@/components/buddy/BuddyWidget";
 import ProfileStrengthWidget from "@/components/dashboard/widgets/ProfileStrengthWidget";
 import SupportWidget from "@/components/dashboard/widgets/SupportWidget";
 import GlobalSpinner from "@/components/ui/GlobalSpinner";
-import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters";
+import { useInfinitePropertiesWithFilters } from "@/core/hooks/useInfinitePropertiesWithFilters";
+import useDelayedBoolean from "@/core/hooks/useDelayedBoolean";
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuthContext } from "@/core/contexts/AuthContext";
@@ -35,29 +36,33 @@ export default function HomeDashboard() {
   const {
     properties,
     loading,
+    isRefreshing,
     isAppending,
     error,
     hasMore,
-    pagination,
+    dataUpdatedAt,
     loadNextPage,
     refresh,
     filters,
     updateFilters,
-  } = usePropertiesWithFilters({ autoFetch: true, debounceMs: 300 });
+  } = useInfinitePropertiesWithFilters({ autoFetch: true, debounceMs: 300 });
+  const showAppendingStatus = useDelayedBoolean(isAppending, 180);
 
   // Stable refs so the observer callback never goes stale
   const hasMoreRef       = useRef(hasMore);
   const isAppendingRef   = useRef(isAppending);
   const loadingRef       = useRef(loading);
+  const refreshingRef    = useRef(isRefreshing);
   const loadNextPageRef  = useRef(loadNextPage);
 
   useEffect(() => { hasMoreRef.current      = hasMore;      }, [hasMore]);
   useEffect(() => { isAppendingRef.current  = isAppending;  }, [isAppending]);
   useEffect(() => { loadingRef.current      = loading;      }, [loading]);
+  useEffect(() => { refreshingRef.current   = isRefreshing; }, [isRefreshing]);
   useEffect(() => { loadNextPageRef.current = loadNextPage; }, [loadNextPage]);
 
   // ── IntersectionObserver — rebuilt after every page load ─────────────────
-  // Re-creating the observer on pagination.page reset its intersection state,
+  // Re-creating the observer when fresh data lands resets its intersection state,
   // so if the sentinel is already in view (short pages), the callback fires
   // immediately — no "stuck" observer problem.
   useEffect(() => {
@@ -69,6 +74,7 @@ export default function HomeDashboard() {
         entries[0].isIntersecting &&
         hasMoreRef.current &&
         !loadingRef.current &&
+        !refreshingRef.current &&
         !isAppendingRef.current
       ) {
         loadNextPageRef.current();
@@ -77,10 +83,10 @@ export default function HomeDashboard() {
 
     obs.observe(sentinel);
     return () => obs.disconnect();
-  // Intentionally depend on pagination.page so the observer rebuilds
+  // Intentionally depend on data freshness so the observer rebuilds
   // (and re-fires if in view) after each successful page load.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page]);
+  }, [dataUpdatedAt]);
 
   // ── Scroll direction — auto-hide mobile filter bar ────────────────────────
   useEffect(() => {
@@ -195,7 +201,7 @@ export default function HomeDashboard() {
 
                 {error && <ErrorState error={error} onRetry={refresh} />}
 
-                {!loading && !isAppending && properties.length === 0 && !error && (
+                {!loading && !isAppending && !isRefreshing && properties.length === 0 && !error && (
                   <EmptyState
                     onReset={resetFilters}
                     location={filters.location}
@@ -206,21 +212,25 @@ export default function HomeDashboard() {
                 <PropertyGrid
                   properties={properties}
                   loading={loading}
-                  isLoadingMore={isAppending}
                   onSelect={handleSelectProperty}
                 />
 
                 {/* ── Infinite-scroll sentinel ──────────────────────────── */}
-                {/* Always mounted so the observer can target it.           */}
-                {/* The spinner inside only shows when we're mid-append.    */}
-                <div
-                  ref={sentinelRef}
-                  className="h-24 flex items-center justify-center mt-6"
-                >
-                  {isAppending && (
-                    <GlobalSpinner size="md" color="primary" />
-                  )}
-                  {hasMore && !loading && !isAppending && (
+                <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
+                <div className="mt-6 flex min-h-20 items-center justify-center">
+                  {isRefreshing ? (
+                    <div className="inline-flex items-center gap-3 rounded-full border border-navy-200 bg-white px-4 py-2.5 text-sm font-medium text-navy-600 shadow-sm">
+                      <GlobalSpinner size="sm" color="primary" />
+                      Updating results…
+                    </div>
+                  ) : isAppending ? (
+                    showAppendingStatus ? (
+                      <div className="inline-flex items-center gap-3 rounded-full border border-navy-200 bg-white px-4 py-2.5 text-sm font-medium text-navy-600 shadow-sm">
+                        <GlobalSpinner size="sm" color="primary" />
+                        Loading more listings…
+                      </div>
+                    ) : null
+                  ) : hasMore && !loading && !isRefreshing ? (
                     <button
                       type="button"
                       onClick={() => loadNextPage()}
@@ -228,12 +238,11 @@ export default function HomeDashboard() {
                     >
                       Load more
                     </button>
-                  )}
-                  {!hasMore && properties.length > 0 && !loading && !isAppending && (
+                  ) : !hasMore && properties.length > 0 && !loading && !isRefreshing ? (
                     <p className="text-sm text-navy-400 font-sans">
                       You&rsquo;ve seen all available listings
                     </p>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </section>

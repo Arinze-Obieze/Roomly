@@ -183,8 +183,8 @@ export const Header = ({ showFilters, setShowFilters }) => {
     router.push('/login');
   };
 
-  const showDesktopSearchInHeader = pathname !== '/dashboard' && pathname.startsWith('/dashboard');
-  const showMobileSearchInHeader = pathname.startsWith('/dashboard');
+  const showDesktopSearchInHeader = false;
+  const showMobileSearchInHeader = pathname === '/dashboard';
   const isActive = (path) => pathname === path;
 
   const firstName = user?.full_name?.split(' ')[0] || 'User';

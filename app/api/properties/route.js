@@ -67,6 +67,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
   const pageSize  = Math.min(50, parseInt(searchParams.get('pageSize')|| '12')); // cap at 50
   const sortBy    = searchParams.get('sortBy');
   const cursorRaw = searchParams.get('cursor');
+  const cursor    = cursorRaw ? decodeCursor(cursorRaw) : null;
 
   const supabase = await createClient();
   const adminSb  = createAdminClient();
@@ -156,13 +157,16 @@ async function fetchPropertiesFromDB(searchParams, user) {
   const location = sanitizeOrTerm(locationRaw);
   const search   = sanitizeOrTerm(searchRaw);
 
+  const shouldCount = page > 1 && !cursor;
+  const selectOptions = shouldCount ? { count: 'estimated' } : {};
+
   let query = adminSb
     .from('properties')
     .select(`
       *,
       property_media (id, url, media_type, display_order, is_primary),
       users!listed_by_user_id (id, full_name, profile_picture)
-    `, { count: 'estimated' })
+    `, selectOptions)
     .eq('is_active', true)
     .eq('approval_status', 'approved');
 
@@ -232,8 +236,6 @@ async function fetchPropertiesFromDB(searchParams, user) {
   // For standard sorts we use cursor-based keyset pagination to avoid
   // O(offset) work and prevent duplicate/missing rows across pages.
   // Fallback: if no cursor is supplied, use offset for backward-compat.
-  const cursor = cursorRaw ? decodeCursor(cursorRaw) : null;
-
   switch (sortBy) {
     case 'price_low': {
       query = query
@@ -245,7 +247,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
         query = query.or(
           `price_per_month.gt.${cursor.price},and(price_per_month.eq.${cursor.price},id.lt.${cursor.id})`
         );
-      } else {
+      } else if (page > 1) {
         const from = (page - 1) * pageSize;
         query = query.range(from, from + pageSize - 1);
       }
@@ -260,7 +262,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
         query = query.or(
           `price_per_month.lt.${cursor.price},and(price_per_month.eq.${cursor.price},id.lt.${cursor.id})`
         );
-      } else {
+      } else if (page > 1) {
         const from = (page - 1) * pageSize;
         query = query.range(from, from + pageSize - 1);
       }
@@ -273,7 +275,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
         query = query.or(
           `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`
         );
-      } else {
+      } else if (page > 1) {
         const from = (page - 1) * pageSize;
         query = query.range(from, from + pageSize - 1);
       }
@@ -281,7 +283,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
   }
 
   // Fetch one extra row so we know whether there's a next page
-  const isKeyset = !!cursor;
+  const isKeyset = !!cursor || page === 1;
   if (isKeyset) query = query.limit(pageSize + 1);
 
   const { data, error, count } = await query;

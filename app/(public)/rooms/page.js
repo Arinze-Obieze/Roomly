@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { usePropertiesWithFilters } from "@/core/hooks/usePropertiesWithFilters";
+import { useInfinitePropertiesWithFilters } from "@/core/hooks/useInfinitePropertiesWithFilters";
 import { DEFAULT_FILTERS } from "@/core/contexts/FilterContext";
 
 // New Components
@@ -14,6 +14,7 @@ import FilterBar from "@/components/public/FilterBar";
 import { PropertyGrid, ErrorState } from "@/components/dashboard";
 import { MdRefresh } from "react-icons/md";
 import GlobalSpinner from "@/components/ui/GlobalSpinner";
+import useDelayedBoolean from "@/core/hooks/useDelayedBoolean";
 
 export default function RoomsPage() {
   const router = useRouter();
@@ -26,15 +27,16 @@ export default function RoomsPage() {
   const {
     properties,
     loading,
+    isRefreshing,
     isAppending,
     error,
     hasMore,
-    pagination,
+    dataUpdatedAt,
     filters,
     updateFilters,
     loadNextPage,
     refresh,
-  } = usePropertiesWithFilters({ autoFetch: true, debounceMs: 300 });
+  } = useInfinitePropertiesWithFilters({ autoFetch: true, debounceMs: 300 });
 
   const handleFilterChange = (key, value) => {
     // If key is object (like priceRange), it spreads. 
@@ -60,17 +62,20 @@ export default function RoomsPage() {
   };
 
   const sentinelRef     = useRef(null);
+  const showAppendingStatus = useDelayedBoolean(isAppending, 180);
   const loadingRef      = useRef(loading);
   const isAppendingRef  = useRef(isAppending);
+  const isRefreshingRef  = useRef(isRefreshing);
   const hasMoreRef      = useRef(hasMore);
   const loadNextPageRef = useRef(loadNextPage);
 
   useEffect(() => { loadingRef.current     = loading;    }, [loading]);
   useEffect(() => { isAppendingRef.current = isAppending;}, [isAppending]);
+  useEffect(() => { isRefreshingRef.current = isRefreshing;}, [isRefreshing]);
   useEffect(() => { hasMoreRef.current     = hasMore;    }, [hasMore]);
   useEffect(() => { loadNextPageRef.current = loadNextPage; }, [loadNextPage]);
 
-  // Rebuild observer on each new page so the sentinel re-fires if still in view
+  // Rebuild observer when fresh data lands so the sentinel re-fires if still in view
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
@@ -79,6 +84,7 @@ export default function RoomsPage() {
         entries[0].isIntersecting &&
         hasMoreRef.current &&
         !loadingRef.current &&
+        !isRefreshingRef.current &&
         !isAppendingRef.current
       ) {
         loadNextPageRef.current();
@@ -87,7 +93,7 @@ export default function RoomsPage() {
     obs.observe(sentinel);
     return () => obs.disconnect();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.page]);
+  }, [dataUpdatedAt]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
@@ -137,7 +143,7 @@ export default function RoomsPage() {
 
         {error && <ErrorState error={error} onRetry={refresh} />}
 
-        {!loading && properties.length === 0 && !error ? (
+        {!loading && !isRefreshing && properties.length === 0 && !error ? (
            <div className="flex flex-col items-center justify-center py-20 text-center">
              <div className="w-24 h-24 bg-slate-100 rounded-full flex items-center justify-center mb-6">
                <MdRefresh size={40} className="text-slate-400" />
@@ -157,17 +163,27 @@ export default function RoomsPage() {
              <PropertyGrid
                properties={properties}
                loading={loading}
-               isLoadingMore={isAppending}
                onSelect={handleSelectProperty}
              />
         )}
 
-        {/* Always-mounted sentinel */}
-        <div ref={sentinelRef} className="h-24 flex items-center justify-center mt-8" aria-hidden="true">
-          {isAppending && <GlobalSpinner size="md" color="primary" />}
-          {!hasMore && properties.length > 0 && !loading && !isAppending && (
+        <div ref={sentinelRef} className="h-px w-full" aria-hidden="true" />
+        <div className="mt-8 flex min-h-20 items-center justify-center">
+          {isRefreshing ? (
+            <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm">
+              <GlobalSpinner size="sm" color="primary" />
+              Updating results…
+            </div>
+          ) : isAppending ? (
+            showAppendingStatus ? (
+              <div className="inline-flex items-center gap-3 rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-600 shadow-sm">
+                <GlobalSpinner size="sm" color="primary" />
+                Loading more listings…
+              </div>
+            ) : null
+          ) : !hasMore && properties.length > 0 && !loading && !isRefreshing ? (
             <p className="text-sm text-slate-400">You&rsquo;ve seen all available listings</p>
-          )}
+          ) : null}
         </div>
       </main>
       
