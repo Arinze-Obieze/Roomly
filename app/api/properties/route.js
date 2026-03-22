@@ -391,7 +391,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
 
       if (bDiscovery !== aDiscovery) return bDiscovery - aDiscovery;
       return new Date(b.createdAt) - new Date(a.createdAt);
-    }).slice(from, to + 1);
+    });
   }
 
   return {
