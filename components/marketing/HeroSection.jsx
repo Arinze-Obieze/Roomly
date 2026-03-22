@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MdCheckCircle } from 'react-icons/md';
 
 export default function HeroSection() {
@@ -61,10 +62,14 @@ export default function HeroSection() {
                     <div className="relative z-10 bg-white rounded-3xl shadow-2xl border border-slate-100 overflow-hidden transform lg:rotate-2 hover:rotate-0 transition-transform duration-500">
                         {/* Fake Listing Header */}
                         <div className="h-48 bg-slate-200 relative mb-4 overflow-hidden">
-                            <img 
+                            <Image 
                                 src="/images/rooms/room.jpeg" 
                                 alt="Room in Dublin 2" 
-                                className="w-full h-full object-cover absolute inset-0"
+                                fill
+                                priority
+                                fetchPriority="high"
+                                sizes="(max-width: 1024px) 100vw, 50vw"
+                                className="object-cover"
                             />
                             <div className="absolute bottom-4 left-4">
                                 <span className="bg-navy-950 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg">

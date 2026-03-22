@@ -81,6 +81,7 @@ export default function Navbar() {
         <button 
           className="md:hidden p-2 text-slate-900"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle mobile menu"
         >
           {mobileMenuOpen ? <MdClose size={26} /> : <MdMenu size={26} />}
         </button>

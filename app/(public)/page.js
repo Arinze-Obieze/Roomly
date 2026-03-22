@@ -1,15 +1,17 @@
 import Navbar from '@/components/marketing/Navbar';
 import Footer from '@/components/marketing/Footer';
 import HeroSection from '@/components/marketing/HeroSection';
-import ProblemSection from '@/components/marketing/ProblemSection';
-import SolutionSection from '@/components/marketing/SolutionSection';
-import HowItWorksSection from '@/components/marketing/HowItWorksSection';
-import FeaturesSection from '@/components/marketing/FeaturesSection';
-import LandlordSection from '@/components/marketing/LandlordSection';
-import TestimonialsSection from '@/components/marketing/TestimonialsSection';
-import ComparisonSection from '@/components/marketing/ComparisonSection';
-import FAQSection from '@/components/marketing/FAQSection';
-import CTASection from '@/components/marketing/CTASection';
+import dynamic from 'next/dynamic';
+
+const ProblemSection = dynamic(() => import('@/components/marketing/ProblemSection'));
+const SolutionSection = dynamic(() => import('@/components/marketing/SolutionSection'));
+const HowItWorksSection = dynamic(() => import('@/components/marketing/HowItWorksSection'));
+const FeaturesSection = dynamic(() => import('@/components/marketing/FeaturesSection'));
+const LandlordSection = dynamic(() => import('@/components/marketing/LandlordSection'));
+const TestimonialsSection = dynamic(() => import('@/components/marketing/TestimonialsSection'));
+const ComparisonSection = dynamic(() => import('@/components/marketing/ComparisonSection'));
+const FAQSection = dynamic(() => import('@/components/marketing/FAQSection'));
+const CTASection = dynamic(() => import('@/components/marketing/CTASection'));
 
 export default function HomePage() {
   return (

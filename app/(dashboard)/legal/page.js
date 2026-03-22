@@ -117,7 +117,7 @@ export default function LegalPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: idx * 0.1 }}
-            className="bg-white rounded-[2.5rem] border border-navy-100 p-8 shadow-sm hover:shadow-md transition-shadow overflow-hidden relative"
+            className="bg-white rounded-[40px] border border-navy-100 p-8 shadow-xl shadow-navy-950/5 hover:shadow-2xl hover:shadow-navy-950/10 transition-shadow overflow-hidden relative"
           >
             <div className="flex items-center gap-4 mb-6">
               <div className={`w-12 h-12 rounded-2xl flex items-center justify-center 

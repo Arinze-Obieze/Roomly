@@ -1,21 +1,9 @@
-import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/core/contexts/AuthContext";
 import GlobalToaster from "@/components/ui/GlobalToaster";
 
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-  adjustFontFallback: false,
-});
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  display: "swap",
-  adjustFontFallback: false,
-});
+const inter = { variable: "--font-inter" };
+const spaceGrotesk = { variable: "--font-space-grotesk" };
 
 export const metadata = {
   title: {
@@ -75,6 +63,7 @@ export const viewport = {
 import QueryProvider from '@/providers/QueryProvider';
 import { ConfirmationProvider } from "@/core/contexts/ConfirmationContext";
 import AdminReturnBadge from "@/components/ui/AdminReturnBadge";
+import CookieConsent from "@/components/marketing/CookieConsent";
 
 export default function RootLayout({ children }) {
   return (
@@ -87,6 +76,7 @@ export default function RootLayout({ children }) {
               <GlobalToaster/>
               {children}
               <AdminReturnBadge />
+              <CookieConsent />
             </AuthProvider>
           </ConfirmationProvider>
         </QueryProvider>

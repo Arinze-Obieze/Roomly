@@ -46,9 +46,9 @@ export default function Footer() {
                <span className="text-xl">🇮🇪</span>
             </div>
             <div className="flex items-center gap-4 pt-2">
-              <SocialLink href="#" icon={<FaInstagram size={20} />} />
-              <SocialLink href="#" icon={<FaTwitter size={20} />} />
-              <SocialLink href="#" icon={<FaLinkedin size={20} />} />
+              <SocialLink href="https://www.instagram.com/roomfind.ie" icon={<FaInstagram size={20} />} ariaLabel="Instagram" />
+              <SocialLink href="#" icon={<FaTwitter size={20} />} ariaLabel="Twitter" />
+              <SocialLink href="#" icon={<FaLinkedin size={20} />} ariaLabel="LinkedIn" />
             </div>
           </div>
 
@@ -106,11 +106,12 @@ export default function Footer() {
   );
 }
 
-function SocialLink({ href, icon }) {
+function SocialLink({ href, icon, ariaLabel }) {
   return (
     <a 
       href={href} 
       className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-terracotta-500 hover:text-white transition-all duration-300"
+      aria-label={ariaLabel}
     >
       {icon}
     </a>
