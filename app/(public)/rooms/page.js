@@ -19,19 +19,22 @@ export default function RoomsPage() {
   const router = useRouter();
   const observer = useRef();
   
-  const { 
-    properties, 
-    loading, 
-    error, 
+  const handleSelectProperty = useCallback((id) => {
+    router.push(`/rooms/${id}`);
+  }, [router]);
+  
+  const {
+    properties,
+    loading,
+    isAppending,
+    error,
     hasMore,
+    pagination,
     filters,
     updateFilters,
     loadNextPage,
-    refresh 
-  } = usePropertiesWithFilters({
-    autoFetch: true,
-    debounceMs: 300
-  });
+    refresh,
+  } = usePropertiesWithFilters({ autoFetch: true, debounceMs: 300 });
 
   const handleFilterChange = (key, value) => {
     // If key is object (like priceRange), it spreads. 
@@ -56,19 +59,35 @@ export default function RoomsPage() {
     }
   };
 
-  // Stable robust Infinite scroll
-  const loadMoreRef = useCallback((node) => {
-    if (loading) return;
-    if (observer.current) observer.current.disconnect();
-    
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        loadNextPage();
+  const sentinelRef     = useRef(null);
+  const loadingRef      = useRef(loading);
+  const isAppendingRef  = useRef(isAppending);
+  const hasMoreRef      = useRef(hasMore);
+  const loadNextPageRef = useRef(loadNextPage);
+
+  useEffect(() => { loadingRef.current     = loading;    }, [loading]);
+  useEffect(() => { isAppendingRef.current = isAppending;}, [isAppending]);
+  useEffect(() => { hasMoreRef.current     = hasMore;    }, [hasMore]);
+  useEffect(() => { loadNextPageRef.current = loadNextPage; }, [loadNextPage]);
+
+  // Rebuild observer on each new page so the sentinel re-fires if still in view
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+    const obs = new IntersectionObserver((entries) => {
+      if (
+        entries[0].isIntersecting &&
+        hasMoreRef.current &&
+        !loadingRef.current &&
+        !isAppendingRef.current
+      ) {
+        loadNextPageRef.current();
       }
-    }, { rootMargin: '200px' });
-    
-    if (node) observer.current.observe(node);
-  }, [loading, hasMore, loadNextPage]);
+    }, { rootMargin: '300px', threshold: 0 });
+    obs.observe(sentinel);
+    return () => obs.disconnect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.page]);
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans">
@@ -135,18 +154,21 @@ export default function RoomsPage() {
              </button>
            </div>
         ) : (
-             <PropertyGrid 
-               properties={properties} 
-               loading={loading} 
-               onSelect={(id) => router.push(`/rooms/${id}`)}
+             <PropertyGrid
+               properties={properties}
+               loading={loading}
+               isLoadingMore={isAppending}
+               onSelect={handleSelectProperty}
              />
         )}
 
-        {hasMore && (
-           <div ref={loadMoreRef} className="h-20 flex items-center justify-center mt-8">
-             {loading && <GlobalSpinner size="md" color="primary" />}
-           </div>
-        )}
+        {/* Always-mounted sentinel */}
+        <div ref={sentinelRef} className="h-24 flex items-center justify-center mt-8" aria-hidden="true">
+          {isAppending && <GlobalSpinner size="md" color="primary" />}
+          {!hasMore && properties.length > 0 && !loading && !isAppending && (
+            <p className="text-sm text-slate-400">You&rsquo;ve seen all available listings</p>
+          )}
+        </div>
       </main>
       
       {/* Footer Placeholder for completeness */}

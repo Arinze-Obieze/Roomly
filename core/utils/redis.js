@@ -24,6 +24,9 @@ const callRedis = async (command, ...args) => {
     return null;
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 2000); // 2 second MAX for cache
+
   try {
     const response = await fetch(`${REDIS_URL}/pipeline`, {
       method: 'POST',
@@ -32,7 +35,10 @@ const callRedis = async (command, ...args) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify([[command, ...args]]),
+      signal: controller.signal
     });
+    
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`Upstash API returned ${response.status}`);

@@ -7,7 +7,6 @@ import {
   ErrorState,
   FilterPills,
   FilterModal,
-  FilterSidebar
 } from "@/components/dashboard";
 import BuddyWidget from "@/components/buddy/BuddyWidget";
 import ProfileStrengthWidget from "@/components/dashboard/widgets/ProfileStrengthWidget";
@@ -22,67 +21,87 @@ import { MdGroups, MdChat, MdSearch } from "react-icons/md";
 
 export default function HomeDashboard() {
   const router = useRouter();
-  const observer = useRef();
   const { user } = useAuthContext();
   const { resetFilters } = useFilters();
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
   const [showMobileFilters, setShowMobileFilters] = useState(true);
   const lastScrollY = useRef(0);
-  
-  const { 
-    properties, 
-    loading, 
-    error, 
+  const sentinelRef = useRef(null);
+
+  const handleSelectProperty = useCallback((id) => {
+    router.push(`/listings/${id}`);
+  }, [router]);
+
+  const {
+    properties,
+    loading,
+    isAppending,
+    error,
     hasMore,
+    pagination,
     loadNextPage,
     refresh,
     filters,
-    updateFilters
-  } = usePropertiesWithFilters({
-    autoFetch: true,
-    debounceMs: 300
-  });
+    updateFilters,
+  } = usePropertiesWithFilters({ autoFetch: true, debounceMs: 300 });
 
-  // Stable robust Infinite scroll implementation
-  const loadMoreRef = useCallback((node) => {
-    if (loading) return;
-    if (observer.current) observer.current.disconnect();
-    
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        loadNextPage();
+  // Stable refs so the observer callback never goes stale
+  const hasMoreRef       = useRef(hasMore);
+  const isAppendingRef   = useRef(isAppending);
+  const loadingRef       = useRef(loading);
+  const loadNextPageRef  = useRef(loadNextPage);
+
+  useEffect(() => { hasMoreRef.current      = hasMore;      }, [hasMore]);
+  useEffect(() => { isAppendingRef.current  = isAppending;  }, [isAppending]);
+  useEffect(() => { loadingRef.current      = loading;      }, [loading]);
+  useEffect(() => { loadNextPageRef.current = loadNextPage; }, [loadNextPage]);
+
+  // ── IntersectionObserver — rebuilt after every page load ─────────────────
+  // Re-creating the observer on pagination.page reset its intersection state,
+  // so if the sentinel is already in view (short pages), the callback fires
+  // immediately — no "stuck" observer problem.
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel) return;
+
+    const obs = new IntersectionObserver((entries) => {
+      if (
+        entries[0].isIntersecting &&
+        hasMoreRef.current &&
+        !loadingRef.current &&
+        !isAppendingRef.current
+      ) {
+        loadNextPageRef.current();
       }
-    }, { rootMargin: '200px' });
-    
-    if (node) observer.current.observe(node);
-  }, [loading, hasMore, loadNextPage]);
+    }, { rootMargin: '300px', threshold: 0 });
 
-  // Scroll direction detection for auto-hiding mobile filters
+    obs.observe(sentinel);
+    return () => obs.disconnect();
+  // Intentionally depend on pagination.page so the observer rebuilds
+  // (and re-fires if in view) after each successful page load.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pagination.page]);
+
+  // ── Scroll direction — auto-hide mobile filter bar ────────────────────────
   useEffect(() => {
     const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      
-      // Don't auto-hide when near the very top of the page
-      if (currentScrollY < 120) {
+      const y = window.scrollY;
+      if (y < 120) {
         setShowMobileFilters(true);
-      } else if (currentScrollY > lastScrollY.current + 10) {
-        // Scrolling down (hide)
+      } else if (y > lastScrollY.current + 10) {
         setShowMobileFilters(false);
-      } else if (currentScrollY < lastScrollY.current - 10) {
-        // Scrolling up (show)
+      } else if (y < lastScrollY.current - 10) {
         setShowMobileFilters(true);
       }
-      
-      lastScrollY.current = currentScrollY;
+      lastScrollY.current = y;
     };
-
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // ── Match score bootstrap ──────────────────────────────────────────────────
-  // When a logged-in user has no cached scores, trigger a background recompute
-  // then refresh listings so match % badges appear.
+  // ── Match-score bootstrap ─────────────────────────────────────────────────
+  // When a freshly logged-in user has no cached scores yet, trigger a
+  // background recompute so match % badges appear on subsequent loads.
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -91,20 +110,17 @@ export default function HomeDashboard() {
       try {
         const statusRes = await fetch('/api/matching/status');
         const { hasScores, missingProfile } = await statusRes.json();
-        // Don't recompute if we already have scores, or the user hasn't filled their profile
         if (hasScores || missingProfile || cancelled) return;
 
-        // await the recompute — this blocks until the server finishes writing scores
         await fetch('/api/matching/recompute', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'seeker' }),
         });
 
-        // Recompute is fully done — refresh listings now to pick up fresh scores
         if (!cancelled) refresh();
       } catch {
-        // Silently ignore — scores are a nice-to-have, never a blocker
+        // Scores are a nice-to-have; never block the UI
       }
     }
 
@@ -117,13 +133,12 @@ export default function HomeDashboard() {
     <div className="flex min-h-screen bg-navy-50">
       <div className="flex-1 min-w-0">
         <main className="px-4 lg:px-8 py-4 lg:py-6 w-full max-w-[1800px] mx-auto">
-          
           <div className="flex flex-col lg:flex-row gap-8 lg:gap-10">
-            
-            {/* Main Content - Properties & Filters */}
+
+            {/* ── Main Content ─────────────────────────────────────────────── */}
             <section className="flex-1 min-w-0 pb-20">
-              
-              {/* Hero & Search Section (Z-Pattern entry point) - Desktop Only */}
+
+              {/* Hero & Search — desktop only */}
               <div className="mb-8 pt-4 hidden lg:block">
                 <h1 className="text-3xl lg:text-4xl font-heading font-extrabold text-navy-950 mb-3 tracking-tight">
                   Find your perfect <span className="text-terracotta-500">space.</span>
@@ -135,15 +150,15 @@ export default function HomeDashboard() {
                   <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                     <MdSearch className="text-navy-400 text-2xl" />
                   </div>
-                  <input 
-                    type="text" 
-                    placeholder="Search by city, neighborhood, or university..." 
+                  <input
+                    type="text"
+                    placeholder="Search by city, neighborhood, or university..."
                     value={filters.searchQuery || ''}
                     onChange={(e) => updateFilters({ searchQuery: e.target.value })}
                     className="w-full pl-12 pr-4 py-4 lg:py-5 bg-white border-2 border-navy-100 focus:border-terracotta-400 rounded-2xl shadow-sm focus:shadow-md hover:border-navy-200 transition-all outline-none text-navy-950 text-base lg:text-lg font-medium placeholder:text-navy-400"
                   />
                   {filters.searchQuery && (
-                    <button 
+                    <button
                       onClick={() => updateFilters({ searchQuery: '' })}
                       className="absolute inset-y-0 right-0 pr-4 flex items-center text-navy-400 hover:text-navy-700 transition-colors"
                     >
@@ -153,11 +168,11 @@ export default function HomeDashboard() {
                 </div>
               </div>
 
-              {/* Sticky Filter Container - Auto-hides on mobile scroll down */}
-              <div 
+              {/* Sticky filter bar */}
+              <div
                 className={`sticky lg:top-[73px] z-50 bg-navy-50/95 pt-3 pb-3 backdrop-blur-md flex flex-col xl:flex-row xl:items-start gap-4 xl:justify-between border-b border-navy-100 mb-6 transition-all duration-300 ease-in-out ${
-                  showMobileFilters 
-                    ? 'top-[126px] opacity-100 translate-y-0' 
+                  showMobileFilters
+                    ? 'top-[126px] opacity-100 translate-y-0'
                     : 'top-[126px] opacity-0 -translate-y-full pointer-events-none lg:opacity-100 lg:translate-y-0 lg:pointer-events-auto'
                 }`}
               >
@@ -169,62 +184,65 @@ export default function HomeDashboard() {
                 </div>
               </div>
 
-              {/* Properties Range */}
+              {/* Properties area */}
               <div className="mt-0">
-
-              {/* Filter Modal for Mobile */}
-              <FilterModal 
-                isOpen={isFilterModalOpen} 
-                onClose={() => setIsFilterModalOpen(false)}
-                resultsCount={properties.length}
-                isLoading={loading}
-              />
-
-              {/* Error State */}
-              {error && <ErrorState error={error} onRetry={refresh} />}
-
-              {/* Empty State */}
-              {!loading && properties.length === 0 && !error && (
-                <EmptyState 
-                  onReset={resetFilters}
-                  location={filters.location}
+                <FilterModal
+                  isOpen={isFilterModalOpen}
+                  onClose={() => setIsFilterModalOpen(false)}
+                  resultsCount={properties.length}
+                  isLoading={loading}
                 />
-              )}
 
-              {/* Property Grid */}
-              <PropertyGrid 
-                properties={properties} 
-                loading={loading} 
-                onSelect={(id) => router.push(`/listings/${id}`)}
-              />
+                {error && <ErrorState error={error} onRetry={refresh} />}
 
-                {/* Infinite Scroll Loader */}
-                {hasMore && (
-                  <div ref={loadMoreRef} className="h-24 flex items-center justify-center">
-                    <GlobalSpinner size="md" color="primary" />
-                  </div>
+                {!loading && !isAppending && properties.length === 0 && !error && (
+                  <EmptyState
+                    onReset={resetFilters}
+                    location={filters.location}
+                  />
                 )}
+
+                {/* Card grid — never disappears during load-more */}
+                <PropertyGrid
+                  properties={properties}
+                  loading={loading}
+                  isLoadingMore={isAppending}
+                  onSelect={handleSelectProperty}
+                />
+
+                {/* ── Infinite-scroll sentinel ──────────────────────────── */}
+                {/* Always mounted so the observer can target it.           */}
+                {/* The spinner inside only shows when we're mid-append.    */}
+                <div
+                  ref={sentinelRef}
+                  className="h-24 flex items-center justify-center mt-6"
+                  aria-hidden="true"
+                >
+                  {isAppending && (
+                    <GlobalSpinner size="md" color="primary" />
+                  )}
+                  {!hasMore && properties.length > 0 && !loading && !isAppending && (
+                    <p className="text-sm text-navy-400 font-sans">
+                      You&rsquo;ve seen all available listings
+                    </p>
+                  )}
+                </div>
               </div>
             </section>
 
-            {/* Right Sidebar - Widgets */}
+            {/* ── Right Sidebar ─────────────────────────────────────────── */}
             <aside className="hidden lg:block w-[280px] shrink-0">
               <div className="sticky top-[100px] h-[calc(100vh-120px)] overflow-y-auto scrollbar-hide pb-8 space-y-6">
-                {/* Profile Strength - Most Important */}
                 <ProfileStrengthWidget />
-                
-                {/* Buddy Group Widget */}
                 <BuddyWidget />
-                
                 <SupportWidget />
 
-                {/* Quick Tips */}
                 <div className="bg-white rounded-3xl border border-navy-100 p-6 shadow-sm">
                   <h4 className="font-heading font-bold text-navy-950 mb-3 text-sm">💡 Quick Tips</h4>
                   <ul className="space-y-3 text-sm text-navy-600 font-sans">
                     <li className="flex items-start gap-2">
                       <span className="text-terracotta-500 text-lg leading-none">•</span>
-                      Complete your profile to get 3x more responses
+                      Complete your profile to get 3× more responses
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-terracotta-500 text-lg leading-none">•</span>

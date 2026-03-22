@@ -1,7 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, useRef } from "react";
-import { createClient } from "@/core/utils/supabase/client";
+import { createContext, useContext, useState, useCallback, useRef, useEffect } from "react";
 import { FaWifi, FaPaw, FaCar, FaShower, FaTree } from 'react-icons/fa';
 
 const PropertiesContext = createContext();
@@ -14,213 +13,232 @@ export const useProperties = () => {
   return context;
 };
 
+// Client-side cache entry TTL: 2 minutes (keeps hot-path fast, avoids serving stale data)
+const CLIENT_CACHE_TTL_MS = 2 * 60 * 1000;
+const MAX_CACHE_ENTRIES = 20;
+
 export const PropertiesProvider = ({ children }) => {
-  const [properties, setProperties] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState({
+  const [properties, setProperties]   = useState([]);
+  const [loading, setLoading]         = useState(true);
+  const [isAppending, setIsAppending] = useState(false); // separate from full-page loading
+  const [error, setError]             = useState(null);
+  const [pagination, setPagination]   = useState({
     page: 1,
     pageSize: 12,
     total: 0,
     hasMore: true
   });
 
-  // Cache to avoid unnecessary refetches
-  const cacheRef = useRef(new Map());
-  const abortControllerRef = useRef(null);
-  const requestIdRef = useRef(0);
+  // ── Internal refs ─────────────────────────────────────────────────────────
+  const cacheRef             = useRef(new Map()); // { cacheKey → { data, pagination, ts } }
+  const abortControllerRef   = useRef(null);
+  const requestIdRef         = useRef(0);
 
-  /**
-   * Fetch properties with filters and pagination
-   */
+  // Refs that allow loadMore / observer callbacks to read the latest state
+  // without being stale-closure victims.
+  const loadingRef           = useRef(loading);
+  const isAppendingRef       = useRef(false);
+  const paginationRef        = useRef(pagination);
+
+  useEffect(() => { loadingRef.current     = loading;    }, [loading]);
+  useEffect(() => { isAppendingRef.current = isAppending;}, [isAppending]);
+  useEffect(() => { paginationRef.current  = pagination; }, [pagination]);
+
+  // ── Helpers ───────────────────────────────────────────────────────────────
+  const isCacheValid = (entry) =>
+    entry && (Date.now() - entry.ts) < CLIENT_CACHE_TTL_MS;
+
+  const pruneCache = (map) => {
+    if (map.size <= MAX_CACHE_ENTRIES) return;
+    // Delete oldest entries by insertion order
+    const toDelete = map.size - MAX_CACHE_ENTRIES;
+    let deleted = 0;
+    for (const key of map.keys()) {
+      map.delete(key);
+      if (++deleted >= toDelete) break;
+    }
+  };
+
+  // ── Core fetch ────────────────────────────────────────────────────────────
   const fetchProperties = useCallback(async (filters = {}, options = {}) => {
-    const { 
-      page = 1, 
-      pageSize = 12, 
-      append = false,
-      useCache = true 
+    const {
+      page      = 1,
+      pageSize  = 12,
+      append    = false,
+      useCache  = true,
+      noStore   = false, // forces cache-busting at HTTP level (for refresh)
     } = options;
 
     const requestId = ++requestIdRef.current;
 
-    // Cancel any pending requests
+    // Cancel any in-flight request
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
     abortControllerRef.current = new AbortController();
 
-    // Generate cache key
+    // Client cache check (only for non-append, non-noStore requests)
     const cacheKey = JSON.stringify({ filters, page, pageSize });
-    
-    // Check cache
-    if (useCache && cacheRef.current.has(cacheKey)) {
-      const cached = cacheRef.current.get(cacheKey);
-      setProperties(append ? prev => [...prev, ...cached.data] : cached.data);
-      setPagination(cached.pagination);
-      setLoading(false);
-      return cached;
+    if (!append && useCache && !noStore) {
+      const entry = cacheRef.current.get(cacheKey);
+      if (isCacheValid(entry)) {
+        setProperties(entry.data);
+        setPagination(entry.pagination);
+        setLoading(false);
+        return entry;
+      }
     }
 
     try {
-      if (!append) {
+      if (append) {
+        setIsAppending(true);
+      } else {
         setLoading(true);
+        setError(null);
       }
-      setError(null);
 
       // Build query params
       const params = new URLSearchParams({
-        page: page.toString(),
-        pageSize: pageSize.toString()
+        page:     page.toString(),
+        pageSize: pageSize.toString(),
       });
 
-      if (filters.priceRange && filters.priceRange !== 'all') {
+      if (filters.priceRange && filters.priceRange !== 'all')
         params.append('priceRange', filters.priceRange);
-      }
-      if (typeof filters.minPrice === 'number' && filters.minPrice >= 0) {
+      if (typeof filters.minPrice === 'number' && filters.minPrice >= 0)
         params.append('minPrice', filters.minPrice.toString());
-      }
-      if (typeof filters.maxPrice === 'number' && filters.maxPrice > 0) {
+      if (typeof filters.maxPrice === 'number' && filters.maxPrice > 0)
         params.append('maxPrice', filters.maxPrice.toString());
-      }
-      if (filters.bedrooms?.length > 0) {
+      if (filters.bedrooms?.length > 0)
         params.append('bedrooms', filters.bedrooms.join(','));
-      }
-      if (filters.propertyType && filters.propertyType !== 'any') {
+      if (filters.propertyType && filters.propertyType !== 'any')
         params.append('propertyType', filters.propertyType);
-      }
-      if (filters.propertyTypes?.length > 0) {
+      if (filters.propertyTypes?.length > 0)
         params.append('propertyTypes', filters.propertyTypes.join(','));
-      }
-      if (filters.amenities?.length > 0) {
+      if (filters.amenities?.length > 0)
         params.append('amenities', filters.amenities.join(','));
-      }
-      if (filters.location) {
+      if (filters.location)
         params.append('location', filters.location);
-      }
-      if (filters.minBedrooms) {
+      if (filters.minBedrooms)
         params.append('minBedrooms', filters.minBedrooms.toString());
-      }
-      if (filters.minBathrooms) {
+      if (filters.minBathrooms)
         params.append('minBathrooms', filters.minBathrooms.toString());
-      }
-      if (filters.searchQuery) {
+      if (filters.searchQuery)
         params.append('search', filters.searchQuery);
-      }
-      if (filters.sortBy) {
+      if (filters.sortBy)
         params.append('sortBy', filters.sortBy);
-      }
-      // ── New advanced filter params ─────────────────────────────────────────
-      if (filters.moveInDate && filters.moveInDate !== 'any') {
+      if (filters.moveInDate && filters.moveInDate !== 'any')
         params.append('moveInDate', filters.moveInDate);
-      }
-      if (filters.roomType && filters.roomType !== 'any') {
+      if (filters.roomType && filters.roomType !== 'any')
         params.append('roomType', filters.roomType);
-      }
-      if (filters.houseRules?.length > 0) {
+      if (filters.houseRules?.length > 0)
         params.append('houseRules', filters.houseRules.join(','));
-      }
-      if (filters.billsIncluded === true) {
+      if (filters.billsIncluded === true)
         params.append('billsIncluded', 'true');
-      }
+      if (noStore)
+        params.append('noStore', '1');
 
-      const response = await fetch(`/api/properties?${params.toString()}`, {
-        signal: abortControllerRef.current.signal
-      });
+      const fetchOptions = {
+        signal: abortControllerRef.current.signal,
+        ...(noStore ? { cache: 'no-store' } : {}),
+      };
+
+      const response = await fetch(`/api/properties?${params.toString()}`, fetchOptions);
 
       if (!response.ok) {
-        const errorData = await response.json();
+        const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'Failed to fetch properties');
       }
 
-      const { data: transformedData, pagination: newPagination } = await response.json();
+      const { data: raw, pagination: newPagination } = await response.json();
 
-      const dataWithHydratedIcons = transformedData.map(p => ({
-         ...p,
-         amenities: transformAmenities(p.amenities || []),
-         // matchScore comes from the API (compatibility_scores cache in DB).
-         // Do NOT overwrite it with a client-side estimate.
-         matchScore: p.matchScore ?? null,
+      const enriched = raw.map(p => ({
+        ...p,
+        amenities: transformAmenities(p.amenities || []),
+        matchScore: p.matchScore ?? null,
       }));
 
-      // Update cache
-      cacheRef.current.set(cacheKey, {
-        data: dataWithHydratedIcons,
-        pagination: newPagination,
-        timestamp: Date.now()
-      });
-
-      // Clean old cache entries (keep last 10)
-      if (cacheRef.current.size > 10) {
-        const firstKey = cacheRef.current.keys().next().value;
-        cacheRef.current.delete(firstKey);
+      // Write to client cache (for non-append, non-noStore)
+      if (!append && !noStore) {
+        cacheRef.current.set(cacheKey, {
+          data: enriched,
+          pagination: newPagination,
+          ts: Date.now(),
+        });
+        pruneCache(cacheRef.current);
       }
 
-      setProperties(append ? prev => [...prev, ...dataWithHydratedIcons] : dataWithHydratedIcons);
+      if (requestId !== requestIdRef.current) return; // superseded
+
+      setProperties(append
+        ? prev => {
+            // Deduplicate by id
+            const map = new Map(prev.map(p => [p.id, p]));
+            enriched.forEach(p => map.set(p.id, p));
+            return Array.from(map.values());
+          }
+        : enriched
+      );
       setPagination(newPagination);
 
-      return { data: dataWithHydratedIcons, pagination: newPagination };
+      return { data: enriched, pagination: newPagination };
 
     } catch (err) {
-      if (err.name === 'AbortError') {
-        return;
+      if (err.name === 'AbortError') return;
+      console.error('[PropertiesContext] fetch error:', err);
+      if (requestId === requestIdRef.current) {
+        setError(err.message);
       }
-      console.error('Error fetching properties:', err);
-      setError(err.message);
       return { data: [], pagination: { page: 1, pageSize, total: 0, hasMore: false } };
     } finally {
       if (requestId === requestIdRef.current) {
         setLoading(false);
+        setIsAppending(false);
         abortControllerRef.current = null;
       }
     }
-  }, []);
+  }, []); // stable — never recreated
 
-  /**
-   * Load more properties (infinite scroll)
-   */
+  // ── Load more (infinite scroll) ───────────────────────────────────────────
+  // Uses refs for the guards so it's never stale, regardless of when it's called.
   const loadMore = useCallback(async (filters = {}) => {
-    if (!pagination.hasMore || loading) return;
-    
-    await fetchProperties(filters, {
-      page: pagination.page + 1,
-      pageSize: pagination.pageSize,
-      append: true
-    });
-  }, [pagination, loading, fetchProperties]);
+    // Guard via refs — immune to stale closures
+    if (!paginationRef.current.hasMore) return;
+    if (loadingRef.current || isAppendingRef.current) return;
 
-  /**
-   * Refresh properties (force refetch)
-   */
+    await fetchProperties(filters, {
+      page:     paginationRef.current.page + 1,
+      pageSize: paginationRef.current.pageSize,
+      append:   true,
+    });
+  }, [fetchProperties]); // only depends on the stable fetchProperties
+
+  // ── Refresh (bust both client and server cache) ───────────────────────────
   const refresh = useCallback(async (filters = {}) => {
     cacheRef.current.clear();
-    await fetchProperties(filters, { page: 1, useCache: false });
+    await fetchProperties(filters, { page: 1, useCache: false, noStore: true });
   }, [fetchProperties]);
 
-  /**
-   * Clear cache
-   */
+  // ── Clear client cache only ───────────────────────────────────────────────
   const clearCache = useCallback(() => {
     cacheRef.current.clear();
   }, []);
 
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
+  // Abort on unmount
+  useEffect(() => () => {
+    if (abortControllerRef.current) abortControllerRef.current.abort();
   }, []);
 
   const value = {
     properties,
     loading,
+    isAppending,
     error,
     pagination,
     fetchProperties,
     loadMore,
     refresh,
-    clearCache
+    clearCache,
   };
 
   return (
@@ -230,21 +248,19 @@ export const PropertiesProvider = ({ children }) => {
   );
 };
 
-/**
- * Helper function to transform amenities from database format or API format
- */
+// ── Amenity icon hydration ─────────────────────────────────────────────────
 function transformAmenities(amenities) {
   const iconMap = {
-    wifi:     { icon: FaWifi,   label: 'WiFi' },
-    pets:     { icon: FaPaw,    label: 'Pets Allowed' },
-    parking:  { icon: FaCar,    label: 'Parking' },
-    ensuite:  { icon: FaShower, label: 'Ensuite' },
-    garden:   { icon: FaTree,   label: 'Garden' },
+    wifi:    { icon: FaWifi,   label: 'WiFi' },
+    pets:    { icon: FaPaw,    label: 'Pets Allowed' },
+    parking: { icon: FaCar,    label: 'Parking' },
+    ensuite: { icon: FaShower, label: 'Ensuite' },
+    garden:  { icon: FaTree,   label: 'Garden' },
   };
 
   return amenities.map(amenity => {
     const label = typeof amenity === 'string' ? amenity : amenity.label;
-    const key = label ? label.toLowerCase() : '';
+    const key   = label?.toLowerCase() ?? '';
     return iconMap[key] || { icon: FaWifi, label: label || 'Amenity' };
   });
 }

@@ -8,8 +8,7 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
-import useEmblaCarousel from 'embla-carousel-react';
-import { 
+import {
   MdLocationOn, 
   MdFavorite, 
   MdFavoriteBorder, 
@@ -17,9 +16,7 @@ import {
   MdCheckCircle,
   MdGroupAdd,
   MdBolt,
-  MdGroup,
-  MdChevronLeft,
-  MdChevronRight
+  MdGroup
 } from "react-icons/md";
 
 export const ListingCard = memo(function ListingCard({ data, onSelect }) {
@@ -30,32 +27,6 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
   
   const isSaved = isPropertySaved(data.id);
   const [imgSrc, setImgSrc] = useState(data.image);
-
-  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: true });
-  const [selectedIndex, setSelectedIndex] = useState(0);
-
-  const onSelectEmbla = useCallback(() => {
-    if (!emblaApi) return;
-    setSelectedIndex(emblaApi.selectedScrollSnap());
-  }, [emblaApi]);
-
-  useEffect(() => {
-    if (!emblaApi) return;
-    onSelectEmbla();
-    emblaApi.on('select', onSelectEmbla);
-    emblaApi.on('reInit', onSelectEmbla);
-  }, [emblaApi, onSelectEmbla]);
-
-  const scrollPrev = useCallback((e) => {
-      e.stopPropagation();
-      if (emblaApi) emblaApi.scrollPrev();
-  }, [emblaApi]);
-
-  const scrollNext = useCallback((e) => {
-      e.stopPropagation();
-      if (emblaApi) emblaApi.scrollNext();
-  }, [emblaApi]);
-
   const [interestLoading, setInterestLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const priceLabel = useMemo(() => {
@@ -200,51 +171,20 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
 
   return (
     <div 
-      onClick={() => onSelect?.()}
+      onClick={() => onSelect?.(data.id)}
       className="group bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-navy-950/5 hover:-translate-y-1 border border-navy-200 flex flex-col h-full [content-visibility:auto] [contain-intrinsic-size:420px]"
     >
       {/* Image Container */}
-      <div 
-        className="relative aspect-[4/3] w-full bg-navy-100 overflow-hidden group/embla"
-        ref={emblaRef}
-      >
-        <div className="flex h-full touch-pan-y">
-            {(data.images?.length > 0 ? data.images : [data.image]).slice(0, 5).map((img, idx) => (
-                <div key={idx} className="relative flex-[0_0_100%] min-w-0 h-full">
-                    <Image 
-                      src={(idx === 0 && imgSrc !== data.image) ? imgSrc : (img || 'https://placehold.co/600x400/navy-100/navy-500?text=No+Image')} 
-                      alt={data.title}
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className={`object-cover transition-transform duration-700 ${data.isBlurry ? 'blur-2xl scale-110 grayscale-[0.2]' : 'group-hover:scale-105'}`}
-                      priority={idx === 0}
-                      onError={() => { if (idx === 0) setImgSrc('https://placehold.co/600x400/navy-100/navy-500?text=Image+Error') }}
-                    />
-                </div>
-            ))}
-        </div>
-
-        {/* Carousel Navigation & Pagination */}
-        {!data.isBlurry && (data.images?.length > 1) && (
-            <>
-                <div className="absolute inset-y-0 left-0 w-10 flex items-center justify-start pl-2 opacity-0 group-hover/embla:opacity-100 transition-opacity z-20">
-                    <button 
-                        onClick={scrollPrev}
-                        className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-navy-900 flex items-center justify-center shadow-md backdrop-blur-md active:scale-95 transition-all outline-none"
-                    >
-                        <MdChevronLeft size={18} />
-                    </button>
-                </div>
-                <div className="absolute inset-y-0 right-0 w-10 flex items-center justify-end pr-2 opacity-0 group-hover/embla:opacity-100 transition-opacity z-20">
-                    <button 
-                        onClick={scrollNext}
-                        className="w-7 h-7 rounded-full bg-white/90 hover:bg-white text-navy-900 flex items-center justify-center shadow-md backdrop-blur-md active:scale-95 transition-all outline-none"
-                    >
-                        <MdChevronRight size={18} />
-                    </button>
-                </div>
-            </>
-        )}
+      <div className="relative aspect-[4/3] w-full bg-navy-100 overflow-hidden">
+        <Image 
+          src={imgSrc || 'https://placehold.co/600x400/navy-100/navy-500?text=No+Image'} 
+          alt={data.title}
+          fill
+          unoptimized={typeof imgSrc === 'string' && (imgSrc.includes('loremflickr.com') || imgSrc.includes('placehold.co'))}
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          className={`object-cover transition-transform duration-700 ${data.isBlurry ? 'blur-2xl scale-110 grayscale-[0.2]' : 'group-hover:scale-105'}`}
+          onError={() => setImgSrc('https://placehold.co/600x400/navy-100/navy-500?text=Image+Error')}
+        />
         
         {/* Gradients using Navy system */}
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-navy-900/40 to-transparent opacity-80"></div>
