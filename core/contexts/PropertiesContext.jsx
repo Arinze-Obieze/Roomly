@@ -26,7 +26,8 @@ export const PropertiesProvider = ({ children }) => {
     page: 1,
     pageSize: 12,
     total: 0,
-    hasMore: true
+    hasMore: true,
+    nextCursor: null,
   });
 
   // ── Internal refs ─────────────────────────────────────────────────────────
@@ -137,6 +138,9 @@ export const PropertiesProvider = ({ children }) => {
         params.append('billsIncluded', 'true');
       if (noStore)
         params.append('noStore', '1');
+      // Cursor-based keyset pagination for standard sorts
+      if (options.cursor)
+        params.append('cursor', options.cursor);
 
       const fetchOptions = {
         signal: abortControllerRef.current.signal,
@@ -206,10 +210,14 @@ export const PropertiesProvider = ({ children }) => {
     if (!paginationRef.current.hasMore) return;
     if (loadingRef.current || isAppendingRef.current) return;
 
+    const { nextCursor, page, pageSize } = paginationRef.current;
+
     await fetchProperties(filters, {
-      page:     paginationRef.current.page + 1,
-      pageSize: paginationRef.current.pageSize,
-      append:   true,
+      // Prefer cursor-based pagination; fall back to page+1 if no cursor
+      ...(nextCursor
+        ? { cursor: nextCursor, pageSize, append: true }
+        : { page: page + 1, pageSize, append: true }
+      ),
     });
   }, [fetchProperties]); // only depends on the stable fetchProperties
 

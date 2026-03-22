@@ -51,10 +51,20 @@ export async function GET(request) {
 }
 
 // ── Core DB fetch ──────────────────────────────────────────────────────────
+// Cursor encoding: base64(JSON({ createdAt, id })) for newest
+//                  base64(JSON({ price, id }))     for price sorts
+function encodeCursor(obj) {
+  return Buffer.from(JSON.stringify(obj)).toString('base64url');
+}
+function decodeCursor(str) {
+  try { return JSON.parse(Buffer.from(str, 'base64url').toString('utf8')); } catch { return null; }
+}
+
 async function fetchPropertiesFromDB(searchParams, user) {
   const page      = Math.max(1, parseInt(searchParams.get('page')     || '1'));
   const pageSize  = Math.min(50, parseInt(searchParams.get('pageSize')|| '12')); // cap at 50
   const sortBy    = searchParams.get('sortBy');
+  const cursorRaw = searchParams.get('cursor');
 
   const supabase = await createClient();
   const adminSb  = createAdminClient();
@@ -201,35 +211,84 @@ async function fetchPropertiesFromDB(searchParams, user) {
     }
   }
 
-  // Sort
+  // ── Sort + Keyset pagination ──────────────────────────────────────────────
+  // For standard sorts we use cursor-based keyset pagination to avoid
+  // O(offset) work and prevent duplicate/missing rows across pages.
+  // Fallback: if no cursor is supplied, use offset for backward-compat.
+  const cursor = cursorRaw ? decodeCursor(cursorRaw) : null;
+
   switch (sortBy) {
-    case 'price_low':
+    case 'price_low': {
       query = query
         .order('price_per_month', { ascending: true })
         .order('created_at', { ascending: false })
         .order('id', { ascending: false });
+      if (cursor?.price != null && cursor?.id) {
+        // After (price DESC, id DESC): price > cursor OR (price = cursor AND id < cursor.id)
+        query = query.or(
+          `price_per_month.gt.${cursor.price},and(price_per_month.eq.${cursor.price},id.lt.${cursor.id})`
+        );
+      } else {
+        const from = (page - 1) * pageSize;
+        query = query.range(from, from + pageSize - 1);
+      }
       break;
-    case 'price_high':
+    }
+    case 'price_high': {
       query = query
         .order('price_per_month', { ascending: false })
         .order('created_at', { ascending: false })
         .order('id', { ascending: false });
+      if (cursor?.price != null && cursor?.id) {
+        query = query.or(
+          `price_per_month.lt.${cursor.price},and(price_per_month.eq.${cursor.price},id.lt.${cursor.id})`
+        );
+      } else {
+        const from = (page - 1) * pageSize;
+        query = query.range(from, from + pageSize - 1);
+      }
       break;
-    default:
+    }
+    default: {
+      // newest (default)
       query = query.order('created_at', { ascending: false }).order('id', { ascending: false });
+      if (cursor?.createdAt && cursor?.id) {
+        query = query.or(
+          `created_at.lt.${cursor.createdAt},and(created_at.eq.${cursor.createdAt},id.lt.${cursor.id})`
+        );
+      } else {
+        const from = (page - 1) * pageSize;
+        query = query.range(from, from + pageSize - 1);
+      }
+    }
   }
 
-  const from = (page - 1) * pageSize;
-  const to   = from + pageSize - 1;
-  query = query.range(from, to);
+  // Fetch one extra row so we know whether there's a next page
+  const isKeyset = !!cursor;
+  if (isKeyset) query = query.limit(pageSize + 1);
 
   const { data, error, count } = await query;
   if (error) { console.error('[DB] Error:', error); throw error; }
 
-  const ids = (data || []).map(p => p.id);
+  const rows = data || [];
+  const hasMore = isKeyset ? rows.length > pageSize : ((page - 1) * pageSize + pageSize) < (count || 0);
+  const pageRows = isKeyset ? rows.slice(0, pageSize) : rows;
+
+  // Build next cursor from the last row in the current page
+  let nextCursor = null;
+  if (hasMore && pageRows.length > 0) {
+    const last = pageRows[pageRows.length - 1];
+    if (sortBy === 'price_low' || sortBy === 'price_high') {
+      nextCursor = encodeCursor({ price: last.price_per_month, id: last.id });
+    } else {
+      nextCursor = encodeCursor({ createdAt: last.created_at, id: last.id });
+    }
+  }
+
+  const ids = pageRows.map(p => p.id);
   const { interests, scoreMap } = await fetchPerPageUserContext(supabase, user, ids);
 
-  const transformed = (data || []).map(p =>
+  const transformed = pageRows.map(p =>
     transformProperty(p, interests, scoreMap, user, missingProfile, supabase)
   );
 
@@ -238,8 +297,9 @@ async function fetchPropertiesFromDB(searchParams, user) {
     pagination: {
       page,
       pageSize,
-      total:   count,
-      hasMore: (from + pageSize) < (count || 0),
+      total:      isKeyset ? null : count,
+      hasMore,
+      nextCursor,
     },
   };
 }
@@ -336,7 +396,7 @@ function transformProperty(property, interests, scoreMap, user, missingProfile, 
     contactGate,
     contactAllowed,
     amenities:   (property.amenities || []).map(a => ({ icon: 'FaWifi', label: a })),
-    verified:    false,
+    verified:    !!(property.users?.is_verified),
     host: {
       name:   hostName,
       avatar: property.users?.profile_picture
@@ -454,15 +514,22 @@ async function fetchScoreDrivenPage({ searchParams, user, supabase, adminSb, pag
   // If we hit the scan cap, don't claim there are more pages (prevents infinite empty paging).
   if (scoreOffset >= MAX_SCORE_SCAN) hasMoreScores = false;
 
-  // Re-rank for recommended by blending freshness into the collected window.
+  // Re-rank for recommended by blending freshness + quality into the collected window.
+  // Formula (locked): recommended = 0.70*match + 0.20*freshness + 0.10*quality
+  //   freshness: linear decay over ~30 days (strong boost first 7d, near-zero at 30d)
+  //   quality:   0–100 bounded; photos present (+50) + verified host (+50)
   if (sortBy === 'recommended') {
     const now = new Date();
     collected = collected
       .map(item => {
         const ageHours = Math.max(0, (now - new Date(item.createdAt)) / 36e5);
-        const freshness = Math.max(0, 100 - ageHours / 7.2); // ~30 days to near-zero
-        const match = typeof item.matchScore === 'number' ? item.matchScore : 0;
-        const recScore = (match * 0.7) + (freshness * 0.3);
+        // 100 at 0h → ~0 at 720h (30 days), steeper first 7d
+        const freshness = Math.max(0, 100 - ageHours / 7.2);
+        const match   = typeof item.matchScore === 'number' ? item.matchScore : 0;
+        // Quality: bounded so it can't overpower match
+        const hasPhotos = Array.isArray(item.images) && item.images.length > 0;
+        const quality  = (hasPhotos ? 50 : 0) + (item.verified ? 50 : 0); // 0 | 50 | 100
+        const recScore = (match * 0.70) + (freshness * 0.20) + (quality * 0.10);
         return { ...item, _recScore: recScore };
       })
       .sort((a, b) => (b._recScore - a._recScore) || (b.matchScore - a.matchScore));

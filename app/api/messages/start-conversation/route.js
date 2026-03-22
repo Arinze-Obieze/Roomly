@@ -52,8 +52,49 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Invalid context for conversation' }, { status: 403 });
     }
 
-    const hostId = isLandlordContactingSeeker ? user.id : targetId;
+    const hostId   = isLandlordContactingSeeker ? user.id : targetId;
     const tenantId = isLandlordContactingSeeker ? targetId : user.id;
+
+    // ── Contact gate (seeker-initiated only) ────────────────────────────────
+    // Mirrors the DB-level RLS policy. Using the user-scoped supabase client
+    // (not adminSb) so this is consistent with what RLS would enforce.
+    if (isSeekerContactingLandlord) {
+      const isPrivateProp = property.privacy_setting === 'private' || property.is_public === false;
+
+      const [{ data: interestRow }, { data: scoreRow }] = await Promise.all([
+        supabase
+          .from('property_interests')
+          .select('status')
+          .eq('seeker_id', user.id)
+          .eq('property_id', propertyId)
+          .maybeSingle(),
+        supabase
+          .from('compatibility_scores')
+          .select('score')
+          .eq('seeker_id', user.id)
+          .eq('property_id', propertyId)
+          .maybeSingle(),
+      ]);
+
+      const hasAcceptedInterest = interestRow?.status === 'accepted';
+
+      if (!hasAcceptedInterest) {
+        if (isPrivateProp) {
+          return NextResponse.json(
+            { error: 'You must have an accepted interest to contact the host of a private listing.' },
+            { status: 403 }
+          );
+        }
+        const score = scoreRow?.score ?? null;
+        if (score === null || score < 51) {
+          return NextResponse.json(
+            { error: 'Your match score must be 51 or higher to contact this host directly. Show interest first.' },
+            { status: 403 }
+          );
+        }
+      }
+    }
+    // ── End contact gate ─────────────────────────────────────────────────────
 
     // 3. Find or Create Conversation
     const { data: existingConversation } = await adminSupabase

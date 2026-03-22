@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
-import { cachedFetch, getCachedInt, invalidatePattern } from '@/core/utils/redis';
+import { cachedFetch, getCachedInt, bumpCacheVersion } from '@/core/utils/redis';
 import crypto from 'crypto';
 import { recomputeForProperty } from '@/core/services/matching/recompute-compatibility.service';
 
@@ -425,11 +425,11 @@ export async function PUT(request, { params }) {
         console.error('[Property Details PUT] Recompute failed:', recomputeError?.message || recomputeError);
       }
 
-      await invalidatePattern(`property:*`);
-      await invalidatePattern('properties:list:*');
-      await invalidatePattern('seeker:interests:*');
-      await invalidatePattern('landlord:interests:*');
-      await invalidatePattern('landlord:find_people:*');
+      // Bump versioned cache keys — no Redis KEYS scan needed
+      await Promise.all([
+        bumpCacheVersion('v:properties:global'),
+        bumpCacheVersion(`v:property:${id}`),
+      ]);
 
       return NextResponse.json(propertyData);
     }
@@ -477,11 +477,11 @@ export async function PUT(request, { params }) {
       console.error('[Property Details PUT] Recompute failed:', recomputeError?.message || recomputeError);
     }
 
-    await invalidatePattern(`property:*`);
-    await invalidatePattern('properties:list:*');
-    await invalidatePattern('seeker:interests:*');
-    await invalidatePattern('landlord:interests:*');
-    await invalidatePattern('landlord:find_people:*');
+    // Bump versioned cache keys — no Redis KEYS scan needed
+    await Promise.all([
+      bumpCacheVersion('v:properties:global'),
+      bumpCacheVersion(`v:property:${id}`),
+    ]);
 
     return NextResponse.json(data);
 
@@ -525,8 +525,11 @@ export async function DELETE(request, { params }) {
 
     if (error) throw error;
 
-    await invalidatePattern(`property:*`);
-    await invalidatePattern('properties:list:*');
+    // Bump versioned cache keys — no Redis KEYS scan needed
+    await Promise.all([
+      bumpCacheVersion('v:properties:global'),
+      bumpCacheVersion(`v:property:${id}`),
+    ]);
 
     return NextResponse.json({ success: true });
 
