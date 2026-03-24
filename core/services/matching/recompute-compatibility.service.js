@@ -6,7 +6,7 @@ export async function recomputeForSeeker(adminSb, seekerId) {
   const [lifestyleResult, prefsResult, userResult] = await Promise.all([
     adminSb.from('user_lifestyles').select('*').eq('user_id', seekerId).single(),
     adminSb.from('match_preferences').select('*').eq('user_id', seekerId).single(),
-    adminSb.from('users').select('gender, date_of_birth, occupation').eq('id', seekerId).single(),
+    adminSb.from('users').select('date_of_birth, gender').eq('id', seekerId).single(),
   ]);
 
   const lifestyle = lifestyleResult.data;
@@ -50,7 +50,7 @@ export async function recomputeForSeeker(adminSb, seekerId) {
     // Fetch host data separately to avoid fragile FK join aliases
     const hostIds = [...new Set(properties.map(p => p.listed_by_user_id).filter(Boolean))];
     const [hostMetaResult, hostLifestyleResult] = await Promise.all([
-      adminSb.from('users').select('id, gender, date_of_birth, occupation').in('id', hostIds),
+      adminSb.from('users').select('id, date_of_birth, gender').in('id', hostIds),
       adminSb.from('user_lifestyles').select('user_id, cleanliness_level, overnight_guests, occupation, smoking_status').in('user_id', hostIds),
     ]);
 
@@ -105,8 +105,7 @@ export async function recomputeForProperty(adminSb, propertyId) {
       age_min, age_max, lifestyle_priorities, deal_breakers, min_stay_months,
       bills_option, couples_allowed, available_from, is_immediate, privacy_setting, is_public,
       offering_type, listed_by_user_id,
-      users!listed_by_user_id (gender, date_of_birth, occupation),
-      user_lifestyles!listed_by_user_id (cleanliness_level, overnight_guests, occupation, smoking_status)
+      users!listed_by_user_id (date_of_birth, gender)
     `)
     .eq('id', propertyId)
     .single();
@@ -115,7 +114,12 @@ export async function recomputeForProperty(adminSb, propertyId) {
 
   // Extract Host Data
   const hostMeta = Array.isArray(property.users) ? property.users[0] : property.users || {};
-  const hostLifestyle = Array.isArray(property.user_lifestyles) ? property.user_lifestyles[0] : property.user_lifestyles || null;
+  const { data: hostLifestyleRows } = await adminSb
+    .from('user_lifestyles')
+    .select('user_id, cleanliness_level, overnight_guests, occupation, smoking_status')
+    .eq('user_id', property.listed_by_user_id)
+    .limit(1);
+  const hostLifestyle = Array.isArray(hostLifestyleRows) ? hostLifestyleRows[0] : hostLifestyleRows || null;
 
   let offset = 0;
   let hasMore = true;
@@ -128,14 +132,7 @@ export async function recomputeForProperty(adminSb, propertyId) {
         user_id,
         cleanliness_level, schedule_type, smoking_status, social_level,
         noise_tolerance, pets, interests, occupation, current_city,
-        preferred_room_types, preferred_property_types, move_in_urgency, min_stay, max_stay,
-        match_preferences!inner (
-          budget_min, budget_max, location_areas, gender_preference,
-          accepted_smoking, accepted_pets, stay_duration_min, stay_duration_max,
-          move_in_window, occupation_preference, cleanliness_tolerance, guests_tolerance,
-          age_min, age_max
-        ),
-        users!user_id (gender, date_of_birth, occupation)
+        preferred_room_types, preferred_property_types, move_in_urgency, min_stay, max_stay
       `)
       .neq('user_id', property.listed_by_user_id)
       .order('user_id')
@@ -146,11 +143,31 @@ export async function recomputeForProperty(adminSb, propertyId) {
       break;
     }
 
+    const seekerIds = seekers.map((seeker) => seeker.user_id).filter(Boolean);
+    const [prefsResult, userMetaResult] = await Promise.all([
+      adminSb
+        .from('match_preferences')
+        .select(`
+          user_id,
+          budget_min, budget_max, location_areas, gender_preference,
+          accepted_smoking, accepted_pets, stay_duration_min, stay_duration_max,
+          move_in_window, occupation_preference, cleanliness_tolerance, guests_tolerance,
+          age_min, age_max
+        `)
+        .in('user_id', seekerIds),
+      adminSb
+        .from('users')
+        .select('id, date_of_birth, gender')
+        .in('id', seekerIds),
+    ]);
+
+    const prefsByUserId = Object.fromEntries((prefsResult.data || []).map((pref) => [pref.user_id, pref]));
+    const userMetaById = Object.fromEntries((userMetaResult.data || []).map((user) => [user.id, user]));
+
     for (const seeker of seekers) {
-      const prefs = Array.isArray(seeker.match_preferences)
-        ? seeker.match_preferences[0]
-        : seeker.match_preferences;
-      const userMeta = Array.isArray(seeker.users) ? seeker.users[0] : seeker.users || {};
+      const prefs = prefsByUserId[seeker.user_id];
+      if (!prefs) continue;
+      const userMeta = userMetaById[seeker.user_id] || {};
 
       const lifestyle = {
         cleanliness_level: seeker.cleanliness_level,

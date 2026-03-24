@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { requireSuperadmin } from '@/core/services/superadmin/guard';
 import { logSuperadminEvent } from '@/core/services/superadmin/audit';
+import { recomputeForProperty } from '@/core/services/matching/recompute-compatibility.service';
+import { createAdminClient } from '@/core/utils/supabase/admin';
+import { bumpCacheVersion, invalidatePattern } from '@/core/utils/redis';
 
 export async function PATCH(request, { params }) {
   const guard = await requireSuperadmin();
@@ -32,6 +35,21 @@ export async function PATCH(request, { params }) {
       .single();
 
     if (error) throw error;
+
+    if (newStatus === 'approved') {
+      try {
+        await recomputeForProperty(createAdminClient(), propertyId);
+      } catch (recomputeError) {
+        console.error(`[Superadmin Property Approval] Recompute failed: ${recomputeError?.message || recomputeError}`);
+      }
+    }
+
+    await Promise.all([
+      bumpCacheVersion('v:properties:global'),
+      bumpCacheVersion(`v:property:${propertyId}`),
+      invalidatePattern('landlord:find_people:*'),
+      invalidatePattern('seeker:find_landlords:*'),
+    ]);
 
     await logSuperadminEvent(adminClient, {
       requestId: request.headers.get('x-request-id') || null,

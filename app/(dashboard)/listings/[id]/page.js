@@ -80,7 +80,7 @@ export default function PropertyDetailsPage() {
         );
 
         if (conversationId) {
-            router.push('/messages');
+            router.push(`/messages?conversationId=${encodeURIComponent(conversationId)}`);
             toast.success('Message sent successfully!');
         }
     } catch (error) {

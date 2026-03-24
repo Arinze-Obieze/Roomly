@@ -79,6 +79,13 @@ export default function ProfileView() {
             value={user.date_of_birth && new Date(user.date_of_birth).toLocaleDateString()} 
           />
         </motion.div>
+        <motion.div variants={item}>
+          <InfoItem
+            icon={MdPerson}
+            label="Gender"
+            value={user.gender ? String(user.gender).replace(/-/g, ' ') : null}
+          />
+        </motion.div>
       </motion.div>
 
       <motion.div variants={item}>

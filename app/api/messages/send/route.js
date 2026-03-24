@@ -1,0 +1,89 @@
+import { NextResponse } from 'next/server';
+import { createClient } from '@/core/utils/supabase/server';
+import { createAdminClient } from '@/core/utils/supabase/admin';
+import { sanitizeLength, sanitizeText } from '@/core/utils/sanitizers';
+
+export async function POST(request) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const body = await request.json().catch(() => ({}));
+    const {
+      conversationId,
+      content,
+      attachmentType = null,
+      attachmentData = null,
+    } = body;
+
+    if (!conversationId) {
+      return NextResponse.json({ error: 'conversationId is required' }, { status: 400 });
+    }
+
+    const cleanedContent = sanitizeText(sanitizeLength(content || '', 2000)).trim();
+    const hasAttachment = !!attachmentType;
+
+    if (!cleanedContent && !hasAttachment) {
+      return NextResponse.json({ error: 'Message content or attachment is required' }, { status: 400 });
+    }
+
+    const adminSupabase = createAdminClient();
+
+    const { data: conversation, error: conversationError } = await adminSupabase
+      .from('conversations')
+      .select('id, tenant_id, host_id')
+      .eq('id', conversationId)
+      .maybeSingle();
+
+    if (conversationError) throw conversationError;
+    if (!conversation) {
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 });
+    }
+
+    if (conversation.tenant_id !== user.id && conversation.host_id !== user.id) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const fallbackLastMessage = attachmentType === 'image'
+      ? 'Shared an image'
+      : attachmentType === 'file'
+        ? 'Shared a file'
+        : 'Sent a message';
+
+    const { data: message, error: messageError } = await adminSupabase
+      .from('messages')
+      .insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: cleanedContent || null,
+        attachment_type: attachmentType,
+        attachment_data: attachmentData,
+      })
+      .select()
+      .single();
+
+    if (messageError) throw messageError;
+
+    const { error: updateError } = await adminSupabase
+      .from('conversations')
+      .update({
+        last_message: cleanedContent || fallbackLastMessage,
+        last_message_at: message.created_at,
+      })
+      .eq('id', conversationId);
+
+    if (updateError) throw updateError;
+
+    return NextResponse.json({ success: true, data: message });
+  } catch (error) {
+    console.error('[Messages Send POST] Error:', error);
+    return NextResponse.json(
+      { error: error?.message || 'Failed to send message' },
+      { status: 500 }
+    );
+  }
+}

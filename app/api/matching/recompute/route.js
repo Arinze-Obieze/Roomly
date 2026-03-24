@@ -18,7 +18,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
-import { bumpCacheVersion } from '@/core/utils/redis';
+import { bumpCacheVersion, invalidatePattern } from '@/core/utils/redis';
 import {
   recomputeForProperty,
   recomputeForSeeker,
@@ -40,6 +40,7 @@ export async function POST(request) {
       await bumpCacheVersion(`v:properties:user:${user.id}`);
       await bumpCacheVersion(`v:feed:match:user:${user.id}`);
       await bumpCacheVersion(`v:feed:recommended:user:${user.id}`);
+      await invalidatePattern('landlord:find_people:*');
       return NextResponse.json({ success: true, mode: 'seeker', userId: user.id });
     }
 
@@ -61,6 +62,8 @@ export async function POST(request) {
       // Bump global + property-scoped cache versions
       await bumpCacheVersion('v:properties:global');
       await bumpCacheVersion(`v:property:${propertyId}`);
+      await invalidatePattern('landlord:find_people:*');
+      await invalidatePattern('seeker:find_landlords:*');
       return NextResponse.json({ success: true, mode: 'property', propertyId });
     }
 

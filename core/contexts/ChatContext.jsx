@@ -21,6 +21,65 @@ export const ChatProvider = ({ children }) => {
         activeConversationRef.current = activeConversation;
     }, [activeConversation]);
 
+    const mergeConversationIntoCache = (conversation) => {
+        if (!conversation || !user?.id) return;
+
+        queryClient.setQueryData(['conversations', user.id], (old) => {
+            if (!old?.pages) {
+                return {
+                    pages: [[conversation]],
+                    pageParams: [null],
+                };
+            }
+
+            const flattened = old.pages.flat();
+            const withoutCurrent = flattened.filter((item) => item.id !== conversation.id);
+            const nextList = [conversation, ...withoutCurrent].sort((a, b) => {
+                const aTime = new Date(a.last_message_at || a.created_at || 0).getTime();
+                const bTime = new Date(b.last_message_at || b.created_at || 0).getTime();
+                return bTime - aTime;
+            });
+
+            const firstPageSize = old.pages[0]?.length || 20;
+            const nextPages = [];
+            for (let i = 0; i < nextList.length; i += firstPageSize) {
+                nextPages.push(nextList.slice(i, i + firstPageSize));
+            }
+
+            return {
+                ...old,
+                pages: nextPages,
+            };
+        });
+    };
+
+    const fetchConversationById = async (conversationId) => {
+        if (!user || !conversationId) return null;
+
+        const { data, error } = await supabase
+            .from('conversations')
+            .select(`
+                *,
+                property:properties(id, title, city, state, property_media(url)),
+                tenant:users!tenant_id(id, full_name, profile_picture),
+                host:users!host_id(id, full_name, profile_picture)
+            `)
+            .eq('id', conversationId)
+            .or(`tenant_id.eq.${user.id},host_id.eq.${user.id}`)
+            .maybeSingle();
+
+        if (error) throw error;
+        if (!data) return null;
+
+        const normalizedConversation = {
+            ...data,
+            unread_count: data.tenant_id === user?.id ? data.unread_count_tenant : data.unread_count_host
+        };
+
+        mergeConversationIntoCache(normalizedConversation);
+        return normalizedConversation;
+    };
+
     // Fetch User's Conversations (Infinite)
     const conversationsQuery = useInfiniteQuery({
         queryKey: ['conversations', user?.id],
@@ -144,20 +203,23 @@ export const ChatProvider = ({ children }) => {
     // Send Message Mutation (Optimistic)
     const sendMessageMutation = useMutation({
         mutationFn: async ({ conversationId, content, attachmentType = null, attachmentData = null }) => {
-            const { data, error } = await supabase
-                .from('messages')
-                .insert({
-                    conversation_id: conversationId,
-                    sender_id: user.id,
+            const response = await fetch('/api/messages/send', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    conversationId,
                     content,
-                    attachment_type: attachmentType,
-                    attachment_data: attachmentData
-                })
-                .select()
-                .single();
-            
-            if (error) throw error;
-            return data;
+                    attachmentType,
+                    attachmentData,
+                }),
+            });
+
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || !payload?.success) {
+                throw new Error(payload?.error || 'Failed to send message');
+            }
+
+            return payload.data;
         },
         onMutate: async ({ conversationId, content, attachmentType = null, attachmentData = null }) => {
             await queryClient.cancelQueries(['messages', conversationId]);
@@ -203,7 +265,7 @@ export const ChatProvider = ({ children }) => {
             return { previousMessages };
         },
         onError: (err, newTodo, context) => {
-            toast.error('Failed to send');
+            toast.error(err?.message || 'Failed to send');
             if (context?.previousMessages) {
                 queryClient.setQueryData(['messages', newTodo.conversationId], context.previousMessages);
             }
@@ -481,6 +543,8 @@ export const ChatProvider = ({ children }) => {
         allConversations: conversationsList, // full list, used by ChatWindow to look up archived convs
         messages: conversationMessages,
         loading: conversationsQuery.isLoading && conversationsList.length === 0,
+        refreshConversations: conversationsQuery.refetch,
+        fetchConversationById,
         
         fetchNextConversations: conversationsQuery.fetchNextPage,
         hasNextConversations: conversationsQuery.hasNextPage,

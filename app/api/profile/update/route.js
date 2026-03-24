@@ -8,6 +8,7 @@ const ALLOWED_FIELDS = [
   'phone_number',
   'bio',
   'date_of_birth',
+  'gender',
   'privacy_setting',
   'profile_picture',
   'show_online_status',

@@ -19,6 +19,7 @@ export default function ProfileForm({ onCancel }) {
     phone_number: user?.phone_number || '',
     bio: user?.bio || '',
     date_of_birth: user?.date_of_birth || '',
+    gender: user?.gender || '',
     privacy_setting: user?.privacy_setting || 'public',
   });
 
@@ -32,9 +33,10 @@ export default function ProfileForm({ onCancel }) {
       phone_number: user.phone_number || '',
       bio: user.bio || '',
       date_of_birth: user.date_of_birth || '',
+      gender: user.gender || '',
       privacy_setting: user.privacy_setting || 'public',
     });
-  }, [user?.full_name, user?.phone_number, user?.bio, user?.date_of_birth, user?.privacy_setting]);
+  }, [user?.full_name, user?.phone_number, user?.bio, user?.date_of_birth, user?.gender, user?.privacy_setting]);
 
 
   const handleChange = (e) => {
@@ -191,6 +193,20 @@ export default function ProfileForm({ onCancel }) {
             onChange={handleChange}
             className="w-full px-4 py-2 rounded-xl border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500 focus:border-transparent transition-all font-sans"
           />
+        </div>
+
+        <div>
+          <label className="block text-sm font-heading font-bold text-navy-950 mb-2">Gender</label>
+          <select
+            name="gender"
+            value={formData.gender}
+            onChange={handleChange}
+            className="w-full px-4 py-2 rounded-xl border border-navy-200 focus:outline-none focus:ring-2 focus:ring-terracotta-500 focus:border-transparent transition-all font-sans bg-white"
+          >
+            <option value="">Prefer not to say</option>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
         </div>
         
         <div className="col-span-1 md:col-span-2">

@@ -1,21 +1,68 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatList } from '@/components/chat/ChatList';
 import { ChatWindow } from '@/components/chat/ChatWindow';
 import { useChat } from '@/core/contexts/ChatContext';
+import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdSend, MdArrowBack } from 'react-icons/md';
 
 export default function MessagesPage() {
     const router = useRouter();
+    const searchParams = useSearchParams();
+    const { user } = useAuthContext();
     const [activeTab, setActiveTab] = useState('received');
     const [showArchived, setShowArchived] = useState(false);
-    const { activeConversation, setActiveConversation } = useChat();
+    const { activeConversation, setActiveConversation, allConversations, refreshConversations, fetchConversationById } = useChat();
+    const initializedConversationRef = useRef(null);
+
+    useEffect(() => {
+        const conversationId = searchParams.get('conversationId');
+        if (!conversationId) return;
+        if (initializedConversationRef.current === conversationId) return;
+
+        if (activeConversation !== conversationId) {
+            setActiveConversation(conversationId);
+        }
+
+        const matchedConversation = (allConversations ?? []).find((conversation) => conversation.id === conversationId);
+        if (matchedConversation) {
+            initializedConversationRef.current = conversationId;
+            setShowArchived(false);
+            setActiveTab(matchedConversation.host_id === user?.id ? 'received' : 'sent');
+            return;
+        }
+
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const fetchedConversation = await fetchConversationById?.(conversationId);
+                if (cancelled || !fetchedConversation) {
+                    refreshConversations?.();
+                    return;
+                }
+
+                initializedConversationRef.current = conversationId;
+                setShowArchived(false);
+                setActiveTab(fetchedConversation.host_id === user?.id ? 'received' : 'sent');
+            } catch {
+                if (!cancelled) {
+                    refreshConversations?.();
+                }
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [searchParams, activeConversation, setActiveConversation, allConversations, user?.id, refreshConversations, fetchConversationById]);
 
     // When switching tabs, always exit archive view and clear active conversation
     const handleTabChange = (tab) => {
+        initializedConversationRef.current = searchParams.get('conversationId');
         setActiveTab(tab);
         setShowArchived(false);
         setActiveConversation(null);

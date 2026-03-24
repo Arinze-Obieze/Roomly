@@ -1,22 +1,35 @@
-=== Roomly Schema Inspection: 2026-03-22T06:20:11.910Z ===
+=== Roomly Schema Inspection: 2026-03-24T20:09:30.896Z ===
 URL: https://aiovmhiokeisdizhcxvm.supabase.co
 Key type: Service Role
 
 [EXISTS]   user_lifestyles | rows≈6 | columns(22): user_id, cleanliness_level, schedule_type, smoking_status, drinking_habits, cannabis_friendly, dietary_preference, social_level, noise_tolerance, pets, interests, overnight_guests, created_at, updated_at, occupation, primary_role, current_city, move_in_urgency, preferred_room_types, preferred_property_types, min_stay, max_stay
-           sample: {"user_id":"06fa1dec-4d85-40c8-8aae-9943b391dd1e","cleanliness_level":2,"schedule_type":"9-5","smoking_status":"no","drinking_habits":"social","cannabis_friendly":false,"dietary_preference":"omnivore","social_level":2,"noise_tolerance":2,"pets":{"has_pets":false,"description":"","accepts_pets":true}
+           sample: {"user_id":"ab56ce25-b5d3-46c5-ab55-d573b08180d5","cleanliness_level":3,"schedule_type":"student","smoking_status":"no","drinking_habits":"social","cannabis_friendly":false,"dietary_preference":"omnivore","social_level":2,"noise_tolerance":3,"pets":{"has_pets":true,"description":"","accepts_pets":tr
 [EXISTS]   match_preferences | rows≈355 | columns(17): user_id, age_min, age_max, gender_preference, accepted_smoking, accepted_pets, budget_min, budget_max, stay_duration_min, stay_duration_max, location_areas, created_at, updated_at, move_in_window, occupation_preference, cleanliness_tolerance, guests_tolerance
            sample: {"user_id":"592ac246-9153-4549-9b9b-2ab97b9e2198","age_min":23,"age_max":53,"gender_preference":null,"accepted_smoking":null,"accepted_pets":true,"budget_min":531,"budget_max":849,"stay_duration_min":6,"stay_duration_max":13,"location_areas":["Dublin"],"created_at":"2026-03-22T01:18:44.22817+00:00",
-[EXISTS]   properties | rows≈1086 | columns(49): id, title, description, property_type, price_per_month, state, city, street, bedrooms, bathrooms, square_meters, available_from, amenities, listed_by_user_id, is_active, status, created_at, updated_at, privacy_setting, custom_fees, rental_type, offering_type, year_built, ber_rating, latitude, longitude, transport_options, is_gaeltacht, deposit, bills_option, custom_bills, couples_allowed, payment_methods, occupation_preference, gender_preference, age_min, age_max, lifestyle_priorities, partner_description, is_immediate, min_stay_months, accept_viewings, deal_breakers, fixed_term_duration, is_public, bills_included, room_type, house_rules, approval_status
+[EXISTS]   properties | rows≈1088 | columns(49): id, title, description, property_type, price_per_month, state, city, street, bedrooms, bathrooms, square_meters, available_from, amenities, listed_by_user_id, is_active, status, created_at, updated_at, privacy_setting, custom_fees, rental_type, offering_type, year_built, ber_rating, latitude, longitude, transport_options, is_gaeltacht, deposit, bills_option, custom_bills, couples_allowed, payment_methods, occupation_preference, gender_preference, age_min, age_max, lifestyle_priorities, partner_description, is_immediate, min_stay_months, accept_viewings, deal_breakers, fixed_term_duration, is_public, bills_included, room_type, house_rules, approval_status
            sample: {"id":"69ab2081-f0e1-4e88-adbd-f5a2051ba0f4","title":"Charming Apartment in Waterford","description":"Accusantium truculenter acsi cedo contabesco veniam. Summisse viridis cariosus tondeo pax defendo capitulus utor appono vigilo. Adflicto suus antea coniuratio audentia atque substantia.\nDefaeco asp
-[EXISTS]   property_interests | rows≈0 | columns(0): 
-[EXISTS]   compatibility_scores | rows≈3194 | columns(5): id, seeker_id, property_id, score, computed_at
-           sample: {"id":"3ca8f94b-e070-4773-b4d2-0c391a082b43","seeker_id":"a9e72c86-fd7a-45b7-9a0d-87e93e2f15ef","property_id":"69ab2081-f0e1-4e88-adbd-f5a2051ba0f4","score":52,"computed_at":"2026-03-22T01:34:10.555+00:00"}
+[EXISTS]   property_media | rows≈3889 | columns(7): id, property_id, url, media_type, is_primary, display_order, created_at
+           sample: {"id":"c009cdd3-7852-449e-8c4d-5c4bfec5026d","property_id":"55c0341d-8c09-4bdd-92e2-ebb50db0de5b","url":"https://loremflickr.com/800/600/apartment?random=139","media_type":"image","is_primary":true,"display_order":1,"created_at":"2026-03-22T01:43:15.961+00:00"}
+[EXISTS]   property_interests | rows≈3 | columns(8): id, property_id, seeker_id, status, created_at, updated_at, compatibility_score, message
+           sample: {"id":"0199159b-7683-4205-a981-b5950feab1c9","property_id":"1fdda664-4cd2-4c4e-8909-e3e24baca913","seeker_id":"70485964-79f3-488d-9abc-fdf0b0967c7f","status":"pending","created_at":"2026-03-22T06:42:05.626311+00:00","updated_at":"2026-03-22T06:42:04.236+00:00","compatibility_score":85,"message":null
+[EXISTS]   compatibility_scores | rows≈6199 | columns(5): id, seeker_id, property_id, score, computed_at
+           sample: {"id":"822a21a9-a3a9-48ee-9e7b-91b48c5bf0e4","seeker_id":"a9e72c86-fd7a-45b7-9a0d-87e93e2f15ef","property_id":"000be85a-45df-4945-9faf-f922b118d5a1","score":51,"computed_at":"2026-03-22T08:52:06.271+00:00"}
 [EXISTS]   conversations | rows≈2 | columns(10): id, property_id, tenant_id, host_id, last_message, last_message_at, created_at, unread_count_tenant, unread_count_host, archived_by
            sample: {"id":"30868996-1f97-4766-92fc-5f34bd1a18b1","property_id":"d8c91e68-7a31-48d9-925a-8a629ba70195","tenant_id":"8b643592-f517-4c82-86f3-ded8f86bdc90","host_id":"f4ee7219-b60b-488f-85ef-e4afa48c3e83","last_message":"Hi Estevan Kozey, I'm a young professional ","last_message_at":"2026-03-22T01:42:12.36
 [EXISTS]   messages | rows≈2 | columns(10): id, conversation_id, sender_id, content, is_read, created_at, attachment_type, attachment_data, is_edited, edited_at
            sample: {"id":"bd1bb4a4-27d7-4b88-8b59-9a558fd6bc08","conversation_id":"30868996-1f97-4766-92fc-5f34bd1a18b1","sender_id":"8b643592-f517-4c82-86f3-ded8f86bdc90","content":"Hi Estevan Kozey, I'm a young professional ","is_read":false,"created_at":"2026-03-22T01:42:12.486775+00:00","attachment_type":null,"att
-[EXISTS]   notifications | rows≈1 | columns(9): id, user_id, type, title, message, link, is_read, data, created_at
+[EXISTS]   notifications | rows≈4 | columns(9): id, user_id, type, title, message, link, is_read, data, created_at
            sample: {"id":"5345e6a6-f3c5-4e0a-add2-c538640d0eba","user_id":"a9e72c86-fd7a-45b7-9a0d-87e93e2f15ef","type":"system","title":"New Group Member","message":"Someone joined your group \"yhj\"","link":"/dashboard/buddy?groupId=71bffbe6-7189-4e76-9ed8-2af8f33fcf06","is_read":true,"data":{"groupId":"71bffbe6-718
+[EXISTS]   buddy_groups | rows≈9 | columns(5): id, name, admin_id, created_at, preferences
+           sample: {"id":"13651eaa-4749-4441-b698-523fff4793c8","name":"New","admin_id":"ab56ce25-b5d3-46c5-ab55-d573b08180d5","created_at":"2026-02-24T13:43:01.316091+00:00","preferences":{}}
+[EXISTS]   buddy_group_members | rows≈56 | columns(6): id, group_id, user_id, joined_at, role, status
+           sample: {"id":"8dc38948-b7b4-485b-b14a-cc5e36d29c84","group_id":"13651eaa-4749-4441-b698-523fff4793c8","user_id":"ab56ce25-b5d3-46c5-ab55-d573b08180d5","joined_at":"2026-02-24T13:43:01.695125+00:00","role":"admin","status":"active"}
+[EXISTS]   buddy_messages | rows≈49 | columns(7): id, group_id, sender_id, content, attachment_type, attachment_data, created_at
+           sample: {"id":"a617def2-9feb-4237-b618-50b5ad1fcd76","group_id":"31aa21b5-875e-4a10-a906-e16741851011","sender_id":"70485964-79f3-488d-9abc-fdf0b0967c7f","content":"Hello","attachment_type":"text","attachment_data":null,"created_at":"2026-03-05T02:14:37.716257+00:00"}
+[EXISTS]   buddy_invites | rows≈2 | columns(7): id, group_id, email, token, expires_at, status, created_at
+           sample: {"id":"c5d4d31b-9197-4ff4-86ba-222c382c32c2","group_id":"71bffbe6-7189-4e76-9ed8-2af8f33fcf06","email":"zagorakisnwokoye@gmail.com","token":"0795cd1d6d16ca76f58fdbf461104abcc8f1e33c3a82832566d0a521eedbc5e9","expires_at":"2026-03-16T10:50:04.001+00:00","status":"accepted","created_at":"2026-03-14T10:
+[EXISTS]   users | rows≈359 | columns(22): id, email, full_name, phone_number, profile_picture, bio, date_of_birth, is_admin, created_at, updated_at, is_verified, privacy_setting, show_online_status, show_response_time, notif_new_messages, notif_interest, notif_mutual_match, profile_visibility, last_seen, average_response_time_ms, response_count, is_superadmin
+           sample: {"id":"41452e94-9f9f-4c51-bd65-4696d8dc162c","email":"mpftyqp9_3@example-seed.com","full_name":"Alfred Spencer","phone_number":null,"profile_picture":"https://cdn.jsdelivr.net/gh/faker-js/assets-person-portrait/male/512/11.jpg","bio":null,"date_of_birth":null,"is_admin":false,"created_at":"2026-03-2
 
 === Storage Buckets ===
   - listing-images (public: true)
@@ -25,4 +38,11 @@ Key type: Service Role
   - buddy_attachments (public: false)
   - message_attachments (public: false)
   - support_attachments (public: false)
+
+[Deep Dive] property-media bucket structure:
+  / 06fa1dec-4d85-40c8-8aae-9943b391dd1e [folder]
+  / properties [folder]
+    /06fa1dec-4d85-40c8-8aae-9943b391dd1e/f698dcfb-5c9e-4078-b471-a05c63540416
+      /06fa1dec-4d85-40c8-8aae-9943b391dd1e/f698dcfb-5c9e-4078-b471-a05c63540416/image_1_b4ea9a31-8b29-466f-a05d-a4de57b037f1.blob (image/jpeg)
+      /06fa1dec-4d85-40c8-8aae-9943b391dd1e/f698dcfb-5c9e-4078-b471-a05c63540416/image_2_4dad6b95-975a-4436-913c-4073d01ef4aa.blob (image/jpeg)
 pg_trigger data: null

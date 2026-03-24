@@ -3,13 +3,15 @@ import crypto from 'crypto';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { cachedFetch } from '@/core/utils/redis';
+import { recomputeForProperty } from '@/core/services/matching/recompute-compatibility.service';
 
 const MAX_LIMIT = 60;
+const DEFAULT_PAGE = 1;
 
-const generateCacheKey = ({ userId, minMatch, limit }) => {
+const generateCacheKey = ({ userId, minMatch, limit, page }) => {
   const hash = crypto
     .createHash('md5')
-    .update(JSON.stringify({ userId, minMatch, limit }))
+    .update(JSON.stringify({ userId, minMatch, limit, page }))
     .digest('hex');
   return `landlord:find_people:${hash}`;
 };
@@ -26,10 +28,11 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const minMatch = Math.min(100, Math.max(0, Number(searchParams.get('minMatch') || 70)));
     const limit = Math.min(MAX_LIMIT, Math.max(1, Number(searchParams.get('limit') || 24)));
+    const page = Math.max(DEFAULT_PAGE, Number(searchParams.get('page') || DEFAULT_PAGE));
 
-    const cacheKey = generateCacheKey({ userId: user.id, minMatch, limit });
+    const cacheKey = generateCacheKey({ userId: user.id, minMatch, limit, page });
     const data = await cachedFetch(cacheKey, 300, async () => {
-      return fetchMatchedSeekers({ landlordId: user.id, minMatch, limit });
+      return fetchMatchedSeekers({ landlordId: user.id, minMatch, limit, page });
     });
 
     return NextResponse.json(data);
@@ -39,56 +42,105 @@ export async function GET(request) {
   }
 }
 
-async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
+async function fetchMatchedSeekers({ landlordId, minMatch, limit, page }) {
   const adminSupabase = createAdminClient();
+  const approvedListingsQuery = () =>
+    adminSupabase
+      .from('properties')
+      .select('id, title')
+      .eq('listed_by_user_id', landlordId)
+      .eq('is_active', true)
+      .eq('approval_status', 'approved');
 
-  const { count: listingCount, error: listingCountError } = await adminSupabase
-    .from('properties')
-    .select('id', { count: 'estimated', head: true })
-    .eq('listed_by_user_id', landlordId)
-    .eq('is_active', true);
+  const scoreRowsQuery = () =>
+    adminSupabase
+      .from('compatibility_scores')
+      .select(`
+        seeker_id,
+        property_id,
+        score,
+        property:properties!inner(id, title, listed_by_user_id, is_active, approval_status)
+      `)
+      .eq('property.listed_by_user_id', landlordId)
+      .eq('property.is_active', true)
+      .eq('property.approval_status', 'approved')
+      .order('score', { ascending: false })
+      .limit(1000);
 
-  if (listingCountError) throw listingCountError;
+  const acceptedInterestRowsQuery = () =>
+    adminSupabase
+      .from('property_interests')
+      .select(`
+        seeker_id,
+        property_id,
+        status,
+        property:properties!inner(id, listed_by_user_id, approval_status)
+      `)
+      .eq('property.listed_by_user_id', landlordId)
+      .eq('property.approval_status', 'approved')
+      .eq('status', 'accepted')
+      .limit(500);
 
-  if (!listingCount || listingCount === 0) {
+  const [
+    { count: approvedListingCount, error: approvedListingCountError },
+    { count: pendingListingCount, error: pendingListingCountError },
+  ] = await Promise.all([
+    adminSupabase
+      .from('properties')
+      .select('id', { count: 'estimated', head: true })
+      .eq('listed_by_user_id', landlordId)
+      .eq('is_active', true)
+      .eq('approval_status', 'approved'),
+    adminSupabase
+      .from('properties')
+      .select('id', { count: 'estimated', head: true })
+      .eq('listed_by_user_id', landlordId)
+      .eq('approval_status', 'pending'),
+  ]);
+
+  if (approvedListingCountError) throw approvedListingCountError;
+  if (pendingListingCountError) throw pendingListingCountError;
+
+  if (!approvedListingCount || approvedListingCount === 0) {
     return {
       canUseFeature: false,
-      message: 'You need at least one active listing to source matched seekers.',
+      reason: pendingListingCount > 0 ? 'pending_approval' : 'no_approved_listing',
+      message: pendingListingCount > 0
+        ? 'You will start seeing matched tenants once your property is approved.'
+        : 'You need at least one approved active listing to source matched seekers.',
       data: [],
       listingCount: 0,
+      approvedListingCount: 0,
+      pendingListingCount: pendingListingCount || 0,
+      pagination: buildPagination({ page, limit, total: 0 }),
     };
   }
 
-  // 1) Compatibility scores for this landlord's active listings (join to avoid huge `.in(...)` lists)
-  const { data: scoreRows, error: scoreError } = await adminSupabase
-    .from('compatibility_scores')
-    .select(`
-      seeker_id,
-      property_id,
-      score,
-      property:properties!inner(id, title, listed_by_user_id, is_active)
-    `)
-    .eq('property.listed_by_user_id', landlordId)
-    .eq('property.is_active', true)
-    .order('score', { ascending: false })
-    .limit(1000); // Increased limit to ensure we see high matches
+  const { data: approvedListings, error: approvedListingsError } = await approvedListingsQuery();
+  if (approvedListingsError) throw approvedListingsError;
+
+  // 1) Compatibility scores for this landlord's approved active listings
+  let { data: scoreRows, error: scoreError } = await scoreRowsQuery();
 
   if (scoreError) throw scoreError;
 
   // 2) Accepted interests should still be visible even when below threshold
-  const { data: acceptedInterestRows, error: acceptedError } = await adminSupabase
-    .from('property_interests')
-    .select(`
-      seeker_id,
-      property_id,
-      status,
-      property:properties!inner(id, listed_by_user_id)
-    `)
-    .eq('property.listed_by_user_id', landlordId)
-    .eq('status', 'accepted')
-    .limit(500); // Safety limit for interests per landlord
+  let { data: acceptedInterestRows, error: acceptedError } = await acceptedInterestRowsQuery();
 
   if (acceptedError) throw acceptedError;
+
+  // Self-heal old listings that were approved after creation and never recomputed.
+  if ((scoreRows?.length || 0) === 0 && (acceptedInterestRows?.length || 0) === 0 && (approvedListings?.length || 0) > 0) {
+    await Promise.all(
+      approvedListings.map((property) => recomputeForProperty(adminSupabase, property.id))
+    );
+
+    ({ data: scoreRows, error: scoreError } = await scoreRowsQuery());
+    ({ data: acceptedInterestRows, error: acceptedError } = await acceptedInterestRowsQuery());
+
+    if (scoreError) throw scoreError;
+    if (acceptedError) throw acceptedError;
+  }
 
   const acceptedKeys = new Set(
     (acceptedInterestRows || []).map((row) => `${row.seeker_id}:${row.property_id}`)
@@ -134,8 +186,13 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
     return {
       canUseFeature: true,
       minMatch,
-      listingCount,
+      listingCount: approvedListingCount,
+      approvedListingCount,
+      pendingListingCount: pendingListingCount || 0,
+      topMatchBelowThreshold: null,
+      totalCandidatesScored: 0,
       data: [],
+      pagination: buildPagination({ page, limit, total: 0 }),
     };
   }
 
@@ -160,8 +217,7 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
       )
     `)
     .in('user_id', candidateIds)
-    .neq('user_id', landlordId)
-    .limit(limit * 2); // Fetch slightly more to account for masking/filtering
+    .neq('user_id', landlordId);
 
   if (seekersError) throw seekersError;
 
@@ -206,15 +262,42 @@ async function fetchMatchedSeekers({ landlordId, minMatch, limit }) {
     };
   });
 
-  const filtered = scoredCandidates
+  const filteredCandidates = scoredCandidates
     .filter(Boolean)
-    .sort((a, b) => b.match_score - a.match_score)
-    .slice(0, limit);
+    .sort((a, b) => b.match_score - a.match_score);
+
+  const totalCandidatesScored = filteredCandidates.length;
+  const currentPage = totalCandidatesScored > 0
+    ? Math.min(page, Math.ceil(totalCandidatesScored / limit))
+    : DEFAULT_PAGE;
+  const offset = (currentPage - 1) * limit;
+  const filtered = filteredCandidates.slice(offset, offset + limit);
+
+  const topMatchBelowThreshold = filteredCandidates
+    .reduce((max, candidate) => Math.max(max, candidate.match_score || 0), 0);
 
   return {
     canUseFeature: true,
     minMatch,
-    listingCount,
+    listingCount: approvedListingCount,
+    approvedListingCount,
+    pendingListingCount: pendingListingCount || 0,
+    topMatchBelowThreshold,
+    totalCandidatesScored,
     data: filtered,
+    pagination: buildPagination({ page: currentPage, limit, total: totalCandidatesScored }),
+  };
+}
+
+function buildPagination({ page, limit, total }) {
+  const totalPages = total > 0 ? Math.ceil(total / limit) : 1;
+
+  return {
+    page,
+    pageSize: limit,
+    total,
+    totalPages,
+    hasPreviousPage: page > 1,
+    hasNextPage: page < totalPages,
   };
 }

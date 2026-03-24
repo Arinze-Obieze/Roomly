@@ -39,6 +39,10 @@ export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived
 
   const activeConversations = activeTab === 'received' ? receivedConversations : sentConversations;
   const displayedList = showArchived ? archivedList : activeConversations;
+  const activeConversationEntry = (allConversations ?? []).find(c => c.id === activeConversation);
+  const visibleList = activeConversationEntry && !displayedList.some(c => c.id === activeConversationEntry.id)
+    ? [activeConversationEntry, ...displayedList]
+    : displayedList;
 
   const handleArchiveToggle = async (e, conv, archive) => {
     e.stopPropagation();
@@ -171,7 +175,7 @@ export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived
 
       {/* Scrollable List Section */}
       <div className="flex-1 overflow-y-auto bg-white">
-        {displayedList.length === 0 ? (
+        {visibleList.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-navy-500 px-6 text-center py-12">
             <div className="w-12 h-12 bg-navy-50 rounded-full flex items-center justify-center mb-3 border border-navy-200">
               {showArchived ? (
@@ -202,7 +206,7 @@ export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived
               animate="show"
               className="divide-y divide-navy-100"
             >
-              {displayedList.map(conv => {
+              {visibleList.map(conv => {
                 const otherParty = conv.tenant_id === user?.id ? conv.host : conv.tenant;
                 const isActive = activeConversation === conv.id;
                 const hasUnread = conv.unread_count > 0;

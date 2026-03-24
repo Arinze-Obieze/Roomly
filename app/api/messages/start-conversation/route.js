@@ -134,7 +134,6 @@ export async function POST(request) {
         .update({
           last_message: cleanedMessage,
           last_message_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
         })
         .eq('id', conversationId);
     }

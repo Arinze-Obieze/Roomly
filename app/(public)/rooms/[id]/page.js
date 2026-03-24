@@ -82,7 +82,7 @@ export default function RoomDetailsPage() {
     );
 
     if (conversationId) {
-        router.push('/messages');
+        router.push(`/messages?conversationId=${encodeURIComponent(conversationId)}`);
     }
     setContacting(false);
   };

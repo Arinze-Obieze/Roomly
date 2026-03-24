@@ -5,11 +5,12 @@ import { createAdminClient } from '@/core/utils/supabase/admin';
 import { cachedFetch } from '@/core/utils/redis';
 
 const MAX_LIMIT = 60;
+const DEFAULT_PAGE = 1;
 
-const generateCacheKey = ({ userId, minMatch, limit }) => {
+const generateCacheKey = ({ userId, minMatch, limit, page }) => {
   const hash = crypto
     .createHash('md5')
-    .update(JSON.stringify({ userId, minMatch, limit }))
+    .update(JSON.stringify({ userId, minMatch, limit, page }))
     .digest('hex');
   return `seeker:find_landlords:${hash}`;
 };
@@ -26,10 +27,11 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const minMatch = Math.min(100, Math.max(0, Number(searchParams.get('minMatch') || 70)));
     const limit = Math.min(MAX_LIMIT, Math.max(1, Number(searchParams.get('limit') || 24)));
+    const page = Math.max(DEFAULT_PAGE, Number(searchParams.get('page') || DEFAULT_PAGE));
 
-    const cacheKey = generateCacheKey({ userId: user.id, minMatch, limit });
+    const cacheKey = generateCacheKey({ userId: user.id, minMatch, limit, page });
     const data = await cachedFetch(cacheKey, 300, async () => {
-      return fetchMatchedLandlords({ seekerId: user.id, minMatch, limit });
+      return fetchMatchedLandlords({ seekerId: user.id, minMatch, limit, page });
     });
 
     return NextResponse.json(data);
@@ -39,7 +41,7 @@ export async function GET(request) {
   }
 }
 
-async function fetchMatchedLandlords({ seekerId, minMatch, limit }) {
+async function fetchMatchedLandlords({ seekerId, minMatch, limit, page }) {
   const adminSupabase = createAdminClient();
 
   // 1) Get seeker's compatibility scores for ALL properties
@@ -58,6 +60,7 @@ async function fetchMatchedLandlords({ seekerId, minMatch, limit }) {
       canUseFeature: true,
       minMatch,
       data: [],
+      pagination: buildPagination({ page, limit, total: 0 }),
     };
   }
 
@@ -89,7 +92,12 @@ async function fetchMatchedLandlords({ seekerId, minMatch, limit }) {
 
   const landlordIds = Array.from(landlordsMap.keys());
   if (landlordIds.length === 0) {
-    return { canUseFeature: true, minMatch, data: [] };
+    return {
+      canUseFeature: true,
+      minMatch,
+      data: [],
+      pagination: buildPagination({ page, limit, total: 0 }),
+    };
   }
 
   // 3) Get landlord profiles
@@ -145,12 +153,31 @@ async function fetchMatchedLandlords({ seekerId, minMatch, limit }) {
       role: 'host'
     };
   })
-  .sort((a, b) => b.match_score - a.match_score)
-  .slice(0, limit);
+  .sort((a, b) => b.match_score - a.match_score);
+
+  const currentPage = data.length > 0
+    ? Math.min(page, Math.ceil(data.length / limit))
+    : DEFAULT_PAGE;
+  const offset = (currentPage - 1) * limit;
+  const paginatedData = data.slice(offset, offset + limit);
 
   return {
     canUseFeature: true,
     minMatch,
-    data: data,
+    data: paginatedData,
+    pagination: buildPagination({ page: currentPage, limit, total: data.length }),
+  };
+}
+
+function buildPagination({ page, limit, total }) {
+  const totalPages = total > 0 ? Math.ceil(total / limit) : 1;
+
+  return {
+    page,
+    pageSize: limit,
+    total,
+    totalPages,
+    hasPreviousPage: page > 1,
+    hasNextPage: page < totalPages,
   };
 }
