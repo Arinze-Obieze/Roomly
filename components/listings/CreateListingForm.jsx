@@ -256,11 +256,14 @@ export default function CreateListingForm({ onClose, initialData = null }) {
         });
 
         formData.photos.forEach(photo => {
-             if (photo instanceof File) payload.append('new_photos[]', photo);
-             else payload.append('existing_photos[]', photo);
+             if (photo instanceof Blob) {
+                 payload.append('new_photos[]', photo);
+             } else {
+                 payload.append('existing_photos[]', photo);
+             }
         });
         formData.videos.forEach(video => {
-             if (video instanceof File) payload.append('new_videos[]', video);
+             if (video instanceof Blob) payload.append('new_videos[]', video);
         });
 
         const url = isEditing ? `/api/properties/${initialData.id}` : '/api/properties/create';
@@ -274,9 +277,12 @@ export default function CreateListingForm({ onClose, initialData = null }) {
         }
 
         toast.success('Listing published successfully!');
-        if(onClose) onClose();
+        if(onClose) {
+            onClose();
+        } else {
+            router.push('/dashboard');
+        }
         router.refresh();
-        router.push('/dashboard');
 
     } catch (error) {
         console.error(error);

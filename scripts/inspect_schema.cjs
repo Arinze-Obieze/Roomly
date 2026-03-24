@@ -23,6 +23,7 @@ const TABLES_TO_CHECK = [
   'user_lifestyles',
   'match_preferences',
   'properties',
+  'property_media',
   'property_interests',
   'compatibility_scores',
   'conversations',
@@ -85,6 +86,33 @@ async function inspectSchema() {
   const { data: buckets, error: be } = await supabase.storage.listBuckets();
   if (!be && buckets) {
     buckets.forEach(b => log(`  - ${b.name} (public: ${b.public})`));
+
+    // Deep dive into property-media structure
+    const mediaBucket = buckets.find(b => b.name === 'property-media');
+    if (mediaBucket) {
+      log('\n[Deep Dive] property-media bucket structure:');
+      const { data: rootItems } = await supabase.storage.from('property-media').list();
+      if (rootItems) {
+        rootItems.forEach(item => log(`  / ${item.name} ${item.id ? '[file]' : '[folder]'}`));
+        
+        // Dynamic deep dive: Find first folder (could be 'properties' or a user_id)
+        const rootFolder = rootItems.find(i => !i.id);
+        if (rootFolder) {
+          const { data: level2 } = await supabase.storage.from('property-media').list(rootFolder.name, { limit: 3 });
+          if (level2) {
+            level2.forEach(p => log(`    /${rootFolder.name}/${p.name}`));
+            
+            // Try drilling down one more level (e.g. user_id -> property_id)
+            const subFolder = level2.find(p => !p.id);
+            if (subFolder) {
+               const path = `${rootFolder.name}/${subFolder.name}`;
+               const { data: files } = await supabase.storage.from('property-media').list(path, { limit: 3 });
+               if (files) files.forEach(f => log(`      /${path}/${f.name} (${f.metadata?.mimetype})`));
+            }
+          }
+        }
+      }
+    }
   } else {
     log(`  Error listing buckets: ${be?.message}`);
   }

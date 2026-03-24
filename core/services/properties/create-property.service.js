@@ -270,7 +270,7 @@ export async function handleCreateProperty(req) {
       for (const file of photos) {
         photoOrder += 1;
         const extension = file.name?.split('.').pop()?.toLowerCase() || 'jpg';
-        const path = `properties/${property.id}/image_${photoOrder}_${crypto.randomUUID()}.${extension}`;
+        const path = `${user.id}/${property.id}/image_${photoOrder}_${crypto.randomUUID()}.${extension}`;
 
         const { data: upload, error: uploadError } = await supabase.storage
           .from('property-media')
@@ -294,7 +294,7 @@ export async function handleCreateProperty(req) {
       for (const file of videos) {
         videoOrder += 1;
         const extension = file.name?.split('.').pop()?.toLowerCase() || 'mp4';
-        const path = `properties/${property.id}/video_${videoOrder}_${crypto.randomUUID()}.${extension}`;
+        const path = `${user.id}/${property.id}/video_${videoOrder}_${crypto.randomUUID()}.${extension}`;
 
         const { data: upload, error: uploadError } = await supabase.storage
           .from('property-media')
