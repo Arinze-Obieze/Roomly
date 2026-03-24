@@ -206,7 +206,7 @@ export default function FindPeoplePage() {
             </button>
           ) : (
             <button
-              onClick={() => router.push('/profile/settings')}
+              onClick={() => router.push('/profile')}
               className="bg-terracotta-500 text-white px-5 py-3 rounded-xl font-heading font-semibold hover:bg-terracotta-600 transition-colors"
             >
               Update Profile
@@ -228,7 +228,7 @@ export default function FindPeoplePage() {
               : "Complete your profile to unlock this feed."}
           </p>
           <button
-            onClick={() => router.push('/profile/settings')}
+            onClick={() => router.push('/profile')}
             className="bg-navy-950 text-white px-8 py-3.5 rounded-xl font-heading font-bold hover:bg-navy-900 transition-all shadow-lg shadow-navy-950/20 hover:-translate-y-0.5"
           >
             Complete Profile Now

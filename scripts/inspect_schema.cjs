@@ -1,6 +1,9 @@
 const { createClient } = require('@supabase/supabase-js');
 const fs = require('fs');
-require('dotenv').config({ path: '.env' });
+const path = require('path');
+
+const envPath = fs.existsSync(path.resolve('.env.local')) ? '.env.local' : '.env';
+require('dotenv').config({ path: envPath });
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey =
@@ -24,7 +27,12 @@ const TABLES_TO_CHECK = [
   'compatibility_scores',
   'conversations',
   'messages',
-  'notifications'
+  'notifications',
+  'buddy_groups',
+  'buddy_group_members',
+  'buddy_messages',
+  'buddy_invites',
+  'users'
 ];
 
 async function inspectSchema() {

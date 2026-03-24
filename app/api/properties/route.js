@@ -96,7 +96,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
         .limit(500),
     ]);
 
-    missingProfile = !lifestyleCheck.data;
+    missingProfile = !lifestyleCheck.data || !prefsCheck.data;
 
     acceptedPrivateIds = (acceptedInterests.data || []).map(r => r.property_id);
     const scorePrivateIds = (privateScoreIds.data || []).map(r => r.property_id);
@@ -438,8 +438,19 @@ function buildVisiblePropertiesQuery(adminSb, user, allowedPrivateIds = [], sele
   if (user) {
     const baseOr = `privacy_setting.neq.private,listed_by_user_id.eq.${user.id}`;
     if (allowedPrivateIds.length > 0) {
-      const safeIds = allowedPrivateIds.slice(0, 120).join(',');
-      query = query.or(`${baseOr},id.in.(${safeIds})`);
+      // Build a single .or() so PostgREST treats it as one OR clause.
+      // Chaining multiple .or() calls ANDs them together — which would break
+      // public listing visibility. We guard URL length with a char budget
+      // (~6000 chars ≈ ~160 UUIDs) rather than a fixed item count.
+      const CHAR_BUDGET = 6000;
+      const safeIds = [];
+      let charCount = 0;
+      for (const id of allowedPrivateIds) {
+        if (charCount + id.length + 1 > CHAR_BUDGET) break;
+        safeIds.push(id);
+        charCount += id.length + 1;
+      }
+      query = query.or(`${baseOr},id.in.(${safeIds.join(',')})`);
     } else {
       query = query.or(baseOr);
     }

@@ -252,7 +252,7 @@ export default function HomeDashboard() {
               <div className="sticky top-[100px] h-[calc(100vh-120px)] overflow-y-auto scrollbar-hide pb-8 space-y-6">
                 <ProfileStrengthWidget />
                 <BuddyWidget />
-                <SupportWidget />
+                {/* <SupportWidget /> */}
 
                 <div className="bg-white rounded-3xl border border-navy-100 p-6 shadow-sm">
                   <h4 className="font-heading font-bold text-navy-950 mb-3 text-sm">💡 Quick Tips</h4>

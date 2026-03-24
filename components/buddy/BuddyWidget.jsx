@@ -5,7 +5,7 @@ import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import BuddyInviteCard from '@/components/dashboard/widgets/BuddyInviteCard';
 import CreateGroupModal from './CreateGroupModal';
-import { MdGroup, MdChat, MdAdd, MdPeople } from 'react-icons/md';
+import { MdGroup, MdChat, MdAdd, MdPeople, MdArrowForward } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 

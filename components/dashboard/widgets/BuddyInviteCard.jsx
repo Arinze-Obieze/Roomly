@@ -39,7 +39,7 @@ export default function BuddyInviteCard({ onCreateGroup, onJoinGroup, compact = 
             className={`flex-1 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 active:scale-[0.98] ${compact ? 'py-2.5 text-sm' : 'py-3'}`}
         >
             <MdGroupAdd size={compact ? 18 : 20} />
-            Create {compact ? 'Group' : 'Buddy-Up Group'}
+            Create {compact ? 'Group' : 'Group'}
         </button>
         <button 
             onClick={onJoinGroup}
