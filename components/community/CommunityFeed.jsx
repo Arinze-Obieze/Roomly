@@ -9,6 +9,7 @@ import CreatePostModal from './CreatePostModal';
 import toast from 'react-hot-toast';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { useConfirmation } from '@/core/contexts/ConfirmationContext';
+import { resolveCommunityFetchPage } from '@/core/utils/dashboard-fetch-guards';
 import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 const FILTERS = [
@@ -50,16 +51,17 @@ export default function CommunityFeed() {
     setPosts([]);
   }, [category, sortBy]);
 
-  const fetchPosts = useCallback(async () => {
+  const fetchPosts = useCallback(async ({ pageOverride = page } = {}) => {
+    const targetPage = resolveCommunityFetchPage(page, pageOverride);
     try {
       setLoading(true);
-      const res = await fetch(`/api/community/posts?page=${page}&limit=10&category=${category}&city=${debouncedCity}&sortBy=${sortBy}`);
+      const res = await fetch(`/api/community/posts?page=${targetPage}&limit=10&category=${category}&city=${debouncedCity}&sortBy=${sortBy}`);
       if (!res.ok) throw new Error('Failed to fetch posts');
       
       const data = await res.json();
       
       setPosts(prev => {
-        return page === 1 ? data.posts : [...prev, ...data.posts];
+        return targetPage === 1 ? data.posts : [...prev, ...data.posts];
       });
       setHasMore(data.hasMore);
     } catch (error) {
@@ -261,7 +263,8 @@ export default function CommunityFeed() {
             onClose={() => setShowCreateModal(false)} 
             onCreated={() => {
               setPage(1);
-              fetchPosts();
+              setHasMore(true);
+              fetchPosts({ pageOverride: 1 });
             }} 
           />
         )}

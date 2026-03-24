@@ -2,39 +2,22 @@ import { AuthService } from '@/core/services/auth.service';
 import { signupSchema } from '@/core/validations/auth.schema';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-
-// Simple in-memory rate limiter (for development; use Redis in production)
-const signupAttempts = new Map();
-
-const checkSignupRateLimit = (ip) => {
-  const now = Date.now();
-  const WINDOW = 60 * 60 * 1000; // 1 hour
-  const MAX_ATTEMPTS = 10; // Max 10 signups per IP per hour
-
-  if (!signupAttempts.has(ip)) {
-    signupAttempts.set(ip, []);
-  }
-
-  const attempts = signupAttempts.get(ip);
-  const recentAttempts = attempts.filter(time => now - time < WINDOW);
-  signupAttempts.set(ip, recentAttempts);
-
-  if (recentAttempts.length >= MAX_ATTEMPTS) {
-    return false;
-  }
-
-  recentAttempts.push(now);
-  return true;
-};
+import { assertRateLimit } from '@/core/utils/rate-limit';
 
 export async function POST(req) {
   try {
-    // Rate limiting by IP
-    const ip = req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown';
-    if (!checkSignupRateLimit(ip)) {
+    const rateLimit = await assertRateLimit({
+      request: req,
+      key: 'auth-signup',
+      limit: 10,
+      windowSeconds: 60 * 60,
+      scope: 'ip',
+    });
+
+    if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Too many signup attempts from this IP. Please try again later.' },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
       );
     }
 

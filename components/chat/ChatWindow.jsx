@@ -17,6 +17,7 @@ import { toast } from 'react-hot-toast';
 import { v4 as uuidv4 } from 'uuid';
 import bytes from 'bytes';
 import { ScheduleInspectionModal } from './ScheduleInspectionModal';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 export const ChatWindow = () => {
     const { 
@@ -258,7 +259,7 @@ export const ChatWindow = () => {
                 propertyTitle: conversation?.property?.title || 'Property'
             };
 
-            const response = await fetch('/api/inspections/request', {
+            const response = await fetchWithCsrf('/api/inspections/request', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
@@ -285,7 +286,7 @@ export const ChatWindow = () => {
                 date: proposedDate, time: proposedTime
             };
 
-            const response = await fetch('/api/inspections/update', {
+            const response = await fetchWithCsrf('/api/inspections/update', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

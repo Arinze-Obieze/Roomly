@@ -82,10 +82,35 @@ export async function POST(request) {
       ? 'pending'
       : (scoreRow.score <= 50 ? 'pending' : 'accepted');
 
-    // 4. Upsert the interest record (prevent duplicates via unique index)
+    // 4. Short-circuit if an interest already exists for this seeker/property.
+    // This makes the endpoint idempotent and avoids surfacing duplicate clicks as 500s.
+    const { data: existingInterest, error: existingInterestError } = await supabase
+      .from('property_interests')
+      .select('id, status, compatibility_score, message, created_at, updated_at')
+      .eq('seeker_id', user.id)
+      .eq('property_id', propertyId)
+      .maybeSingle();
+
+    if (existingInterestError) {
+      throw existingInterestError;
+    }
+
+    if (existingInterest) {
+      return NextResponse.json({
+        success: true,
+        alreadySubmitted: true,
+        status: existingInterest.status || 'pending',
+        interest: existingInterest,
+        message: existingInterest.status === 'accepted'
+          ? 'Interest already recorded. You can message the landlord.'
+          : 'You have already shown interest in this listing.',
+      });
+    }
+
+    // 5. Insert the interest record
     const { data: interest, error: insertError } = await supabase
       .from('property_interests')
-      .upsert(
+      .insert(
         {
           seeker_id: user.id,
           property_id: propertyId,
@@ -93,33 +118,40 @@ export async function POST(request) {
           compatibility_score: scoreRow?.score ?? null,
           message: message || null,
           updated_at: new Date().toISOString(),
-        },
-        {
-          onConflict: 'seeker_id,property_id',
-          ignoreDuplicates: true, // Don't re-open rejected/accepted interests
         }
       )
       .select()
       .single();
 
     if (insertError) {
-      // Unique constraint violation = already showed interest
+      // Handle race conditions gracefully if another request created the row first.
       if (insertError.code === '23505') {
+        const { data: duplicateInterest } = await supabase
+          .from('property_interests')
+          .select('id, status, compatibility_score, message, created_at, updated_at')
+          .eq('seeker_id', user.id)
+          .eq('property_id', propertyId)
+          .maybeSingle();
+
         return NextResponse.json({
           success: true,
           alreadySubmitted: true,
-          message: 'You have already shown interest in this listing.',
+          status: duplicateInterest?.status || 'pending',
+          interest: duplicateInterest || null,
+          message: duplicateInterest?.status === 'accepted'
+            ? 'Interest already recorded. You can message the landlord.'
+            : 'You have already shown interest in this listing.',
         });
       }
       throw insertError;
     }
 
-    // 5. Bump relevant cache versions (no Redis KEYS scans)
+    // 6. Bump relevant cache versions (no Redis KEYS scans)
     await bumpCacheVersion(`v:interests:seeker:${user.id}`);
     await bumpCacheVersion(`v:interests:landlord:${property.listed_by_user_id}`);
     await bumpCacheVersion(`v:properties:user:${user.id}`); // interest affects blur/unlock state
 
-    // 6. Notify Landlord
+    // 7. Notify Landlord
     try {
       await Notifier.send({
         userId: property.listed_by_user_id,

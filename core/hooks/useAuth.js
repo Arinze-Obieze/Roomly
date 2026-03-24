@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/core/contexts/AuthContext';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 export const useAuth = () => {
   const [loading, setLoading] = useState(false);
@@ -98,7 +99,7 @@ export const useAuth = () => {
     setLoading(true);
     
     try {
-      const response = await fetch('/api/auth/logout', {
+      const response = await fetchWithCsrf('/api/auth/logout', {
         method: 'POST',
       });
 

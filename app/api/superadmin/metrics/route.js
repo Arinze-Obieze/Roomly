@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireSuperadmin } from '@/core/services/superadmin/guard';
 import { logSuperadminEvent } from '@/core/services/superadmin/audit';
+import { cachedFetch } from '@/core/utils/redis';
 
 const safeCount = async (promiseFactory) => {
   try {
@@ -19,83 +20,11 @@ export async function GET() {
   if (guard.errorResponse) return guard.errorResponse;
 
   const { adminClient, user } = guard;
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const payload = await cachedFetch('superadmin:metrics:v1', 60, async () => {
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-  const [
-    totalUsers,
-    newUsersThisWeek,
-    totalProperties,
-    activeProperties,
-    totalReports,
-    pendingReports,
-    totalLogs,
-    errorLogsToday,
-    totalSupportTickets,
-    openSupportTickets,
-    discoveryEventsToday,
-    conversationsToday,
-    buddyGroupsToday,
-  ] = await Promise.all([
-    safeCount(() => adminClient.from('users').select('*', { count: 'exact', head: true })),
-    safeCount(() =>
-      adminClient
-        .from('users')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', oneWeekAgo.toISOString())
-    ),
-    safeCount(() => adminClient.from('properties').select('*', { count: 'exact', head: true })),
-    safeCount(() =>
-      adminClient.from('properties').select('*', { count: 'exact', head: true }).eq('is_active', true)
-    ),
-    safeCount(() => adminClient.from('reports').select('*', { count: 'exact', head: true })),
-    safeCount(() =>
-      adminClient.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending')
-    ),
-    safeCount(() => adminClient.from('activity_logs').select('*', { count: 'exact', head: true })),
-    safeCount(() => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return adminClient
-        .from('activity_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('level', 'error')
-        .gte('created_at', today.toISOString());
-    }),
-    safeCount(() => adminClient.from('support_tickets').select('*', { count: 'exact', head: true })),
-    safeCount(() =>
-      adminClient.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['open', 'in_progress'])
-    ),
-    safeCount(() => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return adminClient
-        .from('feature_events')
-        .select('*', { count: 'exact', head: true })
-        .eq('feature_name', 'discovery')
-        .gte('created_at', today.toISOString());
-    }),
-    safeCount(() => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return adminClient
-        .from('conversations')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', today.toISOString());
-    }),
-    safeCount(() => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      return adminClient
-        .from('buddy_groups')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', today.toISOString());
-    }),
-  ]);
-
-  const payload = {
-    generatedAt: new Date().toISOString(),
-    metrics: {
+    const [
       totalUsers,
       newUsersThisWeek,
       totalProperties,
@@ -109,8 +38,82 @@ export async function GET() {
       discoveryEventsToday,
       conversationsToday,
       buddyGroupsToday,
-    },
-  };
+    ] = await Promise.all([
+      safeCount(() => adminClient.from('users').select('*', { count: 'exact', head: true })),
+      safeCount(() =>
+        adminClient
+          .from('users')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', oneWeekAgo.toISOString())
+      ),
+      safeCount(() => adminClient.from('properties').select('*', { count: 'exact', head: true })),
+      safeCount(() =>
+        adminClient.from('properties').select('*', { count: 'exact', head: true }).eq('is_active', true)
+      ),
+      safeCount(() => adminClient.from('reports').select('*', { count: 'exact', head: true })),
+      safeCount(() =>
+        adminClient.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending')
+      ),
+      safeCount(() => adminClient.from('activity_logs').select('*', { count: 'exact', head: true })),
+      safeCount(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return adminClient
+          .from('activity_logs')
+          .select('*', { count: 'exact', head: true })
+          .eq('level', 'error')
+          .gte('created_at', today.toISOString());
+      }),
+      safeCount(() => adminClient.from('support_tickets').select('*', { count: 'exact', head: true })),
+      safeCount(() =>
+        adminClient.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['open', 'in_progress'])
+      ),
+      safeCount(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return adminClient
+          .from('feature_events')
+          .select('*', { count: 'exact', head: true })
+          .eq('feature_name', 'discovery')
+          .gte('created_at', today.toISOString());
+      }),
+      safeCount(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return adminClient
+          .from('conversations')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', today.toISOString());
+      }),
+      safeCount(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return adminClient
+          .from('buddy_groups')
+          .select('*', { count: 'exact', head: true })
+          .gte('created_at', today.toISOString());
+      }),
+    ]);
+
+    return {
+      generatedAt: new Date().toISOString(),
+      metrics: {
+        totalUsers,
+        newUsersThisWeek,
+        totalProperties,
+        activeProperties,
+        totalReports,
+        pendingReports,
+        totalLogs,
+        errorLogsToday,
+        totalSupportTickets,
+        openSupportTickets,
+        discoveryEventsToday,
+        conversationsToday,
+        buddyGroupsToday,
+      },
+    };
+  });
 
   await logSuperadminEvent(adminClient, {
     userId: user.id,

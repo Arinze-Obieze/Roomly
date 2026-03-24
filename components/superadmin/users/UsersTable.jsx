@@ -5,6 +5,7 @@ import { MdSearch, MdBlock, MdCheckCircle, MdPerson } from "react-icons/md";
 import { toast } from "sonner";
 import Image from "next/image";
 import { useAuthContext } from "@/core/contexts/AuthContext";
+import { fetchWithCsrf } from "@/core/utils/fetchWithCsrf";
 
 export default function UsersTable() {
   const { user: currentUser } = useAuthContext();
@@ -57,7 +58,7 @@ export default function UsersTable() {
     }
 
     try {
-      const response = await fetch(`/api/superadmin/users/${userId}/role`, {
+      const response = await fetchWithCsrf(`/api/superadmin/users/${userId}/role`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isSuperAdmin: !currentStatus }),

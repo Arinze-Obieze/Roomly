@@ -1,13 +1,14 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
-import { cachedFetch, invalidatePattern } from '@/core/utils/redis';
+import { bumpCacheVersion, cachedFetch, getCachedInt } from '@/core/utils/redis';
 import crypto from 'crypto';
+import { validateCSRFRequest } from '@/core/utils/csrf';
 
 // Generate cache key for community post details (includes user for personalized data)
-const generateCacheKey = (postId, userId = 'anon') => {
+const generateCacheKey = (postId, userId = 'anon', version = 1) => {
   const hash = crypto
     .createHash('md5')
-    .update(`${postId}:${userId}`)
+    .update(`${postId}:${userId}:${version}`)
     .digest('hex');
   return `community:post:${hash}`;
 };
@@ -19,8 +20,9 @@ export async function GET(request, { params }) {
 
     const { data: { user } } = await supabase.auth.getUser();
     const userId = user?.id || 'anon';
+    const version = await getCachedInt(`v:community:post:${id}`, 1);
     
-    const cacheKey = generateCacheKey(id, userId);
+    const cacheKey = generateCacheKey(id, userId, version);
 
     // Try to fetch from cache first (5 min TTL for community post details)
     const cachedData = await cachedFetch(cacheKey, 300, async () => {
@@ -74,6 +76,11 @@ async function fetchPostFromDB(supabase, id, user) {
 
 export async function DELETE(request, { params }) {
   try {
+    const csrfValidation = await validateCSRFRequest(request);
+    if (!csrfValidation.valid) {
+      return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
+    }
+
     const supabase = await createClient();
     const { id } = await params;
     const { data: { user } } = await supabase.auth.getUser();
@@ -90,9 +97,10 @@ export async function DELETE(request, { params }) {
 
     if (error) throw error;
 
-    // Invalidate community post caches when post is deleted
-    await invalidatePattern('community:post:*');
-    await invalidatePattern('community:posts:*');
+    await Promise.all([
+      bumpCacheVersion('v:community:posts'),
+      bumpCacheVersion(`v:community:post:${id}`),
+    ]);
 
     return NextResponse.json({ success: true });
 

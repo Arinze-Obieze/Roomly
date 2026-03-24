@@ -1,14 +1,39 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { logFeatureEvent } from '@/core/services/analytics/analytics.service';
+import { validateCSRFRequest } from '@/core/utils/csrf';
+import { assertRateLimit } from '@/core/utils/rate-limit';
 
 /**
- * Public endpoint to log feature events from the client side.
+ * Authenticated endpoint to log feature events from the client side.
  */
 export async function POST(request) {
   try {
+    const csrfValidation = await validateCSRFRequest(request);
+    if (!csrfValidation.valid) {
+      return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const rateLimit = await assertRateLimit({
+      request,
+      key: 'analytics-log',
+      limit: 120,
+      windowSeconds: 60,
+      scope: user.id,
+    });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many analytics events. Please slow down.' },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+      );
+    }
 
     const { featureName, action, metadata } = await request.json();
 
@@ -16,12 +41,21 @@ export async function POST(request) {
       return NextResponse.json({ error: 'featureName and action are required' }, { status: 400 });
     }
 
+    const sanitizedMetadata =
+      metadata && typeof metadata === 'object' && !Array.isArray(metadata)
+        ? JSON.parse(JSON.stringify(metadata))
+        : {};
+
+    if (JSON.stringify(sanitizedMetadata).length > 4000) {
+      return NextResponse.json({ error: 'metadata is too large' }, { status: 400 });
+    }
+
     const success = await logFeatureEvent({
-      userId: user?.id,
+      userId: user.id,
       featureName,
       action,
       metadata: {
-        ...metadata,
+        ...sanitizedMetadata,
         userAgent: request.headers.get('user-agent'),
         source: 'client-api',
       },

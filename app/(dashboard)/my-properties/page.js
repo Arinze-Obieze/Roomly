@@ -15,6 +15,7 @@ export default function MyPropertiesPage() {
   const [properties, setProperties] = useState([]);
   const [isLoadingProps, setIsLoadingProps] = useState(true);
   const [editingProperty, setEditingProperty] = useState(null);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -24,6 +25,8 @@ export default function MyPropertiesPage() {
 
   const fetchProperties = async () => {
     if (!user) return;
+    setError(null);
+    setIsLoadingProps(true);
     try {
       const supabase = createClient();
       const { data, error } = await supabase
@@ -61,6 +64,7 @@ export default function MyPropertiesPage() {
       setProperties(transformedData);
     } catch (error) {
       console.error('Error fetching properties:', error);
+      setError(error.message || 'Failed to load your properties.');
     } finally {
       setIsLoadingProps(false);
     }
@@ -122,11 +126,38 @@ export default function MyPropertiesPage() {
         </div>
       </div>
 
+      {error && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-center justify-between gap-4">
+          <span>{error}</span>
+          <button
+            type="button"
+            onClick={fetchProperties}
+            className="shrink-0 font-semibold underline hover:text-red-900"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
       {isLoadingProps ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {[1, 2, 3].map(i => (
             <div key={i} className="h-[340px] bg-slate-100 rounded-2xl animate-pulse"></div>
           ))}
+        </div>
+      ) : error && properties.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center">
+          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4">
+            <MdSentimentDissatisfied size={32} className="text-red-500" />
+          </div>
+          <h3 className="text-lg font-semibold text-red-900 mb-2">Unable to load your properties</h3>
+          <p className="text-red-700 mb-6 max-w-sm">{error}</p>
+          <button
+            onClick={fetchProperties}
+            className="bg-white text-red-800 px-6 py-3 rounded-xl font-semibold border border-red-200 hover:bg-red-50 transition-colors"
+          >
+            Retry
+          </button>
         </div>
       ) : properties.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">

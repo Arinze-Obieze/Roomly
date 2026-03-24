@@ -1,31 +1,7 @@
 import { AuthService } from '@/core/services/auth.service';
 import { loginSchema } from '@/core/validations/auth.schema';
 import { NextResponse } from 'next/server';
-
-// Simple in-memory rate limiter (for development; use Redis in production)
-const loginAttempts = new Map();
-
-const checkRateLimit = (email) => {
-  const now = Date.now();
-  const WINDOW = 15 * 60 * 1000; // 15 minutes
-  const MAX_ATTEMPTS = 5;
-
-  if (!loginAttempts.has(email)) {
-    loginAttempts.set(email, []);
-  }
-
-  const attempts = loginAttempts.get(email);
-  // Remove old attempts outside the window
-  const recentAttempts = attempts.filter(time => now - time < WINDOW);
-  loginAttempts.set(email, recentAttempts);
-
-  if (recentAttempts.length >= MAX_ATTEMPTS) {
-    return false; // Rate limited
-  }
-
-  recentAttempts.push(now);
-  return true; // Allowed
-};
+import { assertRateLimit } from '@/core/utils/rate-limit';
 
 export async function POST(request) {
   try {
@@ -42,11 +18,18 @@ export async function POST(request) {
 
     const { email, password } = validation.data;
 
-    // Rate limiting
-    if (!checkRateLimit(email)) {
+    const rateLimit = await assertRateLimit({
+      request,
+      key: 'auth-login',
+      limit: 5,
+      windowSeconds: 15 * 60,
+      scope: email.toLowerCase(),
+    });
+
+    if (!rateLimit.allowed) {
       return NextResponse.json(
         { error: 'Too many login attempts. Please try again in 15 minutes.' },
-        { status: 429 }
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
       );
     }
 

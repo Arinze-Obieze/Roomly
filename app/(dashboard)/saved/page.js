@@ -13,6 +13,8 @@ export default function SavedPage() {
   const { user, loading: authLoading } = useAuthContext();
   const [properties, setProperties] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [retryKey, setRetryKey] = useState(0);
   const router = useRouter();
   const supabase = createClient();
 
@@ -26,6 +28,8 @@ export default function SavedPage() {
     let isMounted = true;
 
     const fetchSaved = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const { data, error } = await supabase
           .from('saved_properties')
@@ -94,6 +98,9 @@ export default function SavedPage() {
         if (isMounted) setProperties(formatted.filter(Boolean));
       } catch (error) {
         console.error('Error fetching saved properties:', error);
+        if (isMounted) {
+          setError(error.message || 'Failed to load saved properties.');
+        }
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -102,7 +109,7 @@ export default function SavedPage() {
     fetchSaved();
     
     return () => { isMounted = false; };
-  }, [user, authLoading, router, supabase]);
+  }, [user, authLoading, router, supabase, retryKey]);
 
   if (loading || authLoading) {
     return (
@@ -172,7 +179,45 @@ export default function SavedPage() {
       </motion.div>
 
       <AnimatePresence mode="wait">
-        {properties.length === 0 ? (
+        {error && properties.length > 0 && (
+          <motion.div
+            key="error-banner"
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-center justify-between gap-4"
+          >
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => setRetryKey((value) => value + 1)}
+              className="shrink-0 font-heading font-semibold underline hover:text-red-900"
+            >
+              Retry
+            </button>
+          </motion.div>
+        )}
+        {error && properties.length === 0 ? (
+          <motion.div
+            key="error"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.3 }}
+            className="text-center py-16 bg-red-50 rounded-3xl border border-red-200 shadow-xl shadow-navy-950/5"
+          >
+            <h2 className="text-xl font-heading font-bold text-red-900 mb-2">Unable to load saved properties</h2>
+            <p className="text-red-700 font-sans mb-6">{error}</p>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setRetryKey((value) => value + 1)}
+              className="bg-white text-red-800 px-6 py-2.5 rounded-xl font-heading font-semibold border border-red-200 hover:bg-red-100 transition-all inline-flex items-center gap-2"
+            >
+              Retry
+            </motion.button>
+          </motion.div>
+        ) : properties.length === 0 ? (
           <motion.div 
             key="empty"
             initial={{ opacity: 0, scale: 0.95 }}

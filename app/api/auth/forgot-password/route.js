@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
+import { assertRateLimit } from '@/core/utils/rate-limit';
 
 export async function POST(req) {
   try {
@@ -19,6 +20,21 @@ export async function POST(req) {
       return NextResponse.json(
         { error: 'Invalid email format' },
         { status: 400 }
+      );
+    }
+
+    const rateLimit = await assertRateLimit({
+      request: req,
+      key: 'auth-forgot-password',
+      limit: 5,
+      windowSeconds: 60 * 60,
+      scope: email.toLowerCase(),
+    });
+
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many password reset requests. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
       );
     }
 

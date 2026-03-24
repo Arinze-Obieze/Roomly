@@ -24,6 +24,7 @@ export default function ProfilePage() {
     preferences: null
   });
   const [fetchingData, setFetchingData] = useState(true);
+  const [fetchError, setFetchError] = useState(null);
 
   const supabase = createClient();
 
@@ -40,17 +41,21 @@ export default function ProfilePage() {
 
     const fetchData = async () => {
       setFetchingData(true);
+      setFetchError(null);
       try {
         const [lifestyleRes, prefsRes] = await Promise.all([
           supabase.from('user_lifestyles').select('*').eq('user_id', user.id).maybeSingle(),
           supabase.from('match_preferences').select('*').eq('user_id', user.id).maybeSingle()
         ]);
+        if (lifestyleRes.error) throw lifestyleRes.error;
+        if (prefsRes.error) throw prefsRes.error;
         setData({
           lifestyle: lifestyleRes.data ?? null,
           preferences: prefsRes.data ?? null
         });
       } catch (err) {
         console.error('[profile] fetchData error:', err);
+        setFetchError(err.message || 'Failed to load your profile settings.');
       } finally {
         setFetchingData(false);
       }
@@ -63,17 +68,24 @@ export default function ProfilePage() {
 
   const refreshData = async () => {
       if (!user) return;
+      setFetchingData(true);
+      setFetchError(null);
       try {
         const [lifestyleRes, prefsRes] = await Promise.all([
           supabase.from('user_lifestyles').select('*').eq('user_id', user.id).maybeSingle(),
           supabase.from('match_preferences').select('*').eq('user_id', user.id).maybeSingle()
         ]);
+        if (lifestyleRes.error) throw lifestyleRes.error;
+        if (prefsRes.error) throw prefsRes.error;
         setData({
           lifestyle: lifestyleRes.data ?? null,
           preferences: prefsRes.data ?? null
         });
       } catch (err) {
         console.error('[profile] refreshData error:', err);
+        setFetchError(err.message || 'Failed to refresh your profile settings.');
+      } finally {
+        setFetchingData(false);
       }
   };
 
@@ -159,6 +171,19 @@ export default function ProfilePage() {
           </button>
         ))}
       </div>
+
+      {fetchError && (
+        <div className="mb-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800 flex items-center justify-between gap-4">
+          <span>{fetchError}</span>
+          <button
+            type="button"
+            onClick={refreshData}
+            className="shrink-0 font-heading font-semibold underline hover:text-red-900"
+          >
+            Retry
+          </button>
+        </div>
+      )}
       
       {/* Content Area */}
       <AnimatePresence mode="wait">

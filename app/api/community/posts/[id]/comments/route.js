@@ -1,6 +1,7 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
-import { invalidatePattern } from '@/core/utils/redis';
+import { bumpCacheVersion } from '@/core/utils/redis';
+import { validateCSRFRequest } from '@/core/utils/csrf';
 
 export async function GET(request, { params }) {
   try {
@@ -32,6 +33,11 @@ export async function GET(request, { params }) {
 
 export async function POST(request, { params }) {
   try {
+    const csrfValidation = await validateCSRFRequest(request);
+    if (!csrfValidation.valid) {
+      return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
+    }
+
     const supabase = await createClient();
     const { id } = await params;
     const { data: { user } } = await supabase.auth.getUser();
@@ -65,8 +71,10 @@ export async function POST(request, { params }) {
 
     if (error) throw error;
 
-    await invalidatePattern('community:post:*');
-    await invalidatePattern('community:posts:*');
+    await Promise.all([
+      bumpCacheVersion('v:community:posts'),
+      bumpCacheVersion(`v:community:post:${id}`),
+    ]);
 
     return NextResponse.json(data);
 

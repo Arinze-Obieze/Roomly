@@ -1,9 +1,15 @@
 import { NextResponse } from 'next/server';
 import { requireSuperadmin } from '@/core/services/superadmin/guard';
 import { logSuperadminEvent } from '@/core/services/superadmin/audit';
+import { validateCSRFRequest } from '@/core/utils/csrf';
 
 export async function PATCH(request, { params }) {
   try {
+    const csrfValidation = await validateCSRFRequest(request);
+    if (!csrfValidation.valid) {
+      return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
+    }
+
     const { id: targetUserId } = params;
     const body = await request.json();
     const isSuperAdmin = body?.isSuperAdmin;

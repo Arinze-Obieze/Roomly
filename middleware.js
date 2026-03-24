@@ -19,6 +19,16 @@ export async function middleware(request) {
                           pathname.startsWith('/superadmin') || // Add superadmin as protected
                           (pathname.startsWith('/api') && !isAuthApiRoute && !pathname.startsWith('/api/properties'));
 
+  // Fail closed for protected API routes when auth resolution is unavailable.
+  // This preserves page UX during transient Supabase issues without letting
+  // write-capable API routes fall through unauthenticated.
+  if (isApiRoute && isProtectedRoute && networkError) {
+    return NextResponse.json(
+      { error: 'Authentication service unavailable' },
+      { status: 503 }
+    );
+  }
+
   // Redirect authenticated users away from auth pages
   if (isAuthPage && user) {
     const url = request.nextUrl.clone();
@@ -27,7 +37,6 @@ export async function middleware(request) {
   }
 
   // Protect routes that require authentication
-  // Skip if the failure was a network error — don't redirect authenticated users on Supabase downtime
   if (isProtectedRoute && !user && !networkError) {
     if (isApiRoute) {
       return NextResponse.json(

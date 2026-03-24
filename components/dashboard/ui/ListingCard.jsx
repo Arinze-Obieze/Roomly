@@ -35,6 +35,7 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
   const isSaved = isPropertySaved(data.id);
   const [imgSrc, setImgSrc] = useState(data.image);
   const [interestLoading, setInterestLoading] = useState(false);
+  const [interestStatus, setInterestStatus] = useState(data.interestStatus ?? null);
   const [sharing, setSharing] = useState(false);
   const priceLabel = useMemo(() => {
     if (data.isBlurry && data.priceRange) {
@@ -69,6 +70,10 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
   useEffect(() => {
     setImgSrc(data.image);
   }, [data.image]);
+
+  useEffect(() => {
+    setInterestStatus(data.interestStatus ?? null);
+  }, [data.id, data.interestStatus]);
 
   const handleSave = useCallback((e) => {
     e.stopPropagation();
@@ -159,6 +164,7 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
       const resData = await response.json();
 
       if (resData.success) {
+        setInterestStatus(resData.status || 'pending');
         toast.success(resData.message || 'Interest sent! Landlord will be notified.');
       } else {
         toast.error(resData.error || 'Failed to send interest');
@@ -396,14 +402,14 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
             <div className="mt-2">
                  <button
                     onClick={handleShowInterest}
-                    disabled={interestLoading || data.interestStatus === 'pending'}
+                    disabled={interestLoading || interestStatus === 'pending'}
                     className={`w-full py-2.5 rounded-xl flex items-center justify-center gap-2 font-bold text-sm transition-all active:scale-[0.98] ${
-                        data.interestStatus === 'pending'
+                        interestStatus === 'pending'
                         ? 'bg-teal-50 text-teal-600 border border-teal-100 cursor-default'
                         : 'bg-navy-950 text-white hover:bg-navy-900 shadow-lg shadow-navy-950/20'
                     }`}
                 >
-                    {data.interestStatus === 'pending' ? (
+                    {interestStatus === 'pending' ? (
                         <>
                             <MdCheckCircle className="text-teal-500" size={16} />
                             Interest Sent

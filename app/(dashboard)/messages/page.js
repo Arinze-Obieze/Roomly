@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChatList } from '@/components/chat/ChatList';
@@ -9,7 +9,7 @@ import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdSend, MdArrowBack } from 'react-icons/md';
 
-export default function MessagesPage() {
+function MessagesPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const { user } = useAuthContext();
@@ -62,10 +62,13 @@ export default function MessagesPage() {
 
     // When switching tabs, always exit archive view and clear active conversation
     const handleTabChange = (tab) => {
-        initializedConversationRef.current = searchParams.get('conversationId');
+        initializedConversationRef.current = null;
         setActiveTab(tab);
         setShowArchived(false);
         setActiveConversation(null);
+        if (searchParams.get('conversationId')) {
+            router.replace('/messages', { scroll: false });
+        }
     };
 
     return (
@@ -125,5 +128,13 @@ export default function MessagesPage() {
                 </AnimatePresence>
             </div>
         </motion.main>
+    );
+}
+
+export default function MessagesPage() {
+    return (
+        <Suspense fallback={null}>
+            <MessagesPageContent />
+        </Suspense>
     );
 }

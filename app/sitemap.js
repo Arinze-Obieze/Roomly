@@ -1,4 +1,4 @@
-import { createClient } from '@/core/utils/supabase/server';
+import { createClient } from '@supabase/supabase-js';
 
 export default async function sitemap() {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://roomfind.ie';
@@ -22,7 +22,16 @@ export default async function sitemap() {
   }));
 
   try {
-    const supabase = await createClient();
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    );
     
     // Fetch active properties for dynamic routes
     const { data: properties } = await supabase

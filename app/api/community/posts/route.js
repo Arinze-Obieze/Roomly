@@ -2,18 +2,18 @@ import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { sanitizeText, sanitizeLength, sanitizeUrl } from '@/core/utils/sanitizers';
 import { validateCSRFRequest } from '@/core/utils/csrf';
-import { cachedFetch, invalidatePattern } from '@/core/utils/redis';
+import { bumpCacheVersion, cachedFetch, getCachedInt } from '@/core/utils/redis';
 import crypto from 'crypto';
 
 // Generate cache key from query parameters
-const generateCacheKey = (searchParams) => {
+const generateCacheKey = (searchParams, version) => {
   const params = {};
   for (const [key, value] of searchParams.entries()) {
     params[key] = value;
   }
   const hash = crypto
     .createHash('md5')
-    .update(JSON.stringify(params))
+    .update(JSON.stringify({ params, version }))
     .digest('hex');
   return `community:posts:${hash}`;
 };
@@ -21,9 +21,10 @@ const generateCacheKey = (searchParams) => {
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
+    const version = await getCachedInt('v:community:posts', 1);
     
     // Generate cache key
-    const cacheKey = generateCacheKey(searchParams);
+    const cacheKey = generateCacheKey(searchParams, version);
     
     // Try to fetch from cache first (2 min TTL for community posts)
     const cachedData = await cachedFetch(cacheKey, 120, async () => {
@@ -195,8 +196,7 @@ export async function POST(request) {
 
     if (error) throw error;
 
-    // Invalidate community posts cache when new post is created
-    await invalidatePattern('community:posts:*');
+    await bumpCacheVersion('v:community:posts');
 
     return NextResponse.json(data);
 

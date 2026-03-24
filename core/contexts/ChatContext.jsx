@@ -5,6 +5,8 @@ import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from './AuthContext';
 import { toast } from 'react-hot-toast';
 import { useQuery, useMutation, useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
+import { shouldMarkConversationAsRead } from '@/core/utils/dashboard-fetch-guards';
 
 const ChatContext = createContext({});
 
@@ -16,6 +18,7 @@ export const ChatProvider = ({ children }) => {
     const supabase = useMemo(() => createClient(), []);
     const queryClient = useQueryClient();
     const activeConversationRef = useRef(activeConversation);
+    const lastMarkedConversationRef = useRef(null);
 
     useEffect(() => {
         activeConversationRef.current = activeConversation;
@@ -194,16 +197,25 @@ export const ChatProvider = ({ children }) => {
 
     // Trigger mark as read when messages load (only when conversation changes, NOT on every data update)
     useEffect(() => {
-        if (activeConversation && messagesQuery.data?.pages?.[0]?.length > 0) {
-            // Only call once per conversation change to avoid memory leaks
+        if (!activeConversation) {
+            lastMarkedConversationRef.current = null;
+            return;
+        }
+
+        if (shouldMarkConversationAsRead({
+            activeConversation,
+            firstPageLength: messagesQuery.data?.pages?.[0]?.length ?? 0,
+            lastMarkedConversation: lastMarkedConversationRef.current,
+        })) {
+            lastMarkedConversationRef.current = activeConversation;
             markReadMutation.mutate(activeConversation);
         }
-    }, [activeConversation]);
+    }, [activeConversation, messagesQuery.data?.pages]);
 
     // Send Message Mutation (Optimistic)
     const sendMessageMutation = useMutation({
         mutationFn: async ({ conversationId, content, attachmentType = null, attachmentData = null }) => {
-            const response = await fetch('/api/messages/send', {
+            const response = await fetchWithCsrf('/api/messages/send', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -317,7 +329,7 @@ export const ChatProvider = ({ children }) => {
     // Archive / Un-archive Conversation Mutation (Optimistic)
     const archiveConversationMutation = useMutation({
         mutationFn: async ({ conversationId, archive }) => {
-            const response = await fetch('/api/conversations/archive', {
+            const response = await fetchWithCsrf('/api/conversations/archive', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ conversationId, archive })
@@ -364,7 +376,7 @@ export const ChatProvider = ({ children }) => {
     // Delete Conversation Mutation (Optimistic)
     const deleteConversationMutation = useMutation({
         mutationFn: async (conversationId) => {
-            const response = await fetch('/api/conversations/delete', {
+            const response = await fetchWithCsrf('/api/conversations/delete', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ conversationId })

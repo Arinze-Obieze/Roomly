@@ -8,6 +8,7 @@ import { sanitizeLength, sanitizeText } from '@/core/utils/sanitizers';
 
 export const runtime       = 'nodejs';
 export const bodySizeLimit = '20mb';
+const PERSONALIZED_SORTS = new Set(['match', 'recommended']);
 
 // ── Cache key generation ───────────────────────────────────────────────────
 // Per-user, per-query (includes page so each paginated slice is cached)
@@ -62,6 +63,19 @@ function decodeCursor(str) {
   try { return JSON.parse(Buffer.from(str, 'base64url').toString('utf8')); } catch { return null; }
 }
 
+function isMissingMatchProfile(lifestyle, preferences) {
+  return !lifestyle && !preferences;
+}
+
+function sanitizeOrTerm(value) {
+  if (!value) return '';
+  const cleaned = sanitizeLength(sanitizeText(String(value)), 80)
+    .replace(/[*(),]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return cleaned.replace(/[^a-zA-Z0-9\s.'-]/g, '').trim();
+}
+
 async function fetchPropertiesFromDB(searchParams, user) {
   const page      = Math.max(1, parseInt(searchParams.get('page')     || '1'));
   const pageSize  = Math.min(50, parseInt(searchParams.get('pageSize')|| '12')); // cap at 50
@@ -78,6 +92,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
   let acceptedPrivateIds = [];
 
   if (user) {
+    const shouldPrefetchPrivateScoreIds = !PERSONALIZED_SORTS.has(sortBy);
     const [lifestyleCheck, prefsCheck, acceptedInterests, privateScoreIds] = await Promise.all([
       supabase.from('user_lifestyles').select('user_id').eq('user_id', user.id).maybeSingle(),
       supabase.from('match_preferences').select('user_id').eq('user_id', user.id).maybeSingle(),
@@ -87,111 +102,50 @@ async function fetchPropertiesFromDB(searchParams, user) {
         .eq('seeker_id', user.id)
         .eq('status', 'accepted')
         .limit(2000),
-      supabase
-        .from('compatibility_scores')
-        .select('property_id')
-        .eq('seeker_id', user.id)
-        .gte('score', 70)
-        .order('score', { ascending: false })
-        .limit(500),
+      shouldPrefetchPrivateScoreIds
+        ? supabase
+          .from('compatibility_scores')
+          .select('property_id')
+          .eq('seeker_id', user.id)
+          .gte('score', 70)
+          .order('score', { ascending: false })
+          .limit(2000)
+        : Promise.resolve({ data: [] }),
     ]);
 
-    missingProfile = !lifestyleCheck.data || !prefsCheck.data;
+    missingProfile = isMissingMatchProfile(lifestyleCheck.data, prefsCheck.data);
 
     acceptedPrivateIds = (acceptedInterests.data || []).map(r => r.property_id);
     const scorePrivateIds = (privateScoreIds.data || []).map(r => r.property_id);
     allowedPrivateIds = Array.from(new Set([...acceptedPrivateIds, ...scorePrivateIds]));
   }
 
-  // Recommendation should influence ranking, not which public listings exist
-  // in the feed. We therefore always build the result set from the standard
-  // visibility query, then apply personalized ordering after fetch.
+  const filters = parsePropertyFilters(searchParams);
+
+  if (user && PERSONALIZED_SORTS.has(sortBy)) {
+    return fetchScoreDrivenPage({
+      user,
+      supabase,
+      adminSb,
+      page,
+      pageSize,
+      sortBy,
+      cursor,
+      filters,
+      missingProfile,
+      acceptedPrivateIds,
+    });
+  }
 
   // ── Standard query (all sort modes, including match/recommended) ──────────
   // Privacy is enforced at the DB level here. The match/recommended post-sort
   // runs below after fetch. This is the single source of truth for what a user
   // is allowed to see.
-  const priceRange    = searchParams.get('priceRange');
-  const minPrice      = parseInt(searchParams.get('minPrice')  || '');
-  const maxPrice      = parseInt(searchParams.get('maxPrice')  || '');
-  const bedrooms      = searchParams.get('bedrooms')?.split(',').map(Number).filter(Boolean);
-  const propertyType  = searchParams.get('propertyType');
-  const propertyTypes = searchParams.get('propertyTypes')?.split(',').map(v => v.trim()).filter(Boolean);
-  const amenities     = searchParams.get('amenities')?.split(',').filter(Boolean);
-  const minBedrooms   = parseInt(searchParams.get('minBedrooms'));
-  const minBathrooms  = parseInt(searchParams.get('minBathrooms'));
-  const locationRaw   = searchParams.get('location');
-  const searchRaw     = searchParams.get('search');
-  const moveInDate    = searchParams.get('moveInDate');
-  const roomType      = searchParams.get('roomType');
-  const houseRules    = searchParams.get('houseRules')?.split(',').filter(Boolean);
-  const billsIncluded = searchParams.get('billsIncluded') === 'true';
-
-  // Prevent PostgREST filter injection / broken `.or(...)` filters.
-  // We intentionally restrict to a conservative character set.
-  const sanitizeOrTerm = (value) => {
-    if (!value) return '';
-    const cleaned = sanitizeLength(sanitizeText(String(value)), 80)
-      .replace(/[*(),]/g, ' ')
-      .replace(/\s+/g, ' ')
-      .trim();
-    // Allow only a safe subset (letters, numbers, spaces, common punctuation)
-    return cleaned.replace(/[^a-zA-Z0-9\s.'-]/g, '').trim();
-  };
-
-  const location = sanitizeOrTerm(locationRaw);
-  const search   = sanitizeOrTerm(searchRaw);
-
   const shouldCount = page > 1 && !cursor;
   const selectOptions = shouldCount ? { count: 'estimated' } : {};
 
   let query = buildVisiblePropertiesQuery(adminSb, user, allowedPrivateIds, selectOptions);
-
-  // Price filters
-  if (!Number.isNaN(minPrice)) query = query.gte('price_per_month', minPrice);
-  if (!Number.isNaN(maxPrice)) query = query.lte('price_per_month', maxPrice);
-  if (priceRange && priceRange !== 'all') {
-    const ranges = { budget: [0, 800], mid: [800, 1500], premium: [1500, 999999] };
-    const r = ranges[priceRange];
-    if (r) query = query.gte('price_per_month', r[0]).lte('price_per_month', r[1]);
-  }
-
-  // Bedroom / bathroom filters
-  if (bedrooms?.length > 0)   query = query.in('bedrooms', bedrooms);
-  if (minBedrooms)             query = query.gte('bedrooms', minBedrooms);
-  if (minBathrooms)            query = query.gte('bathrooms', minBathrooms);
-
-  // Property type
-  if (propertyTypes?.length > 0)              query = query.in('property_type', propertyTypes);
-  else if (propertyType && propertyType !== 'any') query = query.eq('property_type', propertyType);
-
-  // Text search
-  if (location) query = query.or(`city.ilike.*${location}*,state.ilike.*${location}*,street.ilike.*${location}*`);
-  if (search)   query = query.or(`title.ilike.*${search}*,description.ilike.*${search}*,city.ilike.*${search}*,state.ilike.*${search}*,street.ilike.*${search}*`);
-
-  // Advanced filters
-  if (amenities?.length > 0)   query = query.contains('amenities', amenities);
-  if (roomType)                 query = query.eq('room_type', roomType);
-  if (billsIncluded)            query = query.or('bills_included.eq.true,bills_option.eq.all');
-  if (houseRules?.length > 0)  query = query.contains('house_rules', houseRules);
-
-  // Move-in date
-  if (moveInDate && moveInDate !== 'any') {
-    const now     = new Date();
-    const today   = now.toISOString().split('T')[0];
-    if (moveInDate === 'immediately') {
-      query = query.lte('available_from', today);
-    } else if (moveInDate === 'this_month') {
-      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      query = query.lte('available_from', endOfMonth.toISOString().split('T')[0]);
-    } else if (moveInDate === 'next_month') {
-      const start = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      const end   = new Date(now.getFullYear(), now.getMonth() + 2, 0);
-      query = query
-        .gte('available_from', start.toISOString().split('T')[0])
-        .lte('available_from', end.toISOString().split('T')[0]);
-    }
-  }
+  query = applyPropertyFilters(query, filters);
 
   // ── Sort + Keyset pagination ──────────────────────────────────────────────
   // For standard sorts we use cursor-based keyset pagination to avoid
@@ -271,12 +225,6 @@ async function fetchPropertiesFromDB(searchParams, user) {
   let transformed = pageRows.map(p =>
     transformProperty(p, interests, scoreMap, user, missingProfile, supabase)
   );
-
-  if (sortBy === 'match') {
-    transformed = rankMatchWindow(transformed);
-  } else if (sortBy === 'recommended') {
-    transformed = rankRecommendedWindow(transformed);
-  }
 
   return {
     data: transformed,
@@ -440,9 +388,11 @@ function buildVisiblePropertiesQuery(adminSb, user, allowedPrivateIds = [], sele
     if (allowedPrivateIds.length > 0) {
       // Build a single .or() so PostgREST treats it as one OR clause.
       // Chaining multiple .or() calls ANDs them together — which would break
-      // public listing visibility. We guard URL length with a char budget
-      // (~6000 chars ≈ ~160 UUIDs) rather than a fixed item count.
-      const CHAR_BUDGET = 6000;
+      // public listing visibility. We still guard URL length, but the previous
+      // budget was so small that many 70%+ private matches were silently dropped.
+      // This higher cap preserves far more eligible private IDs without changing
+      // the query semantics.
+      const CHAR_BUDGET = 24000;
       const safeIds = [];
       let charCount = 0;
       for (const id of allowedPrivateIds) {
@@ -473,12 +423,7 @@ function rankRecommendedWindow(items) {
   const now = new Date();
   return items
     .map(item => {
-      const ageHours = Math.max(0, (now - new Date(item.createdAt)) / 36e5);
-      const freshness = Math.max(0, 100 - ageHours / 7.2);
-      const match = typeof item.matchScore === 'number' ? item.matchScore : 0;
-      const hasPhotos = Array.isArray(item.images) && item.images.length > 0;
-      const quality = (hasPhotos ? 50 : 0) + (item.verified ? 50 : 0);
-      const recScore = (match * 0.70) + (freshness * 0.20) + (quality * 0.10);
+      const recScore = computeRecommendedScore(item, now);
       return { ...item, _recScore: recScore };
     })
     .sort((a, b) =>
@@ -489,22 +434,81 @@ function rankRecommendedWindow(items) {
     .map(({ _recScore, ...rest }) => rest);
 }
 
-async function fetchScoreDrivenPage({ searchParams, user, supabase, adminSb, page, pageSize, sortBy, allowedPrivateIds, acceptedPrivateIds }) {
-  const offset = (page - 1) * pageSize;
-  const needed = offset + pageSize;
+function computeRecommendedScore(item, now = new Date()) {
+  const ageHours = Math.max(0, (now - new Date(item.createdAt)) / 36e5);
+  const freshness = Math.max(0, 100 - ageHours / 7.2);
+  const match = typeof item.matchScore === 'number' ? item.matchScore : 0;
+  const hasPhotos = Array.isArray(item.images) && item.images.length > 0;
+  const quality = (hasPhotos ? 50 : 0) + (item.verified ? 50 : 0);
+  return (match * 0.70) + (freshness * 0.20) + (quality * 0.10);
+}
 
-  // Pull compatibility scores in descending order, then fetch properties in batches and apply filters.
-  // Keep batches small: UUID `in(...)` lists can exceed PostgREST URL limits.
+function compareDescending(a, b) {
+  if (a === b) return 0;
+  if (a == null) return 1;
+  if (b == null) return -1;
+  return a > b ? -1 : 1;
+}
+
+function compareRankedItems(a, b, sortBy) {
+  if (sortBy === 'recommended') {
+    const recDiff = (b._recScore ?? -1) - (a._recScore ?? -1);
+    if (recDiff !== 0) return recDiff;
+  }
+
+  const scoreDiff = (b.matchScore ?? -1) - (a.matchScore ?? -1);
+  if (scoreDiff !== 0) return scoreDiff;
+
+  const createdDiff = compareDescending(a.createdAt, b.createdAt);
+  if (createdDiff !== 0) return createdDiff;
+
+  return compareDescending(a.id, b.id);
+}
+
+function buildPersonalizedCursor(item, sortBy) {
+  if (!item) return null;
+  if (sortBy === 'recommended') {
+    return {
+      recScore: item._recScore ?? null,
+      matchScore: item.matchScore ?? null,
+      createdAt: item.createdAt,
+      id: item.id,
+    };
+  }
+
+  return {
+    matchScore: item.matchScore ?? null,
+    createdAt: item.createdAt,
+    id: item.id,
+  };
+}
+
+function isRankedAfterCursor(item, cursor, sortBy) {
+  if (!cursor) return true;
+  const cursorItem = {
+    id: cursor.id,
+    createdAt: cursor.createdAt,
+    matchScore: cursor.matchScore ?? null,
+    _recScore: cursor.recScore ?? null,
+  };
+  return compareRankedItems(item, cursorItem, sortBy) > 0;
+}
+
+function stripRankingMeta(items) {
+  return items.map(({ _recScore, ...rest }) => rest);
+}
+
+async function fetchScoreDrivenPage({ user, supabase, adminSb, page, pageSize, sortBy, cursor, filters, missingProfile, acceptedPrivateIds }) {
+  const acceptedPrivateIdSet = new Set(acceptedPrivateIds || []);
+  const seenIds = new Set();
+  const collected = [];
+  const now = new Date();
   const BATCH = 120;
   const MAX_SCORE_SCAN = 5000;
   let scoreOffset = 0;
-  let collected = [];
-  let hasMoreScores = true;
+  let exhaustedScores = false;
 
-  // Pre-parse filters once
-  const filters = parsePropertyFilters(searchParams);
-
-  while (collected.length < needed && hasMoreScores && scoreOffset < MAX_SCORE_SCAN) {
+  while (!exhaustedScores && scoreOffset < MAX_SCORE_SCAN) {
     const { data: scoreRows, error } = await supabase
       .from('compatibility_scores')
       .select('property_id, score')
@@ -514,7 +518,7 @@ async function fetchScoreDrivenPage({ searchParams, user, supabase, adminSb, pag
 
     if (error) throw error;
     if (!scoreRows || scoreRows.length === 0) {
-      hasMoreScores = false;
+      exhaustedScores = true;
       break;
     }
 
@@ -538,47 +542,46 @@ async function fetchScoreDrivenPage({ searchParams, user, supabase, adminSb, pag
     // Map for fast lookup
     const propMap = new Map((props || []).map(p => [p.id, p]));
 
-    // Interest statuses only for returned IDs
-    const { interests, scoreMap } = await fetchPerPageUserContext(supabase, user, ids);
+    const visibleIds = ids.filter(id => propMap.has(id));
+    const { interests } = await fetchPerPageUserContext(supabase, user, visibleIds);
 
     for (const row of scoreRows) {
       const prop = propMap.get(row.property_id);
-      if (!prop) continue;
+      if (!prop || seenIds.has(prop.id)) continue;
 
       // Private eligibility: accept if score>=70 OR accepted interest OR owner
       const isPrivate = prop.privacy_setting === 'private';
       const isOwner = prop.listed_by_user_id === user.id;
-      const isAccepted = acceptedPrivateIds.includes(prop.id) || interests.some(i => i.property_id === prop.id && i.status === 'accepted');
+      const isAccepted = acceptedPrivateIdSet.has(prop.id)
+        || interests.some(i => i.property_id === prop.id && i.status === 'accepted');
       if (isPrivate && !isOwner && !isAccepted && (typeof row.score !== 'number' || row.score < 70)) {
         continue;
       }
 
-      // Record score for transformer
-      scoreMap[prop.id] = row.score;
+      const transformed = transformProperty(prop, interests, { [prop.id]: row.score }, user, missingProfile, supabase);
+      if (sortBy === 'recommended') {
+        transformed._recScore = computeRecommendedScore(transformed, now);
+      }
 
-      collected.push(transformProperty(prop, interests, scoreMap, user, false, supabase));
-      if (collected.length >= needed) break;
+      collected.push(transformed);
+      seenIds.add(prop.id);
     }
 
     scoreOffset += BATCH;
-    if (scoreRows.length < BATCH) hasMoreScores = false;
+    if (scoreRows.length < BATCH) exhaustedScores = true;
   }
-
-  // If we hit the scan cap, don't claim there are more pages (prevents infinite empty paging).
-  if (scoreOffset >= MAX_SCORE_SCAN) hasMoreScores = false;
 
   // Backfill with otherwise-visible listings so public properties stay visible
   // even when a user's compatibility rows are incomplete.
-  if (collected.length < needed) {
-    const seenIds = new Set(collected.map(item => item.id));
-    const fallbackLimit = Math.min(Math.max(needed + (pageSize * 2), 60), 200);
-
-    let fallbackQuery = buildVisiblePropertiesQuery(adminSb, user, allowedPrivateIds)
+  const fallbackLimit = Math.min(Math.max(pageSize * 8, 80), 240);
+  if (collected.length < fallbackLimit) {
+    const fallbackQuery = applyPropertyFilters(
+      buildVisiblePropertiesQuery(adminSb, user, []),
+      filters
+    )
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
       .limit(fallbackLimit);
-
-    fallbackQuery = applyPropertyFilters(fallbackQuery, filters);
 
     const { data: fallbackProps, error: fallbackError } = await fallbackQuery;
     if (fallbackError) throw fallbackError;
@@ -588,50 +591,30 @@ async function fetchScoreDrivenPage({ searchParams, user, supabase, adminSb, pag
       const missingIds = missingProps.map(prop => prop.id);
       const { interests, scoreMap } = await fetchPerPageUserContext(supabase, user, missingIds);
       for (const prop of missingProps) {
-        collected.push(transformProperty(prop, interests, scoreMap, user, false, supabase));
+        const transformed = transformProperty(prop, interests, scoreMap, user, missingProfile, supabase);
+        if (sortBy === 'recommended') {
+          transformed._recScore = computeRecommendedScore(transformed, now);
+        }
+        collected.push(transformed);
+        seenIds.add(prop.id);
       }
     }
   }
 
-  if (sortBy === 'match') {
-    collected = collected.sort((a, b) => {
-      const aScore = typeof a.matchScore === 'number' ? a.matchScore : -1;
-      const bScore = typeof b.matchScore === 'number' ? b.matchScore : -1;
-      return bScore - aScore || (new Date(b.createdAt) - new Date(a.createdAt));
-    });
-  }
-
-  // Re-rank for recommended by blending freshness + quality into the collected window.
-  // Formula (locked): recommended = 0.70*match + 0.20*freshness + 0.10*quality
-  //   freshness: linear decay over ~30 days (strong boost first 7d, near-zero at 30d)
-  //   quality:   0–100 bounded; photos present (+50) + verified host (+50)
-  if (sortBy === 'recommended') {
-    const now = new Date();
-    collected = collected
-      .map(item => {
-        const ageHours = Math.max(0, (now - new Date(item.createdAt)) / 36e5);
-        // 100 at 0h → ~0 at 720h (30 days), steeper first 7d
-        const freshness = Math.max(0, 100 - ageHours / 7.2);
-        const match   = typeof item.matchScore === 'number' ? item.matchScore : 0;
-        // Quality: bounded so it can't overpower match
-        const hasPhotos = Array.isArray(item.images) && item.images.length > 0;
-        const quality  = (hasPhotos ? 50 : 0) + (item.verified ? 50 : 0); // 0 | 50 | 100
-        const recScore = (match * 0.70) + (freshness * 0.20) + (quality * 0.10);
-        return { ...item, _recScore: recScore };
-      })
-      .sort((a, b) => (b._recScore - a._recScore) || (b.matchScore - a.matchScore));
-  }
-
-  const pageItems = collected.slice(offset, offset + pageSize).map(({ _recScore, ...rest }) => rest);
+  const ranked = [...collected].sort((a, b) => compareRankedItems(a, b, sortBy));
+  const filtered = cursor ? ranked.filter(item => isRankedAfterCursor(item, cursor, sortBy)) : ranked;
+  const pageItems = filtered.slice(0, pageSize);
+  const hasMore = filtered.length > pageSize;
+  const nextCursor = hasMore ? encodeCursor(buildPersonalizedCursor(pageItems[pageItems.length - 1], sortBy)) : null;
 
   return {
-    data: pageItems,
+    data: stripRankingMeta(pageItems),
     pagination: {
       page,
       pageSize,
       total: null,
-      // If we couldn't fill this page, there is no next page of results for this query.
-      hasMore: pageItems.length === pageSize && hasMoreScores,
+      hasMore,
+      nextCursor,
     },
   };
 }
@@ -647,8 +630,8 @@ function parsePropertyFilters(searchParams) {
     amenities: searchParams.get('amenities')?.split(',').filter(Boolean),
     minBedrooms: parseInt(searchParams.get('minBedrooms')),
     minBathrooms: parseInt(searchParams.get('minBathrooms')),
-    location: searchParams.get('location'),
-    search: searchParams.get('search'),
+    location: sanitizeOrTerm(searchParams.get('location')),
+    search: sanitizeOrTerm(searchParams.get('search')),
     moveInDate: searchParams.get('moveInDate'),
     roomType: searchParams.get('roomType'),
     houseRules: searchParams.get('houseRules')?.split(',').filter(Boolean),

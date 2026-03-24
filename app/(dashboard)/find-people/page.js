@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { MdHomeWork, MdPeopleAlt, MdRefresh } from 'react-icons/md';
 import toast from 'react-hot-toast';
@@ -8,6 +8,8 @@ import FindLandlordsSection from '@/components/find-people/FindLandlordsSection'
 import FindTenantsSection from '@/components/find-people/FindTenantsSection';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { useAuthContext } from '@/core/contexts/AuthContext';
+import { isLatestDashboardRequest } from '@/core/utils/dashboard-fetch-guards';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 const PAGE_SIZE = 12;
 const INITIAL_PAGINATION = {
@@ -43,12 +45,14 @@ export default function FindPeoplePage() {
     pagination: INITIAL_PAGINATION,
   });
   const [contactingId, setContactingId] = useState(null);
+  const requestIdRef = useRef(0);
+  const abortControllerRef = useRef(null);
 
   const currentPage = pageByTab[activeTab] || 1;
 
   const logEvent = async (action, metadata = {}, tab = activeTab) => {
     try {
-      fetch('/api/analytics/log', {
+      fetchWithCsrf('/api/analytics/log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -56,17 +60,23 @@ export default function FindPeoplePage() {
           action,
           metadata: { ...metadata, tab },
         }),
-      });
+      }).catch(() => {});
     } catch (error) {
       console.error('[Find People Analytics] Failed to log event:', error);
     }
   };
 
   const fetchMatches = async ({ tab = activeTab, page = currentPage } = {}) => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoadingState(true);
 
     try {
-      const statusRes = await fetch('/api/user/profile-status');
+      const statusRes = await fetch('/api/user/profile-status', { signal: controller.signal });
       if (!statusRes.ok) throw new Error('Failed to verify profile status');
 
       const status = await statusRes.json();
@@ -74,14 +84,17 @@ export default function FindPeoplePage() {
         ...status,
         isProfileComplete: tab === 'landlords' ? !!status.hasLifestyle : true,
       };
+      if (!isLatestDashboardRequest(requestId, requestIdRef.current)) return;
       setProfileStatus(normalizedStatus);
 
       if (!normalizedStatus.isProfileComplete) {
-        setFeatureState((prev) => ({
-          ...prev,
-          data: [],
-          pagination: INITIAL_PAGINATION,
-        }));
+        if (isLatestDashboardRequest(requestId, requestIdRef.current)) {
+          setFeatureState((prev) => ({
+            ...prev,
+            data: [],
+            pagination: INITIAL_PAGINATION,
+          }));
+        }
         return;
       }
 
@@ -89,9 +102,10 @@ export default function FindPeoplePage() {
         ? `/api/landlord/find-people?minMatch=70&limit=${PAGE_SIZE}&page=${page}`
         : `/api/seeker/find-landlords?minMatch=70&limit=${PAGE_SIZE}&page=${page}`;
 
-      const res = await fetch(endpoint);
+      const res = await fetch(endpoint, { signal: controller.signal });
       const payload = await res.json();
       if (!res.ok) throw new Error(payload.error || 'Failed to load matches');
+      if (!isLatestDashboardRequest(requestId, requestIdRef.current)) return;
 
       const nextPagination = payload.pagination || INITIAL_PAGINATION;
       setFeatureState({
@@ -111,14 +125,19 @@ export default function FindPeoplePage() {
         }, tab);
       }
     } catch (error) {
-      setFeatureState((prev) => ({
-        ...prev,
-        data: [],
-        pagination: INITIAL_PAGINATION,
-      }));
-      toast.error(error.message || 'Failed to load matches');
+      if (error.name === 'AbortError') return;
+      if (isLatestDashboardRequest(requestId, requestIdRef.current)) {
+        setFeatureState((prev) => ({
+          ...prev,
+          data: [],
+          pagination: INITIAL_PAGINATION,
+        }));
+        toast.error(error.message || 'Failed to load matches');
+      }
     } finally {
-      setLoadingState(false);
+      if (isLatestDashboardRequest(requestId, requestIdRef.current)) {
+        setLoadingState(false);
+      }
     }
   };
 
@@ -186,6 +205,12 @@ export default function FindPeoplePage() {
       fetchMatches({ tab: activeTab, page: currentPage });
     }
   }, [activeTab, currentPage, loading, router, user]);
+
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   if (loading || !user) {
     return (

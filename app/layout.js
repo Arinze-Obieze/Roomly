@@ -6,6 +6,7 @@ const inter = { variable: "--font-inter" };
 const spaceGrotesk = { variable: "--font-space-grotesk" };
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://roomfind.ie'),
   title: {
     default: "RoomFind | Find Your Perfect Flatmate in Ireland",
     template: "%s | RoomFind"
