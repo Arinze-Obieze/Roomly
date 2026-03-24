@@ -67,7 +67,7 @@ async function fetchMessagesFromDB(supabase, userId, groupId) {
           attachment_type, 
           attachment_data, 
           created_at,
-          sender:sender_id(full_name, profile_picture)
+          sender:sender_id(id, full_name, profile_picture)
       `)
       .eq('group_id', groupId)
       .order('created_at', { ascending: true })

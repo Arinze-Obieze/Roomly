@@ -3,6 +3,7 @@ import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { sendEmail } from '@/core/utils/email';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { Notifier } from '@/core/services/notifications/notifier';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
@@ -112,17 +113,29 @@ export async function POST(req) {
       })
       .eq('id', conversationId);
 
-    if (host.email) {
-      const seekerName = seeker?.full_name || 'A tenant';
-      const propertyTitle = property.title || 'Property';
-      const formattedDate = new Date(`${date}T${time}`).toLocaleString('en-IE', {
-        weekday: 'long',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      });
+    const seekerName = seeker?.full_name || 'A tenant';
+    const propertyTitle = property.title || 'Property';
+    const formattedDate = new Date(`${date}T${time}`).toLocaleString('en-IE', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
 
+    Notifier.send({
+      userId: host.id,
+      type: 'system',
+      title: 'New Inspection Request',
+      message: `${seekerName} requested an inspection for "${propertyTitle}" on ${formattedDate}.`,
+      link: `/messages?conversationId=${conversationId}`,
+      data: { conversationId, propertyId, messageId: message.id, status: 'pending' },
+      channels: ['in-app'],
+    }).catch((notifyError) => {
+      console.error('Failed to send inspection request notification', notifyError);
+    });
+
+    if (host.email) {
       sendEmail({
         to: host.email,
         subject: `New Inspection Request: ${propertyTitle}`,

@@ -3,6 +3,7 @@ import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 import { sanitizeLength, sanitizeText } from '@/core/utils/sanitizers';
+import { Notifier } from '@/core/services/notifications/notifier';
 
 export async function POST(request) {
   try {
@@ -83,6 +84,21 @@ export async function POST(request) {
       .eq('id', conversationId);
 
     if (updateError) throw updateError;
+
+    const recipientId =
+      conversation.tenant_id === user.id ? conversation.host_id : conversation.tenant_id;
+
+    Notifier.send({
+      userId: recipientId,
+      type: 'message',
+      title: 'New Message',
+      message: cleanedContent || fallbackLastMessage,
+      link: `/messages?conversationId=${conversationId}`,
+      data: { conversationId },
+      channels: ['in-app', 'email', 'push'],
+    }).catch((notifyError) => {
+      console.error('[Messages Send POST] Notification Error:', notifyError);
+    });
 
     return NextResponse.json({ success: true, data: message });
   } catch (error) {

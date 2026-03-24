@@ -1,10 +1,13 @@
 import { createClient } from '@/core/utils/supabase/server';
+import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { Notifier } from '@/core/services/notifications/notifier';
 
 export async function GET() {
   try {
     const supabase = await createClient();
+    const adminSupabase = createAdminClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
@@ -75,6 +78,37 @@ export async function POST(req) {
       });
 
     if (messageError) throw messageError;
+
+    const [{ data: requesterProfile }, { data: superadmins }] = await Promise.all([
+      adminSupabase
+        .from('users')
+        .select('full_name')
+        .eq('id', user.id)
+        .maybeSingle(),
+      adminSupabase
+        .from('users')
+        .select('id')
+        .eq('is_superadmin', true),
+    ]);
+
+    const requesterName = requesterProfile?.full_name || user.email || 'A user';
+    const adminIds = (superadmins || []).map((admin) => admin.id).filter((id) => id && id !== user.id);
+
+    if (adminIds.length > 0) {
+      await Promise.allSettled(
+        adminIds.map((adminId) =>
+          Notifier.send({
+            userId: adminId,
+            type: 'system',
+            title: 'New Support Ticket',
+            message: `${requesterName} opened a support ticket: "${subject}"`,
+            link: `/superadmin/support`,
+            data: { ticketId: ticket.id, category },
+            channels: ['in-app', 'email'],
+          })
+        )
+      );
+    }
 
     return NextResponse.json({ data: ticket });
   } catch (error) {

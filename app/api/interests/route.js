@@ -150,15 +150,20 @@ export async function PATCH(request) {
     await bumpCacheVersion(`v:properties:user:${interestData.seeker_id}`); // affects blur state for seeker
 
     // 4. Send notification to the seeker
-    if (status === 'accepted') {
+    if (status === 'accepted' || status === 'declined') {
       try {
+        const accepted = status === 'accepted';
         await Notifier.send({
           userId: interestData.seeker_id,
           type: 'system',
-          title: 'Interest Accepted!',
-          message: `The host accepted your interest for "${interestData.property.title}". You can now chat!`,
-          link: `/messages?user=${user.id}&propertyId=${interestData.property_id}`,
-          data: { propertyId: interestData.property_id, hostId: user.id },
+          title: accepted ? 'Interest Accepted!' : 'Interest Update',
+          message: accepted
+            ? `The host accepted your interest for "${interestData.property.title}". You can now chat!`
+            : `The host declined your interest for "${interestData.property.title}".`,
+          link: accepted
+            ? `/messages?user=${user.id}&propertyId=${interestData.property_id}`
+            : '/interests',
+          data: { propertyId: interestData.property_id, hostId: user.id, status },
           channels: ['in-app', 'email']
         });
       } catch (nErr) {

@@ -3,6 +3,7 @@ import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { sendEmail } from '@/core/utils/email';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { Notifier } from '@/core/services/notifications/notifier';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
@@ -118,16 +119,42 @@ export async function POST(req) {
       admin.from('properties').select('title').eq('id', conversation.property_id).maybeSingle(),
     ]);
 
-    if (otherParty?.email) {
-      const propertyTitle = property?.title || 'Property';
-      const actionDate = new Date(`${updatedData.date}T${updatedData.time}`).toLocaleString('en-IE', {
-        weekday: 'long',
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-      });
+    const propertyTitle = property?.title || 'Property';
+    const actionDate = new Date(`${updatedData.date}T${updatedData.time}`).toLocaleString('en-IE', {
+      weekday: 'long',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    });
 
+    let notificationTitle = 'Inspection Update';
+    let notificationMessage = `There is an update to your inspection for "${propertyTitle}".`;
+
+    if (newStatus === 'confirmed') {
+      notificationTitle = 'Inspection Confirmed';
+      notificationMessage = `Your inspection for "${propertyTitle}" was confirmed for ${actionDate}.`;
+    } else if (newStatus === 'declined') {
+      notificationTitle = 'Inspection Declined';
+      notificationMessage = `Your inspection request for "${propertyTitle}" was declined.`;
+    } else if (newStatus === 'rescheduled') {
+      notificationTitle = 'Inspection Rescheduled';
+      notificationMessage = `A new inspection time was proposed for "${propertyTitle}": ${actionDate}.`;
+    }
+
+    Notifier.send({
+      userId: otherPartyId,
+      type: 'system',
+      title: notificationTitle,
+      message: notificationMessage,
+      link: `/messages?conversationId=${conversationId}`,
+      data: { conversationId, propertyId: conversation.property_id, messageId, status: newStatus },
+      channels: ['in-app'],
+    }).catch((notifyError) => {
+      console.error('Failed to send inspection update notification', notifyError);
+    });
+
+    if (otherParty?.email) {
       let emailSubject = '';
       let emailHeader = '';
       let emailBody = '';

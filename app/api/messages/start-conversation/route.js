@@ -4,6 +4,7 @@ import { createAdminClient } from '@/core/utils/supabase/admin';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 import { sanitizeLength, sanitizeText } from '@/core/utils/sanitizers';
 import { logFeatureEvent } from '@/core/services/analytics/analytics.service';
+import { Notifier } from '@/core/services/notifications/notifier';
 
 /**
  * Polymorphic endpoint to start a conversation between a Seeker and a Host
@@ -148,6 +149,21 @@ export async function POST(request) {
       });
 
     if (messageError) throw messageError;
+
+    const recipientId = user.id === hostId ? tenantId : hostId;
+    const notificationTitle = existingConversation ? 'New Message' : 'New Conversation';
+
+    Notifier.send({
+      userId: recipientId,
+      type: 'message',
+      title: notificationTitle,
+      message: cleanedMessage,
+      link: `/messages?conversationId=${conversationId}`,
+      data: { conversationId, propertyId },
+      channels: ['in-app', 'email', 'push'],
+    }).catch((notifyError) => {
+      console.error('[Start Conversation POST] Notification Error:', notifyError);
+    });
 
     // 5. Log tracking event (fire & forget)
     logFeatureEvent({

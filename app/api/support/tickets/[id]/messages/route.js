@@ -107,6 +107,45 @@ export async function POST(req, { params }) {
       }
     }
 
+    if (role === 'user') {
+      try {
+        const [{ data: ticket }, { data: superadmins }, { data: senderProfile }] = await Promise.all([
+          supabase
+            .from('support_tickets')
+            .select('id, subject')
+            .eq('id', id)
+            .single(),
+          supabase
+            .from('users')
+            .select('id')
+            .eq('is_superadmin', true),
+          supabase
+            .from('users')
+            .select('full_name')
+            .eq('id', user.id)
+            .maybeSingle(),
+        ]);
+
+        const senderName = senderProfile?.full_name || user.email || 'A user';
+
+        await Promise.allSettled(
+          (superadmins || []).map((admin) =>
+            Notifier.send({
+              userId: admin.id,
+              type: 'system',
+              title: 'Support Ticket Reply',
+              message: `${senderName} replied to ticket: "${ticket?.subject || id}"`,
+              link: `/superadmin/support`,
+              data: { ticketId: id },
+              channels: ['in-app', 'email'],
+            })
+          )
+        );
+      } catch (nError) {
+        console.error('[Support User Reply Notification Error]:', nError);
+      }
+    }
+
     return NextResponse.json({ data: message });
   } catch (error) {
     console.error('[API Support Messages POST] Error:', error);

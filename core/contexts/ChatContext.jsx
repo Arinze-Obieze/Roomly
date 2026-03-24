@@ -182,17 +182,85 @@ export const ChatProvider = ({ children }) => {
     const markReadMutation = useMutation({
         mutationFn: async (conversationId) => {
             if (!user) return;
-            await supabase
-                .from('messages')
-                .update({ is_read: true })
-                .eq('conversation_id', conversationId)
-                .neq('sender_id', user.id)
-                .eq('is_read', false);
+            const response = await fetchWithCsrf('/api/messages/mark-read', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ conversationId }),
+            });
+
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok || !payload?.success) {
+                throw new Error(payload?.error || 'Failed to mark conversation as read');
+            }
+
+            return conversationId;
+        },
+        onMutate: async (conversationId) => {
+            await queryClient.cancelQueries(['conversations', user?.id]);
+            await queryClient.cancelQueries(['messages', conversationId]);
+
+            const previousConversations = queryClient.getQueryData(['conversations', user?.id]);
+            const previousMessages = queryClient.getQueryData(['messages', conversationId]);
+
+            queryClient.setQueryData(['conversations', user?.id], (old) => {
+                if (!old?.pages) return old;
+
+                return {
+                    ...old,
+                    pages: old.pages.map((page) =>
+                        page.map((conv) => {
+                            if (conv.id !== conversationId) return conv;
+                            return {
+                                ...conv,
+                                unread_count_tenant: conv.tenant_id === user?.id ? 0 : conv.unread_count_tenant,
+                                unread_count_host: conv.host_id === user?.id ? 0 : conv.unread_count_host,
+                            };
+                        })
+                    ),
+                };
+            });
+
+            queryClient.setQueryData(['messages', conversationId], (old) => {
+                if (!old?.pages) return old;
+
+                return {
+                    ...old,
+                    pages: old.pages.map((page) =>
+                        page.map((msg) =>
+                            msg.sender_id === user?.id || msg.is_read
+                                ? msg
+                                : { ...msg, is_read: true }
+                        )
+                    ),
+                };
+            });
+
+            const currentUnread = unreadCountQuery.data || 0;
+            const activeConv = conversationsQuery.data?.pages?.flat?.().find((conv) => conv.id === conversationId);
+            const convUnread = activeConv
+                ? (activeConv.tenant_id === user?.id ? activeConv.unread_count_tenant : activeConv.unread_count_host) || 0
+                : 0;
+
+            queryClient.setQueryData(['chat-unread-count', user?.id], Math.max(0, currentUnread - convUnread));
+
+            return { previousConversations, previousMessages, currentUnread };
         },
         onSuccess: () => {
             queryClient.invalidateQueries(['chat-unread-count', user?.id]);
             queryClient.invalidateQueries(['conversations', user?.id]);
-        }
+        },
+        onError: (error, conversationId, context) => {
+            console.error('Error marking messages as read:', error);
+            if (context?.previousConversations) {
+                queryClient.setQueryData(['conversations', user?.id], context.previousConversations);
+            }
+            if (context?.previousMessages) {
+                queryClient.setQueryData(['messages', conversationId], context.previousMessages);
+            }
+            if (typeof context?.currentUnread === 'number') {
+                queryClient.setQueryData(['chat-unread-count', user?.id], context.currentUnread);
+            }
+        },
     });
 
     // Trigger mark as read when messages load (only when conversation changes, NOT on every data update)

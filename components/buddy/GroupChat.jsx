@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/core/utils/supabase/client';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { 
@@ -172,7 +173,7 @@ export default function GroupChat({ groupId }) {
             size: attachmentParams.size 
         } : null,
         created_at: new Date().toISOString(),
-        sender: { full_name: user?.full_name, profile_picture: user?.user_metadata?.avatar_url },
+        sender: { id: user?.id, full_name: user?.full_name, profile_picture: user?.user_metadata?.avatar_url },
         status: isFile ? 'uploading' : 'sending',
         uploadProgress: isFile ? 0 : 100
     };
@@ -274,10 +275,26 @@ export default function GroupChat({ groupId }) {
         {[...messages, ...optimisticMessages].map((msg) => {
             const isMe = msg.sender_id === user?.id;
             const opacityClass = (msg.status === 'sending' || msg.status === 'uploading') ? 'opacity-75' : '';
+            const senderProfileHref = msg.sender?.id ? `/users/${msg.sender.id}` : null;
+            const SenderIdentityWrapper = ({ children, className = '' }) => {
+                if (!senderProfileHref) {
+                    return <div className={className}>{children}</div>;
+                }
+
+                return (
+                    <Link
+                        href={senderProfileHref}
+                        className={className}
+                        title={`View ${msg.sender?.full_name || 'user'}'s profile`}
+                    >
+                        {children}
+                    </Link>
+                );
+            };
             
             return (
                 <div key={msg.id} className={`flex gap-4 ${isMe ? 'flex-row-reverse' : ''} group ${opacityClass} transition-opacity`}>
-                    <div className="shrink-0 w-8 h-8 rounded-full bg-navy-50 border border-navy-100 overflow-hidden mt-1 shadow-sm">
+                    <SenderIdentityWrapper className="shrink-0 w-8 h-8 rounded-full bg-navy-50 border border-navy-100 overflow-hidden mt-1 shadow-sm transition-all hover:ring-2 hover:ring-terracotta-200 hover:shadow-md">
                         {msg.sender?.profile_picture ? (
                             <img src={msg.sender.profile_picture} className="w-full h-full object-cover" />
                         ) : (
@@ -285,10 +302,14 @@ export default function GroupChat({ groupId }) {
                                 {msg.sender?.full_name?.[0]}
                             </div>
                         )}
-                    </div>
+                    </SenderIdentityWrapper>
                     <div className={`max-w-[75%] ${isMe ? 'items-end' : 'items-start'} flex flex-col`}>
                         <div className="flex items-center gap-2 mb-1 px-1">
-                             {!isMe && <span className="text-[10px] font-bold text-navy-500">{msg.sender?.full_name?.split(' ')[0]}</span>}
+                             {!isMe && (
+                                <SenderIdentityWrapper className="text-[10px] font-bold text-navy-500 hover:text-terracotta-600 transition-colors">
+                                    {msg.sender?.full_name?.split(' ')[0]}
+                                </SenderIdentityWrapper>
+                             )}
                              <span className="text-[10px] text-navy-300">
                                 {dayjs(msg.created_at).format('h:mm A')}
                             </span>

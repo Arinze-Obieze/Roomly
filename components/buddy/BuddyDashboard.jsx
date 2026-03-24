@@ -298,6 +298,38 @@ export default function BuddyDashboard({ group, onBack, onAction }) {
 
   if (!group) return <div className="p-8 text-center text-navy-400 font-medium">Loading group...</div>;
 
+  const ActionButtons = ({ mobile = false }) => (
+    <div className={`flex items-center gap-3 ${mobile ? 'w-full' : ''}`}>
+      {isAdmin && (
+        <button 
+            onClick={() => setIsInviteOpen(true)}
+            className={`${mobile ? 'flex-1 justify-center' : ''} bg-white text-navy-900 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-navy-50 transition-all shadow-lg active:scale-95`}
+        >
+            <MdPersonAdd size={20} className="text-terracotta-600" />
+            Invite
+        </button>
+      )}
+      {isAdmin ? (
+        <button
+          onClick={handleDeleteGroup}
+          disabled={actionLoading}
+          className={`${mobile ? 'flex-1 justify-center' : ''} bg-red-500/90 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-red-600 transition-all disabled:opacity-60`}
+        >
+          <MdDeleteOutline size={18} />
+          Delete Group
+        </button>
+      ) : (
+        <button
+          onClick={handleLeaveGroup}
+          disabled={actionLoading}
+          className={`${mobile ? 'flex-1 justify-center' : ''} ${mobile ? 'bg-white text-navy-700 border border-navy-200' : 'bg-white/10 text-white border border-white/20'} px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-white/20 transition-all disabled:opacity-60`}
+        >
+          <MdExitToApp size={18} />
+          Leave Group
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="fixed inset-0 z-[100] bg-slate-50 overflow-y-auto lg:static lg:z-auto lg:inset-auto pb-6 lg:pb-0">
@@ -315,6 +347,12 @@ export default function BuddyDashboard({ group, onBack, onAction }) {
       </div>
 
       <div className="max-w-6xl mx-auto px-4 lg:px-0 lg:pb-8">
+        <div className="lg:hidden mb-4">
+          <div className="bg-white rounded-2xl border border-navy-100 p-3 shadow-sm">
+            <ActionButtons mobile />
+          </div>
+        </div>
+
         {/* Header */}
         <div className="hidden lg:block relative overflow-hidden bg-linear-to-br from-navy-900 to-navy-950 rounded-[2.5rem] shadow-xl p-8 mb-8 text-white">
         <div className="absolute top-0 right-0 w-64 h-64 bg-terracotta-500/20 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2"></div>
@@ -356,34 +394,7 @@ export default function BuddyDashboard({ group, onBack, onAction }) {
                         </div>
                     ))}
                 </div>
-                {isAdmin && (
-                  <button 
-                      onClick={() => setIsInviteOpen(true)}
-                      className="bg-white text-navy-900 px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-navy-50 transition-all shadow-lg active:scale-95"
-                  >
-                      <MdPersonAdd size={20} className="text-terracotta-600" />
-                      Invite
-                  </button>
-                )}
-                {isAdmin ? (
-                  <button
-                    onClick={handleDeleteGroup}
-                    disabled={actionLoading}
-                    className="bg-red-500/90 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-red-600 transition-all disabled:opacity-60"
-                  >
-                    <MdDeleteOutline size={18} />
-                    Delete Group
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleLeaveGroup}
-                    disabled={actionLoading}
-                    className="bg-white/10 text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 hover:bg-white/20 transition-all border border-white/20 disabled:opacity-60"
-                  >
-                    <MdExitToApp size={18} />
-                    Leave Group
-                  </button>
-                )}
+                <ActionButtons />
             </div>
         </div>
       </div>
@@ -573,7 +584,50 @@ export default function BuddyDashboard({ group, onBack, onAction }) {
 
              {activeTab === 'members' && (
                   <div className="bg-white rounded-4xl border border-navy-100 p-8">
-                    <h3 className="font-heading font-bold text-navy-900 mb-8 text-xl">Manage Members</h3>
+                    <div className="flex flex-col gap-4 mb-8">
+                      <div className="flex items-center justify-between gap-4">
+                        <div>
+                          <h3 className="font-heading font-bold text-navy-900 text-xl">Manage Members</h3>
+                          <p className="text-sm text-navy-500 mt-1">
+                            {isAdmin
+                              ? 'Remove members or delete the group from here.'
+                              : 'View members or leave the group anytime.'}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-3">
+                        {isAdmin && (
+                          <>
+                            <button
+                              onClick={() => setIsInviteOpen(true)}
+                              className="px-4 py-2.5 rounded-xl bg-navy-900 text-white font-bold flex items-center gap-2 hover:bg-navy-800 transition-all"
+                            >
+                              <MdPersonAdd size={18} />
+                              Invite Member
+                            </button>
+                            <button
+                              onClick={handleDeleteGroup}
+                              disabled={actionLoading}
+                              className="px-4 py-2.5 rounded-xl bg-red-50 text-red-700 border border-red-200 font-bold flex items-center gap-2 hover:bg-red-100 transition-all disabled:opacity-60"
+                            >
+                              <MdDeleteOutline size={18} />
+                              Delete Group
+                            </button>
+                          </>
+                        )}
+                        {!isAdmin && (
+                          <button
+                            onClick={handleLeaveGroup}
+                            disabled={actionLoading}
+                            className="px-4 py-2.5 rounded-xl bg-white text-navy-700 border border-navy-200 font-bold flex items-center gap-2 hover:bg-navy-50 transition-all disabled:opacity-60"
+                          >
+                            <MdExitToApp size={18} />
+                            Leave Group
+                          </button>
+                        )}
+                      </div>
+                    </div>
                     <div className="space-y-4">
                         {members.map(m => (
                             <div key={m.user.id} className="flex items-center justify-between p-5 bg-navy-50 rounded-3xl border border-navy-100/50">
