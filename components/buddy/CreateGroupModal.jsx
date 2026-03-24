@@ -1,15 +1,32 @@
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MdClose, MdGroupAdd } from 'react-icons/md';
 import { useRouter } from 'next/navigation';
+import { createPortal } from 'react-dom';
 import toast from 'react-hot-toast';
 
 export default function CreateGroupModal({ isOpen, onClose, onCreated }) {
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
-  if (!isOpen) return null;
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
+  if (!isOpen || !mounted) return null;
 
   const getCSRFToken = async () => {
     const res = await fetch('/api/csrf-token');
@@ -61,9 +78,15 @@ export default function CreateGroupModal({ isOpen, onClose, onCreated }) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200">
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[100000] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="relative z-[100001] w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl scale-100 animate-in zoom-in-95 duration-200"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center mb-6">
           <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
             <span className="p-2 bg-cyan-50 rounded-full text-cyan-500">
@@ -79,9 +102,9 @@ export default function CreateGroupModal({ isOpen, onClose, onCreated }) {
         <form onSubmit={handleSubmit}>
           <div className="mb-6">
             <label className="block text-sm font-bold text-slate-700 mb-2">Group Name</label>
-            <input 
+            <input
               autoFocus
-              type="text" 
+              type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. The Dream Team, Dublin Hunters..."
@@ -91,15 +114,15 @@ export default function CreateGroupModal({ isOpen, onClose, onCreated }) {
           </div>
 
           <div className="flex gap-3">
-             <button 
-              type="button" 
+            <button
+              type="button"
               onClick={onClose}
               className="flex-1 py-3 font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-colors"
             >
               Cancel
             </button>
-            <button 
-              type="submit" 
+            <button
+              type="submit"
               disabled={loading}
               className="flex-1 bg-slate-900 text-white font-bold py-3 rounded-xl hover:bg-slate-800 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 active:scale-[0.98]"
             >
@@ -108,6 +131,7 @@ export default function CreateGroupModal({ isOpen, onClose, onCreated }) {
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
