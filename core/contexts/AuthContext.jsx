@@ -20,6 +20,28 @@ export function AuthProvider({ children }) {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginMessage, setLoginMessage] = useState('');
 
+  const ensureProfileRecord = useCallback(async () => {
+    try {
+      const response = await fetch('/api/profile/ensure', { method: 'POST' });
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || 'Failed to ensure profile');
+      }
+      return payload.data || null;
+    } catch (error) {
+      console.warn('Profile ensure failed:', error.message);
+      return null;
+    }
+  }, []);
+
+  const buildMergedUser = useCallback((authUser, profile) => {
+    const mergedUser = { ...authUser, ...(profile || {}) };
+    mergedUser.full_name = profile?.full_name || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name;
+    mergedUser.profile_picture = profile?.profile_picture || authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture;
+    mergedUser.avatar_url = mergedUser.profile_picture;
+    return mergedUser;
+  }, []);
+
   useEffect(() => {
     const supabase = createClient();
     let mounted = true;
@@ -34,26 +56,27 @@ export function AuthProvider({ children }) {
         if (mounted) {
            if (authUser) {
             try {
-                const { data: profile, error: profileError } = await supabase
+                let { data: profile, error: profileError } = await supabase
                 .from('users')
                 .select('*, is_superadmin')
                 .eq('id', authUser.id)
                 .single();
-                
-                if (profileError && profileError.code !== 'PGRST116') {
+
+                if (profileError?.code === 'PGRST116') {
+                    profile = await ensureProfileRecord();
+                    profileError = null;
+                }
+
+                if (profileError) {
                     console.warn('Error fetching profile:', profileError.message);
                 }
 
                 if (mounted) {
-                    const mergedUser = { ...authUser, ...(profile || {}) };
-                    mergedUser.full_name = profile?.full_name || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name;
-                    mergedUser.profile_picture = profile?.profile_picture || authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture;
-                    mergedUser.avatar_url = mergedUser.profile_picture;
-                    setUser(mergedUser);
+                    setUser(buildMergedUser(authUser, profile));
                 }
             } catch (innerError) {
                 console.warn('Profile fetch failed:', innerError.message);
-                if (mounted) setUser(authUser);
+                if (mounted) setUser(buildMergedUser(authUser, null));
             }
            } else {
              setUser(null);
@@ -84,20 +107,19 @@ export function AuthProvider({ children }) {
          
          // Fetch profile in background to update
          try {
-            const { data: profile } = await supabase
+            let { data: profile, error: profileError } = await supabase
                 .from('users')
                 .select('*, is_superadmin')
                 .eq('id', session.user.id)
                 .single();
-            
-            if (mounted && profile) {
-                setUser(u => {
-                    const mergedUser = { ...u, ...session.user, ...profile };
-                    mergedUser.full_name = profile?.full_name || session.user?.user_metadata?.full_name || session.user?.user_metadata?.name;
-                    mergedUser.profile_picture = profile?.profile_picture || session.user?.user_metadata?.avatar_url || session.user?.user_metadata?.picture;
-                    mergedUser.avatar_url = mergedUser.profile_picture;
-                    return mergedUser;
-                });
+
+            if (profileError?.code === 'PGRST116') {
+                profile = await ensureProfileRecord();
+                profileError = null;
+            }
+
+            if (mounted && !profileError && profile) {
+                setUser(u => ({ ...u, ...buildMergedUser(session.user, profile) }));
             }
          } catch (e) {
              // silent fail
@@ -112,7 +134,7 @@ export function AuthProvider({ children }) {
       mounted = false;
       subscription?.unsubscribe();
     };
-  }, []);
+  }, [buildMergedUser, ensureProfileRecord]);
 
   // Heartbeat for online status
   useEffect(() => {
@@ -147,16 +169,26 @@ export function AuthProvider({ children }) {
      const { data: { user: authUser } } = await supabase.auth.getUser();
      
      if (authUser) {
-        const { data: profile } = await supabase
+        let { data: profile, error: profileError } = await supabase
             .from('users')
             .select('*, is_superadmin')
             .eq('id', authUser.id)
             .single();
-        const mergedUser = { ...authUser, ...profile };
-        mergedUser.full_name = profile?.full_name || authUser?.user_metadata?.full_name || authUser?.user_metadata?.name;
-        mergedUser.profile_picture = profile?.profile_picture || authUser?.user_metadata?.avatar_url || authUser?.user_metadata?.picture;
-        mergedUser.avatar_url = mergedUser.profile_picture;
-        setUser(mergedUser);
+
+        if (profileError?.code === 'PGRST116') {
+          try {
+            const response = await fetch('/api/profile/ensure', { method: 'POST' });
+            const payload = await response.json().catch(() => ({}));
+            if (response.ok && payload?.success) {
+              profile = payload.data || null;
+              profileError = null;
+            }
+          } catch (error) {
+            console.warn('Profile ensure failed:', error.message);
+          }
+        }
+
+        setUser(buildMergedUser(authUser, profileError ? null : profile));
      } else {
         setUser(null);
      }
@@ -229,7 +261,18 @@ export function AuthProvider({ children }) {
       const supabase = createClient();
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') ||
         (typeof window !== 'undefined' ? window.location.origin : '');
-      const redirectTo = options?.redirectTo || `${siteUrl}/auth/callback`;
+      let nextPath = '/dashboard';
+
+      if (options?.redirectTo) {
+        try {
+          const redirectUrl = new URL(options.redirectTo, siteUrl);
+          nextPath = `${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`;
+        } catch {
+          nextPath = options.redirectTo;
+        }
+      }
+
+      const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`;
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {

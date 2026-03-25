@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
+import { ensureUserProfile } from '@/core/utils/auth/ensureUserProfile';
 import { invalidatePattern } from '@/core/utils/redis';
 
 const ALLOWED_FIELDS = [
@@ -23,6 +24,8 @@ export async function PATCH(request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+    await ensureUserProfile(user);
 
     const body = await request.json().catch(() => ({}));
     const updates = {};
