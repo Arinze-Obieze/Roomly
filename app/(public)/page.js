@@ -8,7 +8,7 @@ const SolutionSection = dynamic(() => import('@/components/marketing/SolutionSec
 const HowItWorksSection = dynamic(() => import('@/components/marketing/HowItWorksSection'));
 const FeaturesSection = dynamic(() => import('@/components/marketing/FeaturesSection'));
 const LandlordSection = dynamic(() => import('@/components/marketing/LandlordSection'));
-const TestimonialsSection = dynamic(() => import('@/components/marketing/TestimonialsSection'));
+// const TestimonialsSection = dynamic(() => import('@/components/marketing/TestimonialsSection'));
 const ComparisonSection = dynamic(() => import('@/components/marketing/ComparisonSection'));
 const FAQSection = dynamic(() => import('@/components/marketing/FAQSection'));
 const CTASection = dynamic(() => import('@/components/marketing/CTASection'));
@@ -24,7 +24,7 @@ export default function HomePage() {
         <HowItWorksSection />
         <FeaturesSection />
         <LandlordSection />
-        <TestimonialsSection />
+        {/* <TestimonialsSection /> */}
         <ComparisonSection />
         <FAQSection />
         <CTASection />
