@@ -2,14 +2,16 @@ import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
-import { cachedFetch } from '@/core/utils/redis';
+import { cachedFetch, getCachedInt } from '@/core/utils/redis';
+import { getPeopleDiscoveryState } from '@/core/services/matching/presentation/people-discovery-state';
+import { comparePeopleDiscoveryRanking } from '@/core/services/matching/ranking/shared-order';
 
 const MAX_LIMIT = 60;
 
-const generateCacheKey = ({ userId, minMatch, limit }) => {
+const generateCacheKey = ({ userId, minMatch, limit, discoveryVersion, interestsVersion }) => {
   const hash = crypto
     .createHash('md5')
-    .update(JSON.stringify({ userId, minMatch, limit }))
+    .update(JSON.stringify({ userId, minMatch, limit, discoveryVersion, interestsVersion }))
     .digest('hex');
   return `seeker:find_buddies:${hash}`;
 };
@@ -26,8 +28,18 @@ export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const minMatch = Math.min(100, Math.max(0, Number(searchParams.get('minMatch') || 70)));
     const limit = Math.min(MAX_LIMIT, Math.max(1, Number(searchParams.get('limit') || 24)));
+    const [discoveryVersion, interestsVersion] = await Promise.all([
+      getCachedInt(`v:find_people:seeker:${user.id}`),
+      getCachedInt(`v:interests:user:${user.id}`),
+    ]);
 
-    const cacheKey = generateCacheKey({ userId: user.id, minMatch, limit });
+    const cacheKey = generateCacheKey({
+      userId: user.id,
+      minMatch,
+      limit,
+      discoveryVersion,
+      interestsVersion,
+    });
     const data = await cachedFetch(cacheKey, 300, async () => {
       return fetchMatchedBuddies({ seekerId: user.id, minMatch, limit });
     });
@@ -83,6 +95,7 @@ async function fetchMatchedBuddies({ seekerId, minMatch, limit }) {
         profile_picture,
         bio,
         is_verified,
+        privacy_setting,
         profile_visibility
       )
     `)
@@ -94,6 +107,38 @@ async function fetchMatchedBuddies({ seekerId, minMatch, limit }) {
     .limit(400); // Increased limit as we'll filter/score in memory
 
   if (seekersError) throw seekersError;
+
+  const candidateIds = (seekers || [])
+    .map((candidate) => candidate?.user_id)
+    .filter((candidateId) => candidateId && candidateId !== seekerId);
+
+  const { data: acceptedPeopleInterestRows, error: acceptedPeopleInterestError } = candidateIds.length > 0
+    ? await adminSupabase
+      .from('people_interests')
+      .select('initiator_user_id, target_user_id')
+      .eq('status', 'accepted')
+      .or(
+        [
+          `and(initiator_user_id.eq.${seekerId},target_user_id.in.(${candidateIds.join(',')}))`,
+          `and(target_user_id.eq.${seekerId},initiator_user_id.in.(${candidateIds.join(',')}))`,
+        ].join(',')
+      )
+      .limit(1000)
+    : { data: [], error: null };
+
+  if (acceptedPeopleInterestError) throw acceptedPeopleInterestError;
+
+  const acceptedPeopleRevealKeys = new Set(
+    (acceptedPeopleInterestRows || []).flatMap((row) => {
+      const initiatorId = row?.initiator_user_id;
+      const targetId = row?.target_user_id;
+      if (!initiatorId || !targetId) return [];
+      return [
+        `${initiatorId}:${targetId}`,
+        `${targetId}:${initiatorId}`,
+      ];
+    })
+  );
 
   const scoredBuddies = (seekers || []).map((candidate) => {
     // Basic similarity scoring (0-100)
@@ -125,20 +170,25 @@ async function fetchMatchedBuddies({ seekerId, minMatch, limit }) {
         score += Math.min(10, commonInterests.length * 2);
     }
 
-    // ── 70% PRIVACY THRESHOLD ──
-    const isPrivate = candidate.users?.profile_visibility === 'private';
-    
-    // Enforce threshold consistently across private and public profiles.
     if (score < minMatch) return null;
+
+    const hasAcceptedPeopleReveal = acceptedPeopleRevealKeys.has(`${seekerId}:${candidate.user_id}`);
+    const discoveryState = getPeopleDiscoveryState({
+      subject: candidate.users,
+      matchScore: score,
+      minMatch,
+      hasMutualReveal: hasAcceptedPeopleReveal,
+    });
+
+    if (!discoveryState.isVisible) return null;
 
     let displayName = candidate.users?.full_name || 'Seeker';
     let bio = candidate.users?.bio || null;
-    let isBlurry = false;
+    let isBlurry = discoveryState.shouldBlurProfile;
 
-    if (isPrivate) {
+    if (isBlurry) {
       const nameParts = displayName.split(' ');
       displayName = nameParts[0] ? `${nameParts[0][0]}.` : '?';
-      isBlurry = true;
       bio = null;
     }
 
@@ -154,12 +204,17 @@ async function fetchMatchedBuddies({ seekerId, minMatch, limit }) {
       interests: theirInterests.slice(0, 6),
       match_score: score,
       matched_property: null, // Buddies don't have a matched property in this context
+      is_private_profile: discoveryState.isPrivateProfile,
+      can_contact_directly: discoveryState.isRevealed,
+      reveal_source: hasAcceptedPeopleReveal ? 'people_interest' : null,
+      cta_state: discoveryState.ctaState,
+      cta_label: discoveryState.ctaLabel,
     };
   });
 
   const filtered = scoredBuddies
     .filter(Boolean)
-    .sort((a, b) => b.match_score - a.match_score)
+    .sort((a, b) => comparePeopleDiscoveryRanking(a, b))
     .slice(0, limit);
 
   return {

@@ -15,22 +15,18 @@ export async function requireSuperadmin() {
     };
   }
 
-  const metadataRole = user?.user_metadata?.is_superadmin || user?.app_metadata?.is_superadmin;
-  if (metadataRole) {
-    return { user, supabase, adminClient: createAdminClient() };
-  }
-
-  const { data: roleRow, error: roleError } = await supabase
+  const adminClient = createAdminClient();
+  const { data: roleRow, error: roleError } = await adminClient
     .from('users')
-    .select('is_superadmin')
+    .select('is_superadmin, account_status')
     .eq('id', user.id)
     .maybeSingle();
 
-  if (roleError || !roleRow?.is_superadmin) {
+  if (roleError || roleRow?.account_status === 'suspended' || !roleRow?.is_superadmin) {
     return {
       errorResponse: NextResponse.json({ error: 'Forbidden' }, { status: 403 }),
     };
   }
 
-  return { user, supabase, adminClient: createAdminClient() };
+  return { user, supabase, adminClient };
 }

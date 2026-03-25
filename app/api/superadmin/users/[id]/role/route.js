@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { requireSuperadmin } from '@/core/services/superadmin/guard';
 import { logSuperadminEvent } from '@/core/services/superadmin/audit';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { validateSuperadminRoleChange } from '@/core/services/superadmin/role-management';
+import { verifySuperadminPassword } from '@/core/services/superadmin/verify-superadmin-password';
 
 export async function PATCH(request, { params }) {
   try {
@@ -10,43 +12,36 @@ export async function PATCH(request, { params }) {
       return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
     }
 
-    const { id: targetUserId } = params;
+    const { id: targetUserId } = await params;
     const body = await request.json();
     const isSuperAdmin = body?.isSuperAdmin;
-
-    if (typeof isSuperAdmin !== 'boolean') {
-      return NextResponse.json(
-        { error: 'isSuperAdmin must be a boolean.' },
-        { status: 400 }
-      );
-    }
+    const password = body?.password;
 
     const { user: authUser, adminClient, errorResponse } = await requireSuperadmin();
     if (errorResponse) {
       return errorResponse;
     }
 
-    if (!isSuperAdmin) {
-      if (targetUserId === authUser.id) {
-        return NextResponse.json(
-          { error: 'You cannot remove your own superadmin access.' },
-          { status: 400 }
-        );
-      }
+    const passwordCheck = await verifySuperadminPassword(authUser.email, password);
+    if (!passwordCheck.valid) {
+      return NextResponse.json({ error: passwordCheck.error }, { status: 403 });
+    }
 
-      const { data: targetUser, error: targetError } = await adminClient
-        .from('users')
-        .select('id, is_superadmin')
-        .eq('id', targetUserId)
-        .maybeSingle();
+    const { data: targetUser, error: targetError } = await adminClient
+      .from('users')
+      .select('id, is_superadmin')
+      .eq('id', targetUserId)
+      .maybeSingle();
 
-      if (targetError || !targetUser) {
-        return NextResponse.json(
-          { error: 'Target user not found.' },
-          { status: 404 }
-        );
-      }
+    if (targetError || !targetUser) {
+      return NextResponse.json(
+        { error: 'Target user not found.' },
+        { status: 404 }
+      );
+    }
 
+    let superadminCount = null;
+    if (!isSuperAdmin && targetUser.is_superadmin) {
       if (targetUser.is_superadmin) {
         const { count, error: countError } = await adminClient
           .from('users')
@@ -59,14 +54,19 @@ export async function PATCH(request, { params }) {
             { status: 500 }
           );
         }
-
-        if ((count || 0) <= 1) {
-          return NextResponse.json(
-            { error: 'Cannot revoke the last superadmin account.' },
-            { status: 400 }
-          );
-        }
+        superadminCount = count || 0;
       }
+    }
+
+    const validation = validateSuperadminRoleChange({
+      actorUserId: authUser.id,
+      targetUserId,
+      currentIsSuperadmin: targetUser.is_superadmin,
+      nextIsSuperadmin: isSuperAdmin,
+      currentSuperadminCount: superadminCount,
+    });
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: validation.status });
     }
 
     const { error: updateError } = await adminClient
@@ -82,24 +82,42 @@ export async function PATCH(request, { params }) {
     }
 
     const { data: authRow, error: authRowError } = await adminClient.auth.admin.getUserById(targetUserId);
-    if (!authRowError && authRow?.user) {
-      const existingUserMetadata = authRow.user.user_metadata || {};
-      const existingAppMetadata = authRow.user.app_metadata || {};
+    if (authRowError || !authRow?.user) {
+      await adminClient
+        .from('users')
+        .update({ is_superadmin: targetUser.is_superadmin })
+        .eq('id', targetUserId);
 
-      const { error: metadataError } = await adminClient.auth.admin.updateUserById(targetUserId, {
-        user_metadata: {
-          ...existingUserMetadata,
-          is_superadmin: isSuperAdmin,
-        },
-        app_metadata: {
-          ...existingAppMetadata,
-          is_superadmin: isSuperAdmin,
-        },
-      });
+      return NextResponse.json(
+        { error: authRowError?.message || 'Failed to load auth user for metadata sync.' },
+        { status: 500 }
+      );
+    }
 
-      if (metadataError) {
-        console.warn('Updated users.is_superadmin but failed to update auth metadata:', metadataError.message);
-      }
+    const existingUserMetadata = authRow.user.user_metadata || {};
+    const existingAppMetadata = authRow.user.app_metadata || {};
+
+    const { error: metadataError } = await adminClient.auth.admin.updateUserById(targetUserId, {
+      user_metadata: {
+        ...existingUserMetadata,
+        is_superadmin: isSuperAdmin,
+      },
+      app_metadata: {
+        ...existingAppMetadata,
+        is_superadmin: isSuperAdmin,
+      },
+    });
+
+    if (metadataError) {
+      await adminClient
+        .from('users')
+        .update({ is_superadmin: targetUser.is_superadmin })
+        .eq('id', targetUserId);
+
+      return NextResponse.json(
+        { error: metadataError.message || 'Failed to sync superadmin metadata.' },
+        { status: 500 }
+      );
     }
 
     await logSuperadminEvent(adminClient, {

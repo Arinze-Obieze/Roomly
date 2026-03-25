@@ -1,10 +1,18 @@
 import { NextResponse } from 'next/server';
 import { requireSuperadmin } from '@/core/services/superadmin/guard';
 import { logSuperadminEvent } from '@/core/services/superadmin/audit';
+import { createAdminClient } from '@/core/utils/supabase/admin';
+import { refreshPropertyMutationArtifacts } from '@/core/services/superadmin/property-mutation-refresh';
+import { validateCSRFRequest } from '@/core/utils/csrf';
 
 export async function PATCH(request, { params }) {
   try {
-    const { id: propertyId } = params;
+    const csrfValidation = await validateCSRFRequest(request);
+    if (!csrfValidation.valid) {
+      return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
+    }
+
+    const { id: propertyId } = await params;
     const body = await request.json();
     const isActive = body?.isActive;
 
@@ -17,10 +25,12 @@ export async function PATCH(request, { params }) {
 
     const { adminClient, user } = guard;
 
-    const { error } = await adminClient
+    const { data: property, error } = await adminClient
       .from('properties')
       .update({ is_active: isActive })
-      .eq('id', propertyId);
+      .eq('id', propertyId)
+      .select('id, listed_by_user_id, approval_status')
+      .single();
 
     if (error) {
       await logSuperadminEvent(adminClient, {
@@ -37,6 +47,16 @@ export async function PATCH(request, { params }) {
         { error: error.message || 'Failed to update property status.' },
         { status: 400 }
       );
+    }
+
+    try {
+      const admin = createAdminClient();
+      await refreshPropertyMutationArtifacts(admin, {
+        propertyId,
+        ownerUserId: property?.listed_by_user_id,
+      });
+    } catch (refreshError) {
+      console.error('[Superadmin Property Status] Artifact refresh failed:', refreshError?.message || refreshError);
     }
 
     await logSuperadminEvent(adminClient, {

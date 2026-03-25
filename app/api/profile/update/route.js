@@ -2,7 +2,10 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { ensureUserProfile } from '@/core/utils/auth/ensureUserProfile';
-import { invalidatePattern } from '@/core/utils/redis';
+import { bumpCacheVersion } from '@/core/utils/redis';
+import { getProfileUpdateVersionKeys } from '@/core/services/matching/matching-cache-versions';
+import { normalizeUserPrivacyUpdates } from '@/core/services/users/profile-privacy';
+import { upsertUserMatchingSnapshot } from '@/core/services/matching/features/snapshot.service';
 
 const ALLOWED_FIELDS = [
   'full_name',
@@ -39,20 +42,23 @@ export async function PATCH(request) {
       return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 });
     }
 
+    const normalizedUpdates = normalizeUserPrivacyUpdates(updates);
+
     const admin = createAdminClient();
     const { data, error } = await admin
       .from('users')
-      .update(updates)
+      .update(normalizedUpdates)
       .eq('id', user.id)
       .select('*')
       .single();
 
     if (error) throw error;
 
-    await invalidatePattern('properties:list:*');
-    await invalidatePattern('property:*');
-    await invalidatePattern('seeker:interests:*');
-    await invalidatePattern('landlord:interests:*');
+    await upsertUserMatchingSnapshot(admin, user.id);
+
+    await Promise.all(
+      getProfileUpdateVersionKeys(user.id).map((key) => bumpCacheVersion(key))
+    );
 
     return NextResponse.json({ success: true, data });
   } catch (error) {

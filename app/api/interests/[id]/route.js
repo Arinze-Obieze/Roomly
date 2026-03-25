@@ -1,6 +1,7 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
-import { invalidatePattern } from '@/core/utils/redis';
+import { bumpCacheVersion } from '@/core/utils/redis';
+import { getPropertyInterestMutationVersionKeys } from '@/core/services/matching/matching-cache-versions';
 
 export async function PATCH(request, { params }) {
   try {
@@ -40,9 +41,13 @@ export async function PATCH(request, { params }) {
 
     if (updateError) throw updateError;
 
-    await invalidatePattern('property:*');
-    await invalidatePattern(`seeker:interests:*`);
-    await invalidatePattern(`landlord:interests:*`);
+    await Promise.all(
+      getPropertyInterestMutationVersionKeys({
+        propertyId: interest.property_id,
+        seekerUserId: interest.seeker_id,
+        hostUserId: user.id,
+      }).map((key) => bumpCacheVersion(key))
+    );
 
     return NextResponse.json({
       success: true,

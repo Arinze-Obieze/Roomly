@@ -27,7 +27,7 @@ export default function FindLandlordsSection({
             <div className="flex items-start justify-between gap-3 mb-4">
               <button
                 type="button"
-                onClick={() => !landlord.isBlurry && onOpenProfile(landlord.user_id)}
+                onClick={() => !landlord.isBlurry && onOpenProfile(landlord)}
                 className={`flex items-center gap-3 min-w-0 text-left ${!landlord.isBlurry ? 'cursor-pointer hover:opacity-80 transition-opacity' : 'cursor-default'}`}
               >
                 <div className="relative w-12 h-12 rounded-full bg-navy-50 overflow-hidden shrink-0">
@@ -73,10 +73,30 @@ export default function FindLandlordsSection({
               <p className="text-sm text-navy-600 line-clamp-2 mb-3">{landlord.bio}</p>
             )}
 
+            {landlord.match_confidence_state && landlord.match_confidence_state !== 'high' && (
+              <div className={`mb-3 text-xs rounded-xl border p-2.5 ${
+                landlord.match_confidence_state === 'low'
+                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                  : 'border-navy-200 bg-navy-50 text-navy-600'
+              }`}>
+                {landlord.match_confidence_label || 'Limited data'} for this match.
+              </div>
+            )}
+
             {landlord.matched_property?.title && (
               <div className="mb-3 text-xs text-navy-600 bg-navy-50 border border-navy-100 rounded-xl p-2.5">
                 Their best room for you:{' '}
                 <span className="font-heading font-semibold text-navy-950">{landlord.matched_property.title}</span>
+              </div>
+            )}
+
+            {Array.isArray(landlord.match_reasons) && landlord.match_reasons.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {landlord.match_reasons.slice(0, 3).map((reason) => (
+                  <span key={reason} className="px-2 py-1 rounded-lg bg-teal-50 text-teal-800 border border-teal-100 text-[11px] font-medium">
+                    {reason}
+                  </span>
+                ))}
               </div>
             )}
 
@@ -96,7 +116,11 @@ export default function FindLandlordsSection({
               disabled={contactingId === landlord.user_id}
               className="w-full bg-terracotta-500 text-white py-2.5 rounded-xl text-sm font-heading font-semibold hover:bg-terracotta-600 transition-colors disabled:opacity-60 shadow-lg shadow-terracotta-500/10 mt-auto"
             >
-              {contactingId === landlord.user_id ? 'Sending...' : 'Contact Landlord'}
+              {contactingId === landlord.user_id
+                ? 'Sending...'
+                : landlord.cta_state === 'show_interest'
+                  ? (landlord.cta_label || 'Show Interest')
+                  : 'Contact Landlord'}
             </button>
           </article>
         ))}

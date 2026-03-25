@@ -2,8 +2,12 @@ import crypto from 'crypto';
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
-import { invalidatePattern } from '@/core/utils/redis';
+import { bumpCacheVersion } from '@/core/utils/redis';
 import { recomputeForProperty } from '@/core/services/matching/recompute-compatibility.service';
+import { asyncRebuildFeedsForProperty } from '@/core/services/feeds/rebuild-feed.service';
+import { upsertPropertyMatchingSnapshot } from '@/core/services/matching/features/snapshot.service';
+import { asyncRebuildFindPeopleShortlistsForProperty } from '@/core/services/matching/precompute/find-people-shortlist';
+import { getPropertyCreationVersionKeys } from '@/core/services/matching/matching-cache-versions';
 
 const FILE_LIMITS = {
   IMAGE_MAX_BYTES: 5 * 1024 * 1024,
@@ -328,17 +332,26 @@ export async function handleCreateProperty(req) {
       return NextResponse.json({ error: 'Failed to process media files' }, { status: 500 });
     }
 
-    await invalidatePattern('properties:list:*');
-
     // Recompute compatibility synchronously for this new property so production
     // feeds and find-people views are fresh immediately after listing creation.
     try {
-      await recomputeForProperty(createAdminClient(), property.id);
+      const admin = createAdminClient();
+      await recomputeForProperty(admin, property.id);
+      await Promise.all([
+        upsertPropertyMatchingSnapshot(admin, property.id),
+        asyncRebuildFeedsForProperty(property.id, admin),
+        asyncRebuildFindPeopleShortlistsForProperty(property.id, admin),
+      ]);
     } catch (recomputeError) {
       console.error('[Property Create] Recompute failed:', recomputeError?.message || recomputeError);
     }
 
-    await invalidatePattern('landlord:find_people:*');
+    await Promise.all(
+      getPropertyCreationVersionKeys({
+        propertyId: property.id,
+        ownerUserId: user.id,
+      }).map((key) => bumpCacheVersion(key))
+    );
 
     return NextResponse.json({
       success: true,

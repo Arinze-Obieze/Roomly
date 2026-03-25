@@ -11,6 +11,9 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { bumpCacheVersion } from '@/core/utils/redis';
 import { Notifier } from '@/core/services/notifications/notifier';
+import { logFeatureEvent } from '@/core/services/analytics/analytics.service';
+import { buildMatchAnalyticsMetadata } from '@/core/services/matching/presentation/match-analytics';
+import { resolveShowPropertyInterestDecision } from '@/core/services/interests/show-property-interest';
 
 export async function POST(request) {
   try {
@@ -39,15 +42,6 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Property not found' }, { status: 404 });
     }
 
-    // Seekers cannot show interest in their own listings
-    if (property.listed_by_user_id === user.id) {
-      return NextResponse.json({ error: 'Cannot show interest in your own listing' }, { status: 400 });
-    }
-
-    if (!property.is_active) {
-      return NextResponse.json({ error: 'This listing is no longer active' }, { status: 400 });
-    }
-
     // 2. Get the seeker's compatibility score and lifestyle status.
     const [{ data: scoreRow }, { data: lifestyleRow }] = await Promise.all([
       supabase
@@ -63,24 +57,17 @@ export async function POST(request) {
         .maybeSingle(),
     ]);
 
-    // 3. Product rule:
-    //    - Missing lifestyle → browse-only (must complete profile before interest/contact)
-    //    - No score but lifestyle exists → allow pending interest so public listings remain reachable
-    //    - PRIVATE listings → pending (host review)
-    //    - PUBLIC listings:
-    //        score <= 50 → pending (host review required to unlock chat)
-    //        score >= 51 → accepted (direct contact allowed anyway; accepted for audit/history)
-    if (!lifestyleRow) {
-      return NextResponse.json(
-        { error: 'Complete your lifestyle in Profile to show interest.' },
-        { status: 400 }
-      );
+    const decision = resolveShowPropertyInterestDecision({
+      property,
+      userId: user.id,
+      hasLifestyle: !!lifestyleRow,
+      matchScore: scoreRow?.score ?? null,
+    });
+    if (!decision.ok) {
+      return NextResponse.json({ error: decision.error }, { status: decision.status });
     }
 
-    const isPrivateListing = property.privacy_setting === 'private' || property.is_public === false;
-    const initialStatus = (scoreRow?.score == null || isPrivateListing)
-      ? 'pending'
-      : (scoreRow.score <= 50 ? 'pending' : 'accepted');
+    const { isPrivateListing, initialStatus } = decision;
 
     // 4. Short-circuit if an interest already exists for this seeker/property.
     // This makes the endpoint idempotent and avoids surfacing duplicate clicks as 500s.
@@ -147,9 +134,13 @@ export async function POST(request) {
     }
 
     // 6. Bump relevant cache versions (no Redis KEYS scans)
-    await bumpCacheVersion(`v:interests:seeker:${user.id}`);
-    await bumpCacheVersion(`v:interests:landlord:${property.listed_by_user_id}`);
-    await bumpCacheVersion(`v:properties:user:${user.id}`); // interest affects blur/unlock state
+    await Promise.all([
+      bumpCacheVersion(`v:interests:seeker:${user.id}`),
+      bumpCacheVersion(`v:interests:landlord:${property.listed_by_user_id}`),
+      bumpCacheVersion(`v:interests:user:${user.id}`),
+      bumpCacheVersion(`v:interests:user:${property.listed_by_user_id}`),
+      bumpCacheVersion(`v:properties:user:${user.id}`),
+    ]);
 
     // 7. Notify Landlord
     try {
@@ -165,6 +156,23 @@ export async function POST(request) {
     } catch (nError) {
       console.error('[Show Interest Notification Error]:', nError);
     }
+
+    logFeatureEvent({
+      userId: user.id,
+      featureName: 'matching',
+      action: 'show_property_interest',
+      metadata: buildMatchAnalyticsMetadata({
+        matchScore: scoreRow?.score ?? null,
+        threshold: isPrivateListing ? 70 : 51,
+        surface: 'property_card',
+        entityType: 'property',
+        extra: {
+          property_id: propertyId,
+          listing_visibility: isPrivateListing ? 'private' : 'public',
+          resulting_status: initialStatus,
+        },
+      }),
+    }).catch(console.error);
 
     return NextResponse.json({
       success: true,

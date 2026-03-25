@@ -19,6 +19,16 @@ export async function middleware(request) {
                           pathname.startsWith('/superadmin') || // Add superadmin as protected
                           (pathname.startsWith('/api') && !isAuthApiRoute && !pathname.startsWith('/api/properties'));
 
+  let accountState = null;
+  if (user && isProtectedRoute && !networkError) {
+    const { data } = await supabase
+      .from('users')
+      .select('is_superadmin, account_status')
+      .eq('id', user.id)
+      .maybeSingle();
+    accountState = data || null;
+  }
+
   // Fail closed for protected API routes when auth resolution is unavailable.
   // This preserves page UX during transient Supabase issues without letting
   // write-capable API routes fall through unauthenticated.
@@ -27,13 +37,6 @@ export async function middleware(request) {
       { error: 'Authentication service unavailable' },
       { status: 503 }
     );
-  }
-
-  // Redirect authenticated users away from auth pages
-  if (isAuthPage && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = '/dashboard';
-    return NextResponse.redirect(url);
   }
 
   // Protect routes that require authentication
@@ -48,6 +51,27 @@ export async function middleware(request) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('redirectTo', pathname);
+    return NextResponse.redirect(url);
+  }
+
+  if (user && accountState?.account_status === 'suspended') {
+    if (isApiRoute) {
+      return NextResponse.json(
+        { error: 'Account suspended' },
+        { status: 403 }
+      );
+    }
+
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('reason', 'suspended');
+    return NextResponse.redirect(url);
+  }
+
+  // Redirect authenticated users away from auth pages
+  if (isAuthPage && user && accountState?.account_status !== 'suspended') {
+    const url = request.nextUrl.clone();
+    url.pathname = '/dashboard';
     return NextResponse.redirect(url);
   }
 
@@ -67,25 +91,16 @@ export async function middleware(request) {
       return NextResponse.redirect(url);
     }
 
-    const metadataRole = user?.user_metadata?.is_superadmin || user?.app_metadata?.is_superadmin;
-    if (!metadataRole) {
-      const { data: roleRow, error: roleError } = await supabase
-        .from('users')
-        .select('is_superadmin')
-        .eq('id', user.id)
-        .maybeSingle();
-
-      if (roleError || !roleRow?.is_superadmin) {
-        if (isApiRoute) {
-          return NextResponse.json(
-            { error: 'Forbidden' },
-            { status: 403 }
-          );
-        }
-        const url = request.nextUrl.clone();
-        url.pathname = '/dashboard';
-        return NextResponse.redirect(url);
+    if (!accountState?.is_superadmin) {
+      if (isApiRoute) {
+        return NextResponse.json(
+          { error: 'Forbidden' },
+          { status: 403 }
+        );
       }
+      const url = request.nextUrl.clone();
+      url.pathname = '/dashboard';
+      return NextResponse.redirect(url);
     }
   }
 

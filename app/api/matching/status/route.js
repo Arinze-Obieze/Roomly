@@ -8,6 +8,7 @@
  */
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
+import { resolveMatchingStatus } from '@/core/services/matching/matching-status';
 
 export async function GET() {
   try {
@@ -19,6 +20,7 @@ export async function GET() {
       { count: scoreCount, error: scoreError },
       { count: propertyCount, error: propertyError },
       lifestyleCheck,
+      preferencesCheck,
     ] = await Promise.all([
       supabase
         .from('compatibility_scores')
@@ -35,25 +37,21 @@ export async function GET() {
         .select('user_id')
         .eq('user_id', user.id)
         .maybeSingle(),
+      supabase
+        .from('match_preferences')
+        .select('user_id')
+        .eq('user_id', user.id)
+        .maybeSingle(),
     ]);
 
-    if (scoreError || propertyError) {
-      return NextResponse.json({ hasScores: false, count: 0, expected: 0, missingProfile: false });
-    }
-
-    const missingProfile = !lifestyleCheck.data;
-
-    const count = scoreCount ?? 0;
-    const expected = propertyCount ?? 0;
-    return NextResponse.json({
-      // If the profile is missing, we pretend they "have scores" so the frontend doesn't
-      // trigger a futile background recompute cycle. The properties API will handle 
-      // the `missingProfile` state natively.
-      hasScores: missingProfile ? true : (expected === 0 ? true : count >= expected),
-      count,
-      expected,
-      missingProfile
-    });
+    return NextResponse.json(resolveMatchingStatus({
+      scoreCount,
+      propertyCount,
+      hasLifestyle: !!lifestyleCheck.data,
+      hasPreferences: !!preferencesCheck.data,
+      hasScoreError: !!scoreError,
+      hasPropertyError: !!propertyError,
+    }));
   } catch {
     return NextResponse.json({ hasScores: false, count: 0, expected: 0, missingProfile: false });
   }

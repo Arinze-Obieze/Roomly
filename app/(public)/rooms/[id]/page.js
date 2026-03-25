@@ -6,6 +6,7 @@ import { MdLocationOn, MdVerified } from 'react-icons/md';
 import { useChat } from '@/core/contexts/ChatContext';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { useSavedProperties } from '@/core/contexts/SavedPropertiesContext';
+import { getMatchBand } from '@/core/services/matching/presentation/match-bands';
 import toast from 'react-hot-toast';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 
@@ -29,6 +30,7 @@ export default function RoomDetailsPage() {
 
   // Check if current user is the host
   const isOwner = user?.id === property?.host?.id;
+  const matchBand = property?.matchScore != null ? getMatchBand(property.matchScore) : null;
   const isSaved = property ? isPropertySaved(property.id) : false;
   const [interestLoading, setInterestLoading] = useState(false);
 
@@ -264,17 +266,40 @@ export default function RoomDetailsPage() {
                     <h3 className="text-lg font-bold text-slate-900 mb-4">Compatibility</h3>
                     {user ? (
                         property.matchScore != null ? (
-                          <div className="flex items-center gap-4">
+                          <div className="space-y-4">
+                            <div className="flex items-center gap-4">
                               <div className="w-16 h-16 rounded-full bg-terracotta-50 text-terracotta-600 flex items-center justify-center font-bold text-xl">
-                                  {property.matchScore}%
+                                {property.matchScore}%
                               </div>
                               <div>
                                   <p className="font-semibold text-slate-900">
-                                    {property.matchScore >= 85 ? 'Excellent Match!' : property.matchScore >= 70 ? 'Great Match!' : 'Potential Match'}
+                                    {matchBand?.label || 'Match'}
                                   </p>
                                   <p className="text-slate-500 text-sm">Based on your lifestyle and match preferences.</p>
+                                  {property.matchConfidenceState && property.matchConfidenceState !== 'high' && (
+                                    <p className={`mt-1 text-xs font-medium ${
+                                      property.matchConfidenceState === 'low'
+                                        ? 'text-amber-700'
+                                        : 'text-slate-500'
+                                    }`}>
+                                      {property.matchConfidenceLabel || 'Limited data'} behind this score.
+                                    </p>
+                                  )}
                               </div>
                           </div>
+                          {Array.isArray(property.matchReasons) && property.matchReasons.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {property.matchReasons.slice(0, 3).map((reason) => (
+                                <span
+                                  key={reason}
+                                  className="px-3 py-1.5 rounded-full bg-teal-50 text-teal-800 border border-teal-100 text-xs font-medium"
+                                >
+                                  {reason}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                         ) : property.missingProfile ? (
                           <div className="text-center py-4 bg-terracotta-50 rounded-xl border border-terracotta-100">
                              <p className="text-terracotta-800 text-sm font-medium mb-3">Complete your lifestyle in Profile to see your match score.</p>

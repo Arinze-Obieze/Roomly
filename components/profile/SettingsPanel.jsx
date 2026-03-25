@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
+import { resolveUserProfileVisibility } from '@/core/services/users/profile-privacy';
 import {
   MdLock,
   MdNotifications,
@@ -179,7 +180,7 @@ export default function SettingsPanel() {
   useEffect(() => {
     if (!user) return;
     setSettings({
-      privacy_setting: user.privacy_setting ?? 'public',
+      privacy_setting: resolveUserProfileVisibility(user),
       show_online_status: user.show_online_status ?? true,
       show_response_time: user.show_response_time ?? true,
       notif_new_messages: user.notif_new_messages ?? true,

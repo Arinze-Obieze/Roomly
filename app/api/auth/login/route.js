@@ -2,6 +2,8 @@ import { AuthService } from '@/core/services/auth.service';
 import { loginSchema } from '@/core/validations/auth.schema';
 import { NextResponse } from 'next/server';
 import { assertRateLimit } from '@/core/utils/rate-limit';
+import { createAdminClient } from '@/core/utils/supabase/admin';
+import { createClient } from '@/core/utils/supabase/server';
 
 export async function POST(request) {
   try {
@@ -40,6 +42,22 @@ export async function POST(request) {
       return NextResponse.json(
         { error: error.message || 'Invalid credentials' },
         { status: 401 }
+      );
+    }
+
+    const adminClient = createAdminClient();
+    const { data: profileRow } = await adminClient
+      .from('users')
+      .select('account_status, is_superadmin')
+      .eq('id', data.user.id)
+      .maybeSingle();
+
+    if (profileRow?.account_status === 'suspended') {
+      const supabase = await createClient();
+      await supabase.auth.signOut();
+      return NextResponse.json(
+        { error: 'This account has been suspended. Contact support if you believe this is a mistake.' },
+        { status: 403 }
       );
     }
 

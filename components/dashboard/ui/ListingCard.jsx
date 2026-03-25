@@ -3,8 +3,10 @@
 import { useAuthContext } from "@/core/contexts/AuthContext";
 import { useSavedProperties } from "@/core/contexts/SavedPropertiesContext";
 import { createClient } from "@/core/utils/supabase/client";
+import { fetchWithCsrf } from "@/core/utils/fetchWithCsrf";
+import { buildMatchAnalyticsMetadata } from "@/core/services/matching/presentation/match-analytics";
 import { useRouter } from "next/navigation";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import toast from "react-hot-toast";
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
@@ -24,6 +26,7 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
   const { user, openLoginModal } = useAuthContext();
   const { isPropertySaved, toggleSave } = useSavedProperties();
   const isOwner = user?.id === data.host?.id;
+  const hasLoggedImpressionRef = useRef(false);
   const contactGate = useMemo(() => {
     if (data?.contactGate) return data.contactGate;
     if (data?.missingProfile || data?.matchScore == null) return 'profile_required';
@@ -191,13 +194,54 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
     router.push(`/users/${data.host.id}`);
   }, [data.host?.id, router]);
 
+  const logDiscoveryEvent = useCallback((action, extra = {}) => {
+    if (!user) return;
+
+    fetchWithCsrf('/api/analytics/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        featureName: 'discovery',
+        action,
+        metadata: {
+          ...buildMatchAnalyticsMetadata({
+            matchScore: data.matchScore ?? null,
+            threshold: data.isPrivate ? 70 : 51,
+            surface: 'properties',
+            entityType: 'property',
+            userId: user?.id || null,
+            blurred: !!data.isBlurry,
+            revealState: data.isBlurry ? 'blurred' : 'revealed',
+            privacyState: data.isPrivate ? 'private' : 'public',
+            profileCompletionState: data.missingProfile ? 'missing' : 'complete',
+            extra: {
+              property_id: data.id,
+              listing_visibility: data.isPrivate ? 'private' : 'public',
+              contact_gate: contactGate,
+            },
+          }),
+          ...extra,
+        },
+      }),
+    }).catch(() => {});
+  }, [contactGate, data.id, data.isPrivate, data.matchScore, user]);
+
+  useEffect(() => {
+    if (!user || hasLoggedImpressionRef.current) return;
+    hasLoggedImpressionRef.current = true;
+    logDiscoveryEvent('property_impression');
+  }, [logDiscoveryEvent, user]);
+
   return (
     <div 
-      onClick={() => onSelect?.(data.id)}
+      onClick={() => {
+        logDiscoveryEvent('property_click');
+        onSelect?.(data.id);
+      }}
       className="group bg-white rounded-3xl overflow-hidden cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-navy-950/5 hover:-translate-y-1 border border-navy-200 flex flex-col h-full"
     >
       {/* Image Container */}
-      <div className="relative aspect-[4/3] w-full bg-navy-100 overflow-hidden">
+      <div className="relative aspect-4/3 w-full bg-navy-100 overflow-hidden">
         <Image 
           src={imgSrc || 'https://placehold.co/600x400/navy-100/navy-500?text=No+Image'} 
           alt={data.title}
@@ -209,8 +253,8 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
         />
         
         {/* Gradients using Navy system */}
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-navy-900/40 to-transparent opacity-80"></div>
-        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-navy-900/60 via-navy-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+        <div className="absolute inset-x-0 top-0 h-24 bg-linear-to-b from-navy-900/40 to-transparent opacity-80"></div>
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-linear-to-t from-navy-900/60 via-navy-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
 
         {/* Top Badges & Price Overlay */}
         <div className="absolute top-3 left-3 flex flex-col gap-2 z-10 max-w-[80%]">
@@ -292,10 +336,22 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
                         }}
                         className="bg-navy-950/80 backdrop-blur-md text-white px-3 py-1.5 rounded-full shadow-lg text-xs font-bold border border-white/10 hover:bg-navy-900 transition-colors cursor-pointer"
                     >
-                        Login to see %
+                        Login to see match score
                     </div>
                 )}
             </div>
+        )}
+
+        {!isOwner && user && data.matchScore != null && data.matchConfidenceState && data.matchConfidenceState !== 'high' && (
+          <div className="absolute bottom-14 left-3 z-10">
+            <div className={`backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold border ${
+              data.matchConfidenceState === 'low'
+                ? 'bg-amber-50/95 text-amber-800 border-amber-200'
+                : 'bg-white/95 text-navy-600 border-navy-200'
+            }`}>
+              {data.matchConfidenceLabel || 'Limited data'}
+            </div>
+          </div>
         )}
 
 
@@ -350,6 +406,19 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
             <span className="truncate">{data.location}</span>
         </div>
 
+        {!isOwner && user && Array.isArray(data.matchReasons) && data.matchReasons.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {data.matchReasons.slice(0, 2).map((reason) => (
+              <span
+                key={reason}
+                className="px-2 py-1 rounded-lg bg-teal-50 text-teal-800 border border-teal-100 text-[11px] font-medium"
+              >
+                {reason}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Smart Badges */}
         <div className="flex flex-wrap gap-2 mb-4 mt-auto">
             {data.bills_option === 'included' && (
@@ -373,7 +442,7 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
                         return (
                             <div key={i} className="flex items-center gap-2" title={am.label}>
                                 {IconComponent && typeof IconComponent !== 'string' && <IconComponent size={16} className="text-navy-400" />} 
-                                <span className="truncate max-w-[80px]">{am.value}</span>
+                                <span className="truncate max-w-20">{am.value}</span>
                             </div>
                         );
                     })}

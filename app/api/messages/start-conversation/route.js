@@ -5,6 +5,9 @@ import { validateCSRFRequest } from '@/core/utils/csrf';
 import { sanitizeLength, sanitizeText } from '@/core/utils/sanitizers';
 import { logFeatureEvent } from '@/core/services/analytics/analytics.service';
 import { Notifier } from '@/core/services/notifications/notifier';
+import { getPropertyContactState } from '@/core/services/matching/rules/property-visibility';
+import { getPeopleContactState } from '@/core/services/matching/presentation/people-discovery-state';
+import { buildMatchAnalyticsMetadata } from '@/core/services/matching/presentation/match-analytics';
 
 /**
  * Polymorphic endpoint to start a conversation between a Seeker and a Host
@@ -35,10 +38,19 @@ export async function POST(request) {
     }
 
     const adminSupabase = createAdminClient();
+    let matchingContext = {
+      matchScore: null,
+      threshold: null,
+      entityType: null,
+    };
 
     // 1. Fetch target user and property to verify roles/ownership
     const [{ data: targetUser }, { data: property }] = await Promise.all([
-      adminSupabase.from('users').select('id').eq('id', targetId).maybeSingle(),
+      adminSupabase
+        .from('users')
+        .select('id, privacy_setting, profile_visibility')
+        .eq('id', targetId)
+        .maybeSingle(),
       adminSupabase
         .from('properties')
         .select('id, listed_by_user_id, privacy_setting, is_public')
@@ -64,11 +76,6 @@ export async function POST(request) {
     // Mirrors the DB-level RLS policy. Using the user-scoped supabase client
     // (not adminSb) so this is consistent with what RLS would enforce.
     if (isSeekerContactingLandlord) {
-      // Fail closed: if we can't prove it's public, treat as private.
-      const isPrivateProp =
-        property.privacy_setting === 'private' ||
-        property.is_public !== true;
-
       const [{ data: interestRow }, { data: scoreRow }] = await Promise.all([
         supabase
           .from('property_interests')
@@ -85,22 +92,67 @@ export async function POST(request) {
       ]);
 
       const hasAcceptedInterest = interestRow?.status === 'accepted';
+      const contactState = getPropertyContactState({
+        property,
+        hasAcceptedInterest,
+        matchScore: scoreRow?.score ?? null,
+        missingProfile: false,
+      });
 
-      if (!hasAcceptedInterest) {
-        if (isPrivateProp) {
-          return NextResponse.json(
-            { error: 'You must have an accepted interest to contact the host of a private listing.' },
-            { status: 403 }
-          );
-        }
-        const score = scoreRow?.score ?? null;
-        if (score === null || score < 51) {
-          return NextResponse.json(
-            { error: 'Your match score must be 51 or higher to contact this host directly. Show interest first.' },
-            { status: 403 }
-          );
-        }
+      if (!contactState.contactAllowed) {
+        const message = contactState.isPrivate
+          ? 'You must have an accepted interest to contact the host of a private listing.'
+          : 'Your match score must be 51 or higher to contact this host directly. Show interest first.';
+        return NextResponse.json({ error: message }, { status: 403 });
       }
+
+      matchingContext = {
+        matchScore: scoreRow?.score ?? null,
+        threshold: contactState.isPrivate ? 70 : 51,
+        entityType: 'property',
+      };
+    }
+
+    if (isLandlordContactingSeeker) {
+      const [{ data: interestRow }, { data: peopleInterestRows }] = await Promise.all([
+        supabase
+          .from('property_interests')
+          .select('status')
+          .eq('seeker_id', targetId)
+          .eq('property_id', propertyId)
+          .maybeSingle(),
+        supabase
+          .from('people_interests')
+          .select('status')
+          .eq('status', 'accepted')
+          .eq('context_property_id', propertyId)
+          .or(
+            [
+              `and(initiator_user_id.eq.${user.id},target_user_id.eq.${targetId})`,
+              `and(initiator_user_id.eq.${targetId},target_user_id.eq.${user.id})`,
+            ].join(',')
+          )
+          .limit(1),
+      ]);
+
+      const contactState = getPeopleContactState({
+        subject: targetUser,
+        hasRevealRelationship:
+          interestRow?.status === 'accepted' || (peopleInterestRows || []).length > 0,
+      });
+
+      if (!contactState.contactAllowed) {
+        return NextResponse.json(
+          { error: 'This private seeker profile must accept interest before direct contact is allowed.' },
+          { status: 403 }
+        );
+      }
+
+      matchingContext = {
+        matchScore: null,
+        threshold: 70,
+        entityType: 'person',
+      };
     }
     // ── End contact gate ─────────────────────────────────────────────────────
 
@@ -172,8 +224,20 @@ export async function POST(request) {
       action: 'start_conversation',
       metadata: {
         role: isLandlordContactingSeeker ? 'host' : 'tenant',
-        propertyId
-      }
+        propertyId,
+        ...buildMatchAnalyticsMetadata({
+          matchScore: matchingContext.matchScore,
+          threshold: matchingContext.threshold,
+          surface: 'conversation_start',
+          entityType: matchingContext.entityType || (isLandlordContactingSeeker ? 'person' : 'property'),
+          userId: user.id,
+          blurred: false,
+          revealState: 'revealed',
+          extra: {
+            target_user_id: targetId,
+          },
+        }),
+      },
     }).catch(console.error);
 
     return NextResponse.json({ success: true, conversationId });

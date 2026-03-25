@@ -7,6 +7,7 @@ import {
   MdMoreVert 
 } from "react-icons/md";
 import { FaWifi, FaPaw, FaShower, FaTree } from "react-icons/fa";
+import { getMatchBand } from "@/core/services/matching/presentation/match-bands";
 
 // Helper to get icon component by name
 const getIconComponent = (iconName) => {
@@ -18,6 +19,8 @@ const getIconComponent = (iconName) => {
 };
 
 export const ListingDetail = ({ data }) => {
+  const matchBand = data?.matchScore != null ? getMatchBand(data.matchScore) : null;
+
   return (
     <div className="p-4">
       <div className="relative h-64 rounded-2xl overflow-hidden mb-4">
@@ -41,7 +44,7 @@ export const ListingDetail = ({ data }) => {
         <div className="bg-linear-to-r from-cyan-50 to-indigo-50 p-4 rounded-xl mb-6">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <span className="font-bold">Excellent Match: {data.matchScore}%</span>
+            <span className="font-bold">{matchBand?.label || 'Match'}: {data.matchScore}%</span>
           </div>
           <p className="text-sm text-slate-600">Based on your lifestyle preferences and sleep schedule</p>
         </div>

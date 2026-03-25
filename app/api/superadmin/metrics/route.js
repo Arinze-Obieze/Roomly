@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireSuperadmin } from '@/core/services/superadmin/guard';
 import { logSuperadminEvent } from '@/core/services/superadmin/audit';
 import { cachedFetch } from '@/core/utils/redis';
+import { summarizeMatchFeatureEvents } from '@/core/services/analytics/match-metrics';
 
 const safeCount = async (promiseFactory) => {
   try {
@@ -20,9 +21,10 @@ export async function GET() {
   if (guard.errorResponse) return guard.errorResponse;
 
   const { adminClient, user } = guard;
-  const payload = await cachedFetch('superadmin:metrics:v1', 60, async () => {
+  const payload = await cachedFetch('superadmin:metrics:v2', 60, async () => {
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    const sevenDaysAgoIso = oneWeekAgo.toISOString();
 
     const [
       totalUsers,
@@ -38,6 +40,7 @@ export async function GET() {
       discoveryEventsToday,
       conversationsToday,
       buddyGroupsToday,
+      matchFeatureEventsResult,
     ] = await Promise.all([
       safeCount(() => adminClient.from('users').select('*', { count: 'exact', head: true })),
       safeCount(() =>
@@ -93,7 +96,37 @@ export async function GET() {
           .select('*', { count: 'exact', head: true })
           .gte('created_at', today.toISOString());
       }),
+      adminClient
+        .from('feature_events')
+        .select('action, metadata, created_at')
+        .in('action', [
+          'property_impression',
+          'result_impression',
+          'property_click',
+          'result_profile_open',
+          'show_property_interest',
+          'show_people_interest',
+          'interest_accepted',
+          'inspection_requested',
+          'inspection_confirmed',
+          'start_conversation',
+          'first_reply',
+        ])
+        .gte('created_at', sevenDaysAgoIso)
+        .limit(5000),
     ]);
+
+    const matchQuality = matchFeatureEventsResult.error
+      ? {
+          ok: false,
+          value: null,
+          error: matchFeatureEventsResult.error.message || 'Failed to load match analytics',
+        }
+      : {
+          ok: true,
+          value: summarizeMatchFeatureEvents(matchFeatureEventsResult.data || []),
+          error: null,
+        };
 
     return {
       generatedAt: new Date().toISOString(),
@@ -111,6 +144,7 @@ export async function GET() {
         discoveryEventsToday,
         conversationsToday,
         buddyGroupsToday,
+        matchQuality,
       },
     };
   });

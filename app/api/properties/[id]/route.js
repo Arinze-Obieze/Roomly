@@ -6,16 +6,20 @@ import { NextResponse } from 'next/server';
 import { cachedFetch, getCachedInt, bumpCacheVersion } from '@/core/utils/redis';
 import crypto from 'crypto';
 import { recomputeForProperty } from '@/core/services/matching/recompute-compatibility.service';
-
-// Generate cache key for property details (includes user for personalized data)
-const generateCacheKey = (propertyId, userId = 'anon', versions = {}) => {
-  const hash = crypto
-    .createHash('md5')
-    .update(`${propertyId}:${userId}:${JSON.stringify(versions)}`)
-    .digest('hex');
-
-  return `property:${hash}`;
-};
+import { asyncRebuildFeedsForProperty } from '@/core/services/feeds/rebuild-feed.service';
+import { upsertPropertyMatchingSnapshot } from '@/core/services/matching/features/snapshot.service';
+import { asyncRebuildFindPeopleShortlistsForProperty, rebuildHostFindPeopleShortlist } from '@/core/services/matching/precompute/find-people-shortlist';
+import { getPropertyCreationVersionKeys } from '@/core/services/matching/matching-cache-versions';
+import {
+  canSeePrivateListing,
+  getPropertyContactState,
+  isPrivateListing,
+  shouldMaskPrivateListing,
+} from '@/core/services/matching/rules/property-visibility';
+import { getMatchConfidenceState } from '@/core/services/matching/presentation/match-confidence';
+import { buildPropertyMatchReasons } from '@/core/services/matching/presentation/match-explanations';
+import { propertyMatchConfidence } from '@/lib/matching/propertyMatchScore';
+import { buildPropertyDetailCacheKey } from '@/core/services/properties/property-detail-cache';
 
 const parseJsonArray = (value) => {
   if (!value) return [];
@@ -53,7 +57,7 @@ export async function GET(request, { params }) {
       user: user?.id ? await getCachedInt(`v:properties:user:${user.id}`, 1) : 0,
       property: await getCachedInt(`v:property:${id}`, 1),
     };
-    const cacheKey = generateCacheKey(id, userId, versions);
+    const cacheKey = buildPropertyDetailCacheKey(id, userId, versions);
 
     const cachedData = await cachedFetch(cacheKey, 600, async () => {
       return fetchPropertyFromDB(supabase, adminSb, id, user);
@@ -81,9 +85,13 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
   let matchScore = null;
   let missingProfile = false;
   const userId = user?.id || null;
+  let seekerLifestyle = null;
+  let seekerPrefs = null;
+  let seekerMeta = {};
+  let hostLifestyle = null;
 
   if (userId) {
-    const [{ data: interest }, { data: scoreRow }, { data: lifestyleRow }] = await Promise.all([
+    const [{ data: interest }, { data: scoreRow }, { data: lifestyleRow }, { data: prefsRow }, { data: userMetaRow }] = await Promise.all([
       supabase
         .from('property_interests')
         .select('status')
@@ -98,14 +106,27 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
         .maybeSingle(),
       supabase
         .from('user_lifestyles')
-        .select('user_id')
+        .select('*')
         .eq('user_id', userId)
+        .maybeSingle(),
+      supabase
+        .from('match_preferences')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      supabase
+        .from('users')
+        .select('id, gender, date_of_birth')
+        .eq('id', userId)
         .maybeSingle(),
     ]);
 
     interestStatus = interest?.status;
     matchScore = scoreRow?.score ?? null;
-    missingProfile = !lifestyleRow;
+    seekerLifestyle = lifestyleRow || null;
+    seekerPrefs = prefsRow || null;
+    seekerMeta = userMetaRow || {};
+    missingProfile = !lifestyleRow && !prefsRow;
   }
 
   const { data: property, error } = await adminSb
@@ -124,6 +145,8 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
         full_name,
         profile_picture,
         is_verified,
+        gender,
+        date_of_birth,
         privacy_setting,
         last_seen,
         average_response_time_ms,
@@ -137,33 +160,69 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
   if (error) throw error;
   if (!property) throw new Error('Property not found');
 
+  if (property.listed_by_user_id) {
+    const { data: hostLifestyleRow } = await adminSb
+      .from('user_lifestyles')
+      .select('user_id, schedule_type, cleanliness_level, social_level, noise_tolerance, interests, overnight_guests, smoking_status, pets, occupation')
+      .eq('user_id', property.listed_by_user_id)
+      .maybeSingle();
+    hostLifestyle = hostLifestyleRow || null;
+  }
+
   const isMutualInterest = interestStatus === 'accepted';
-  const isPrivate = property.privacy_setting === 'private';
+  const isPrivate = isPrivateListing(property);
   const isOwner = !!userId && property.listed_by_user_id === userId;
 
   // Eligibility for opening a private listing by ID:
   // - owner can always view
   // - accepted interest can view
   // - match >= 70 can view, but still masked until accepted
-  if (isPrivate && !isOwner && !isMutualInterest) {
-    if (typeof matchScore !== 'number' || matchScore < 70) {
-      const err = new Error('Not found');
-      err.statusCode = 404;
-      throw err;
-    }
+  if (!canSeePrivateListing({
+    isPrivate,
+    isOwner,
+    hasAcceptedInterest: isMutualInterest,
+    matchScore,
+  })) {
+    const err = new Error('Not found');
+    err.statusCode = 404;
+    throw err;
   }
 
-  const shouldMask = isPrivate && !isOwner && !isMutualInterest;
+  const shouldMask = shouldMaskPrivateListing({
+    isPrivate,
+    isOwner,
+    hasAcceptedInterest: isMutualInterest,
+  });
 
-  const visibility = isPrivate ? 'private' : 'public';
-  const contactGate =
-    missingProfile
-      ? 'profile_required'
-      : (visibility === 'private' || matchScore === null || matchScore <= 50)
-        ? 'interest_required'
-        : 'direct';
-  const contactAllowed =
-    isOwner || contactGate === 'direct' || interestStatus === 'accepted';
+  const { visibility, contactGate, contactAllowed } = getPropertyContactState({
+    property,
+    isOwner,
+    hasAcceptedInterest: isMutualInterest,
+    matchScore,
+    missingProfile,
+  });
+
+  const matchConfidence = user && !isOwner && matchScore != null
+    ? propertyMatchConfidence(
+      property,
+      seekerLifestyle,
+      seekerPrefs,
+      seekerMeta,
+      null,
+      property.users || {}
+    )
+    : null;
+  const matchConfidenceState = matchConfidence != null
+    ? getMatchConfidenceState(matchConfidence)
+    : null;
+  const matchReasons = user && !isOwner && matchScore != null
+    ? buildPropertyMatchReasons({
+      property,
+      seekerLifestyle,
+      seekerPrefs,
+      hostLifestyle,
+    })
+    : [];
 
   // Normalize media URLs
   if (property.property_media?.length) {
@@ -213,6 +272,12 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
     isOwner,
     interestStatus,
     matchScore,
+    compatibilityScore: matchScore,
+    matchConfidence,
+    confidenceScore: matchConfidence,
+    matchConfidenceState: matchConfidenceState?.state || null,
+    matchConfidenceLabel: matchConfidenceState?.label || null,
+    matchReasons,
     missingProfile,
     contactGate,
     contactAllowed,
@@ -427,16 +492,23 @@ export async function PUT(request, { params }) {
         if (mediaInsertError) throw mediaInsertError;
       }
 
+      const adminSb = createAdminClient();
       try {
-        await recomputeForProperty(createAdminClient(), id);
+        await recomputeForProperty(adminSb, id);
+        await Promise.all([
+          upsertPropertyMatchingSnapshot(adminSb, id),
+          asyncRebuildFeedsForProperty(id, adminSb),
+          asyncRebuildFindPeopleShortlistsForProperty(id, adminSb),
+        ]);
       } catch (recomputeError) {
         console.error('[Property Details PUT] Recompute failed:', recomputeError?.message || recomputeError);
       }
 
-      // Bump versioned cache keys — no Redis KEYS scan needed
       await Promise.all([
-        bumpCacheVersion('v:properties:global'),
-        bumpCacheVersion(`v:property:${id}`),
+        ...getPropertyCreationVersionKeys({
+          propertyId: id,
+          ownerUserId: user.id,
+        }).map((key) => bumpCacheVersion(key)),
       ]);
 
       return NextResponse.json(propertyData);
@@ -479,16 +551,23 @@ export async function PUT(request, { params }) {
 
     if (error) throw error;
 
+    const adminSb = createAdminClient();
     try {
-      await recomputeForProperty(createAdminClient(), id);
+      await recomputeForProperty(adminSb, id);
+      await Promise.all([
+        upsertPropertyMatchingSnapshot(adminSb, id),
+        asyncRebuildFeedsForProperty(id, adminSb),
+        asyncRebuildFindPeopleShortlistsForProperty(id, adminSb),
+      ]);
     } catch (recomputeError) {
       console.error('[Property Details PUT] Recompute failed:', recomputeError?.message || recomputeError);
     }
 
-    // Bump versioned cache keys — no Redis KEYS scan needed
     await Promise.all([
-      bumpCacheVersion('v:properties:global'),
-      bumpCacheVersion(`v:property:${id}`),
+      ...getPropertyCreationVersionKeys({
+        propertyId: id,
+        ownerUserId: user.id,
+      }).map((key) => bumpCacheVersion(key)),
     ]);
 
     return NextResponse.json(data);
@@ -533,10 +612,17 @@ export async function DELETE(request, { params }) {
 
     if (error) throw error;
 
-    // Bump versioned cache keys — no Redis KEYS scan needed
+    try {
+      await rebuildHostFindPeopleShortlist(createAdminClient(), existingProperty.listed_by_user_id);
+    } catch (refreshError) {
+      console.error('[Property Details DELETE] Find-people shortlist refresh failed:', refreshError?.message || refreshError);
+    }
+
     await Promise.all([
-      bumpCacheVersion('v:properties:global'),
-      bumpCacheVersion(`v:property:${id}`),
+      ...getPropertyCreationVersionKeys({
+        propertyId: id,
+        ownerUserId: existingProperty.listed_by_user_id,
+      }).map((key) => bumpCacheVersion(key)),
     ]);
 
     return NextResponse.json({ success: true });

@@ -3,17 +3,10 @@
 import Slider from 'rc-slider';
 import 'rc-slider/assets/index.css';
 import { MdAutoAwesome } from 'react-icons/md';
-
-const LABELS = {
-  60: 'Any match',
-  70: 'Good',
-  80: 'Strong',
-  90: 'Excellent',
-  100: 'Perfect only',
-};
+import { getCompatibilityFilterLabel } from '@/core/services/matching/presentation/match-bands';
 
 export default function CompatibilityFilter({ value = 60, onChange }) {
-  const label = LABELS[Math.round(value / 10) * 10] || `${value}%+`;
+  const label = getCompatibilityFilterLabel(Math.round(value / 10) * 10) || `${value}%+`;
 
   return (
     <div>

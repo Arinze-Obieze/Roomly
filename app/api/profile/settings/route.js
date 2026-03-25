@@ -1,6 +1,11 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { createAdminClient } from '@/core/utils/supabase/admin';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { normalizeUserPrivacyUpdates } from '@/core/services/users/profile-privacy';
+import { upsertUserMatchingSnapshot } from '@/core/services/matching/features/snapshot.service';
+import { getProfileUpdateVersionKeys } from '@/core/services/matching/matching-cache-versions';
+import { bumpCacheVersion } from '@/core/utils/redis';
 
 /**
  * PATCH /api/profile/settings
@@ -46,12 +51,19 @@ export async function PATCH(request) {
       return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 });
     }
 
+    const normalizedUpdates = normalizeUserPrivacyUpdates(updates);
+
     const { error } = await supabase
       .from('users')
-      .update(updates)
+      .update(normalizedUpdates)
       .eq('id', user.id);
 
     if (error) throw error;
+
+    await upsertUserMatchingSnapshot(createAdminClient(), user.id);
+    await Promise.all(
+      getProfileUpdateVersionKeys(user.id).map((key) => bumpCacheVersion(key))
+    );
 
     return NextResponse.json({ success: true });
   } catch (error) {

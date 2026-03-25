@@ -17,6 +17,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import StatCard from "@/components/superadmin/dashboard/StatCard";
 import TrendChart from "@/components/superadmin/dashboard/TrendChart";
+import MatchQualityPanel from "@/components/superadmin/dashboard/MatchQualityPanel";
 
 const RANGE_OPTIONS = [7, 30, 90];
 
@@ -109,6 +110,7 @@ export default function SuperAdminDashboard() {
         subtitle: `${metricValue(metrics?.newUsersThisWeek)} new this week`,
         icon: MdPeople,
         color: 'blue',
+        href: '/superadmin/users',
       },
       {
         title: 'Active Properties',
@@ -116,6 +118,7 @@ export default function SuperAdminDashboard() {
         subtitle: `Out of ${metricValue(metrics?.totalProperties)} total`,
         icon: MdHomeWork,
         color: 'emerald',
+        href: '/superadmin/properties?approvalStatus=approved',
       },
       {
         title: 'Pending Reports',
@@ -123,6 +126,7 @@ export default function SuperAdminDashboard() {
         subtitle: `${metricValue(metrics?.totalReports)} total reports`,
         icon: MdReportProblem,
         color: 'rose',
+        href: '/superadmin/reports',
       },
       {
         title: 'Logs Today',
@@ -130,6 +134,7 @@ export default function SuperAdminDashboard() {
         subtitle: `${metricValue(metrics?.totalLogs)} total logs`,
         icon: MdBugReport,
         color: 'amber',
+        href: '/superadmin/system-logs',
       },
       {
         title: 'Weekly Growth',
@@ -137,6 +142,7 @@ export default function SuperAdminDashboard() {
         subtitle: 'User signups in last 7 days',
         icon: MdTrendingUp,
         color: 'indigo',
+        href: '/superadmin/users',
       },
       {
         title: 'System Logs',
@@ -144,6 +150,7 @@ export default function SuperAdminDashboard() {
         subtitle: 'View detailed service logs',
         icon: MdReceiptLong,
         color: 'blue',
+        href: '/superadmin/system-logs',
       },
       {
         title: 'Support Tickets',
@@ -151,6 +158,7 @@ export default function SuperAdminDashboard() {
         subtitle: `${metricValue(metrics?.totalSupportTickets)} total tickets`,
         icon: MdChatBubbleOutline,
         color: 'orange',
+        href: '/superadmin/support',
       },
       {
         title: 'Discovery Activity',
@@ -209,6 +217,12 @@ export default function SuperAdminDashboard() {
             <MdReceiptLong size={17} />
             System Logs
           </Link>
+          <Link
+            href="/superadmin/operations"
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-700 text-sm font-medium"
+          >
+            Operations
+          </Link>
         </div>
       </div>
 
@@ -222,9 +236,15 @@ export default function SuperAdminDashboard() {
             icon={card.icon}
             color={card.color}
             loading={metricsLoading}
+            href={card.href}
           />
         ))}
       </div>
+
+      <MatchQualityPanel
+        data={metrics?.matchQuality}
+        loading={metricsLoading}
+      />
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <TrendChart

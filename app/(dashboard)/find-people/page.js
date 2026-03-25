@@ -8,6 +8,7 @@ import FindLandlordsSection from '@/components/find-people/FindLandlordsSection'
 import FindTenantsSection from '@/components/find-people/FindTenantsSection';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { useAuthContext } from '@/core/contexts/AuthContext';
+import { buildMatchAnalyticsMetadata } from '@/core/services/matching/presentation/match-analytics';
 import { isLatestDashboardRequest } from '@/core/utils/dashboard-fetch-guards';
 import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
@@ -20,6 +21,7 @@ const INITIAL_PAGINATION = {
   hasPreviousPage: false,
   hasNextPage: false,
 };
+const SHOW_DEV_DIAGNOSTICS = process.env.NODE_ENV !== 'production';
 
 export default function FindPeoplePage() {
   const router = useRouter();
@@ -47,6 +49,7 @@ export default function FindPeoplePage() {
   const [contactingId, setContactingId] = useState(null);
   const requestIdRef = useRef(0);
   const abortControllerRef = useRef(null);
+  const loggedImpressionsRef = useRef(new Set());
 
   const currentPage = pageByTab[activeTab] || 1;
 
@@ -65,6 +68,40 @@ export default function FindPeoplePage() {
       console.error('[Find People Analytics] Failed to log event:', error);
     }
   };
+
+  const getPersonRankPosition = (person, tab = activeTab) => {
+    if (!person?.user_id) return null;
+    const index = featureState.data.findIndex((entry) => entry?.user_id === person.user_id);
+    if (index < 0) return null;
+    const pageOffset = Math.max(0, ((pageByTab[tab] || 1) - 1) * PAGE_SIZE);
+    return pageOffset + index + 1;
+  };
+
+  const buildPeopleAnalyticsMetadata = (person, tab, minMatch, rankPosition = null) => ({
+    ...buildMatchAnalyticsMetadata({
+      matchScore: person?.match_score ?? null,
+      threshold: minMatch ?? 70,
+      surface: 'find_people',
+      entityType: 'person',
+      userId: user?.id || null,
+      blurred: !!person?.isBlurry,
+      revealState: person?.can_contact_directly ? 'revealed' : (person?.isBlurry ? 'blurred' : 'revealed'),
+      rankPosition,
+      privacyState: person?.is_private_profile ? 'private' : 'public',
+      profileCompletionState: person?.profile_completion_state || (
+        typeof person?.has_match_preferences === 'boolean'
+          ? (person.has_match_preferences ? 'complete' : 'partial')
+          : null
+      ),
+      extra: {
+        target_user_id: person?.user_id || null,
+        property_id: person?.matched_property?.id || null,
+        cta_state: person?.cta_state || null,
+        reveal_source: person?.reveal_source || null,
+      },
+    }),
+    tab,
+  });
 
   const fetchMatches = async ({ tab = activeTab, page = currentPage } = {}) => {
     const requestId = requestIdRef.current + 1;
@@ -123,6 +160,14 @@ export default function FindPeoplePage() {
           page: nextPagination.page,
           total: nextPagination.total,
         }, tab);
+
+        payload.data.forEach((person, index) => {
+          const impressionKey = `${tab}:${nextPagination.page}:${person.user_id}:${person.matched_property?.id || 'none'}`;
+          if (loggedImpressionsRef.current.has(impressionKey)) return;
+          loggedImpressionsRef.current.add(impressionKey);
+          const rankPosition = ((nextPagination.page || 1) - 1) * PAGE_SIZE + index + 1;
+          logEvent('result_impression', buildPeopleAnalyticsMetadata(person, tab, payload.minMatch, rankPosition), tab);
+        });
       }
     } catch (error) {
       if (error.name === 'AbortError') return;
@@ -159,7 +204,56 @@ export default function FindPeoplePage() {
 
     setContactingId(person.user_id);
     try {
+      logEvent(
+        'result_contact_click',
+        buildPeopleAnalyticsMetadata(person, activeTab, featureState.minMatch, getPersonRankPosition(person, activeTab)),
+        activeTab
+      );
       const csrfToken = await getCSRFToken();
+      const ctaState = person?.cta_state || 'contact';
+
+      if (ctaState === 'show_interest') {
+        if (activeTab === 'landlords') {
+          const res = await fetch('/api/interests/show-interest', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-csrf-token': csrfToken,
+            },
+            body: JSON.stringify({
+              propertyId: person.matched_property.id,
+            }),
+          });
+
+          const payload = await res.json();
+          if (!res.ok) throw new Error(payload.error || 'Failed to show interest');
+
+          toast.success(payload.message || 'Interest submitted');
+          await fetchMatches({ tab: activeTab, page: currentPage });
+          return;
+        }
+
+        const res = await fetch('/api/people-interests', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-csrf-token': csrfToken,
+          },
+          body: JSON.stringify({
+            targetUserId: person.user_id,
+            contextPropertyId: person.matched_property.id,
+            interestKind: 'host_to_seeker',
+            compatibilityScore: person.match_score,
+          }),
+        });
+
+        const payload = await res.json();
+        if (!res.ok) throw new Error(payload.error || 'Failed to show interest');
+
+        toast.success(payload.message || 'Interest submitted');
+        return;
+      }
+
       const introMessage = activeTab === 'tenants'
         ? `Hi ${person.full_name?.split(' ')[0] || ''}, I saw your ${person.match_score}% match for my listing "${person.matched_property.title}". Let me know if you'd like to discuss next steps.`
         : `Hi ${person.full_name?.split(' ')[0] || ''}, I'm interested in your room "${person.matched_property.title}". We have a ${person.match_score}% lifestyle match!`;
@@ -193,6 +287,16 @@ export default function FindPeoplePage() {
     if (nextPage < 1 || nextPage === currentPage || loadingState) return;
     setPageByTab((prev) => ({ ...prev, [activeTab]: nextPage }));
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleOpenProfile = (person) => {
+    if (!person?.user_id) return;
+    logEvent(
+      'result_profile_open',
+      buildPeopleAnalyticsMetadata(person, activeTab, featureState.minMatch, getPersonRankPosition(person, activeTab)),
+      activeTab
+    );
+    router.push(`/users/${person.user_id}`);
   };
 
   useEffect(() => {
@@ -302,6 +406,27 @@ export default function FindPeoplePage() {
         </div>
       )}
 
+      {SHOW_DEV_DIAGNOSTICS && activeTab === 'tenants' && featureState?.diagnostics && (
+        <div className="mb-6 rounded-3xl border border-amber-200 bg-amber-50/80 p-5">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h2 className="text-sm font-heading font-bold text-amber-950 uppercase tracking-wider">Dev Diagnostics</h2>
+              <p className="text-sm text-amber-800">Raw tenant funnel counts for this landlord feed.</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            {Object.entries(featureState.diagnostics).map(([key, value]) => (
+              <div key={key} className="rounded-2xl border border-amber-200 bg-white/80 px-3 py-2.5">
+                <div className="text-[11px] uppercase tracking-wider text-amber-700">
+                  {key.replaceAll('_', ' ')}
+                </div>
+                <div className="text-lg font-heading font-bold text-amber-950">{String(value)}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {!loadingState && profileStatus && !profileStatus.isProfileComplete && (
         <div className="bg-white rounded-3xl border border-navy-200 p-10 text-center max-w-2xl mx-auto mt-10 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
           <div className="w-20 h-20 mx-auto rounded-4xl bg-linear-to-tr from-terracotta-50 to-orange-50 text-terracotta-500 flex items-center justify-center mb-6 shadow-inner">
@@ -351,7 +476,7 @@ export default function FindPeoplePage() {
             data={featureState.data}
             contactingId={contactingId}
             onContact={handleContactSeeker}
-            onOpenProfile={(userId) => router.push(`/users/${userId}`)}
+            onOpenProfile={handleOpenProfile}
             pagination={featureState.pagination}
             onPageChange={handlePageChange}
             isLoading={loadingState}
@@ -361,7 +486,7 @@ export default function FindPeoplePage() {
             data={featureState.data}
             contactingId={contactingId}
             onContact={handleContactSeeker}
-            onOpenProfile={(userId) => router.push(`/users/${userId}`)}
+            onOpenProfile={handleOpenProfile}
             pagination={featureState.pagination}
             onPageChange={handlePageChange}
             isLoading={loadingState}

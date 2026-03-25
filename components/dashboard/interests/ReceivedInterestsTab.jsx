@@ -10,13 +10,13 @@ export default function ReceivedInterestsTab({ interests, onUpdate }) {
   const router = useRouter();
   const [updatingId, setUpdatingId] = useState(null);
 
-  const handleUpdate = async (id, status) => {
+  const handleUpdate = async (id, status, interestType = 'property') => {
     try {
       setUpdatingId(id);
       const res = await fetch('/api/interests', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interestId: id, status }),
+        body: JSON.stringify({ interestId: id, status, interestType }),
       });
       const json = await res.json();
       
@@ -38,7 +38,7 @@ export default function ReceivedInterestsTab({ interests, onUpdate }) {
           <MdHome className="text-3xl text-navy-300" />
         </div>
         <h3 className="text-lg font-bold text-navy-950">No requests yet</h3>
-        <p className="mt-1 max-w-sm mx-auto">When seekers show interest in your private listings, they will appear here.</p>
+        <p className="mt-1 max-w-sm mx-auto">Property requests and profile interests you receive will appear here.</p>
       </div>
     );
   }
@@ -58,8 +58,8 @@ export default function ReceivedInterestsTab({ interests, onUpdate }) {
                 key={item.id} 
                 item={item} 
                 isUpdating={updatingId === item.id}
-                onAccept={() => handleUpdate(item.id, 'accepted')}
-                onReject={() => handleUpdate(item.id, 'rejected')}
+                onAccept={() => handleUpdate(item.id, 'accepted', item.interest_category)}
+                onReject={() => handleUpdate(item.id, 'rejected', item.interest_category)}
               />
             ))}
           </div>
@@ -84,6 +84,13 @@ function InterestCard({ item, isUpdating, onAccept, onReject }) {
   const isPending = item.status === 'pending';
   const isAccepted = item.status === 'accepted';
   const isRejected = item.status === 'rejected';
+  const isPersonInterest = item.interest_category === 'person';
+  const counterpart = item.counterpart || item.seeker || null;
+  const contextProperty = item.property || null;
+  const profileHref = counterpart?.id ? `/users/${counterpart.id}` : null;
+  const chatHref = isAccepted && counterpart?.id
+    ? `/messages?user=${counterpart.id}${contextProperty?.id ? `&propertyId=${contextProperty.id}` : ''}`
+    : null;
 
   return (
     <div className="bg-white p-4 lg:p-5 rounded-2xl border border-navy-100 shadow-sm transition-all hover:shadow-md">
@@ -91,29 +98,34 @@ function InterestCard({ item, isUpdating, onAccept, onReject }) {
         
         {/* Seeker Profile Info */}
         <div className="flex gap-4 min-w-[240px]">
-          <Link href={`/users/${item.seeker?.id}`} className="shrink-0">
-            {item.seeker?.profile_picture ? (
+          <Link href={profileHref || '#'} className="shrink-0">
+            {counterpart?.profile_picture ? (
               <img 
-                src={item.seeker.profile_picture} 
+                src={counterpart.profile_picture} 
                 alt="Avatar" 
                 className="w-14 h-14 rounded-full object-cover border border-navy-100 hover:opacity-90"
               />
             ) : (
               <div className="w-14 h-14 rounded-full bg-terracotta-100 flex items-center justify-center text-terracotta-700 font-bold text-lg border border-terracotta-200">
-                {item.seeker?.full_name?.charAt(0) || '?'}
+                {counterpart?.full_name?.charAt(0) || '?'}
               </div>
             )}
           </Link>
           <div>
-            <Link href={`/users/${item.seeker?.id}`} className="font-bold text-navy-950 hover:text-terracotta-600 transition-colors">
-              {item.seeker?.full_name || 'Anonymous Seeker'}
+            <Link href={profileHref || '#'} className="font-bold text-navy-950 hover:text-terracotta-600 transition-colors">
+              {counterpart?.full_name || 'Anonymous Match'}
             </Link>
             <div className="text-sm text-navy-500 mt-0.5 capitalize">
-              {item.seeker?.gender || 'Unknown'} • {item.seeker?.occupation || 'Unknown'}
+              {counterpart?.gender || 'Unknown'} • {counterpart?.occupation || 'Unknown'}
             </div>
             {item.compatibility_score && (
               <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md text-xs font-bold border border-emerald-100">
                 ⭐ {item.compatibility_score}% Match
+              </div>
+            )}
+            {isPersonInterest && (
+              <div className="mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 bg-navy-50 text-navy-700 rounded-md text-xs font-bold border border-navy-100">
+                Profile Interest
               </div>
             )}
           </div>
@@ -123,10 +135,14 @@ function InterestCard({ item, isUpdating, onAccept, onReject }) {
         <div className="flex-1 md:border-l border-navy-100 md:pl-5 w-full">
           <div className="flex justify-between items-start mb-2 gap-4">
             <div>
-              <p className="text-xs text-navy-400 font-medium uppercase tracking-wide">Property</p>
-              <Link href={`/listings/${item.property?.id}`} className="font-semibold text-navy-800 hover:text-navy-950 line-clamp-1 truncate">
-                {item.property?.title || 'Unknown Property'}
-              </Link>
+              <p className="text-xs text-navy-400 font-medium uppercase tracking-wide">{item.context_label || 'Property'}</p>
+              {contextProperty?.id ? (
+                <Link href={`/listings/${contextProperty.id}`} className="font-semibold text-navy-800 hover:text-navy-950 line-clamp-1 truncate">
+                  {contextProperty.title || 'Unknown Property'}
+                </Link>
+              ) : (
+                <div className="font-semibold text-navy-800 line-clamp-1 truncate">Private profile match</div>
+              )}
             </div>
             <div className="text-xs text-navy-400 whitespace-nowrap">
               {new Date(item.created_at).toLocaleDateString()}
@@ -136,6 +152,19 @@ function InterestCard({ item, isUpdating, onAccept, onReject }) {
           {item.message && (
             <div className="mt-3 bg-navy-50 rounded-lg p-3 text-sm text-navy-700 italic border border-navy-100 break-words">
               "{item.message}"
+            </div>
+          )}
+
+          {Array.isArray(item.match_reasons) && item.match_reasons.length > 0 && (
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {item.match_reasons.slice(0, 3).map((reason) => (
+                <span
+                  key={reason}
+                  className="px-2 py-1 rounded-lg bg-teal-50 text-teal-800 border border-teal-100 text-[11px] font-medium"
+                >
+                  {reason}
+                </span>
+              ))}
             </div>
           )}
         </div>
@@ -166,12 +195,14 @@ function InterestCard({ item, isUpdating, onAccept, onReject }) {
               <div className="px-3 py-1 bg-emerald-50 text-emerald-600 font-bold text-xs uppercase tracking-wider rounded-md border border-emerald-100 mb-2 invisible md:visible">
                 Accepted
               </div>
-              <Link 
-                href={`/messages?user=${item.seeker?.id}&propertyId=${item.property?.id}`}
-                className="w-full flex items-center justify-center gap-1.5 px-4 py-2 bg-terracotta-50 text-terracotta-600 font-bold text-sm rounded-lg hover:bg-terracotta-100 transition-colors active:scale-95 border border-terracotta-100"
-              >
-                <MdMessage className="text-lg" /> Chat
-              </Link>
+              {chatHref && (
+                <Link 
+                  href={chatHref}
+                  className="w-full flex items-center justify-center gap-1.5 px-4 py-2 bg-terracotta-50 text-terracotta-600 font-bold text-sm rounded-lg hover:bg-terracotta-100 transition-colors active:scale-95 border border-terracotta-100"
+                >
+                  <MdMessage className="text-lg" /> Chat
+                </Link>
+              )}
             </>
           )}
 

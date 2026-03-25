@@ -1,14 +1,15 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
-import { cachedFetch } from '@/core/utils/redis';
+import { cachedFetch, getCachedInt } from '@/core/utils/redis';
 import crypto from 'crypto';
+import { getPeopleDiscoveryState } from '@/core/services/matching/presentation/people-discovery-state';
 
 // Generate cache key for landlord interests
-const generateCacheKey = (userId) => {
+const generateCacheKey = ({ userId, interestsVersion }) => {
   const hash = crypto
     .createHash('md5')
-    .update(userId)
+    .update(JSON.stringify({ userId, interestsVersion }))
     .digest('hex');
   return `landlord:interests:${hash}`;
 };
@@ -22,7 +23,8 @@ export async function GET(request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const cacheKey = generateCacheKey(user.id);
+    const interestsVersion = await getCachedInt(`v:interests:user:${user.id}`);
+    const cacheKey = generateCacheKey({ userId: user.id, interestsVersion });
     const adminSb = createAdminClient();
 
     // Try to fetch from cache first (10 min TTL for landlord interests)
@@ -71,6 +73,7 @@ async function fetchLandlordInterestsFromDB(supabase, userId) {
         profile_picture,
         bio,
         privacy_setting,
+        profile_visibility,
         is_verified
       )
     `)
@@ -79,12 +82,50 @@ async function fetchLandlordInterestsFromDB(supabase, userId) {
 
   if (error) throw error;
 
+  const seekerIds = (interests || [])
+    .map((item) => item?.users?.id)
+    .filter((candidateId) => candidateId && candidateId !== userId);
+
+  const { data: acceptedPeopleInterestRows, error: acceptedPeopleInterestError } = seekerIds.length > 0
+    ? await supabase
+      .from('people_interests')
+      .select('initiator_user_id, target_user_id')
+      .eq('status', 'accepted')
+      .or(
+        [
+          `and(initiator_user_id.eq.${userId},target_user_id.in.(${seekerIds.join(',')}))`,
+          `and(target_user_id.eq.${userId},initiator_user_id.in.(${seekerIds.join(',')}))`,
+        ].join(',')
+      )
+      .limit(1000)
+    : { data: [], error: null };
+
+  if (acceptedPeopleInterestError) throw acceptedPeopleInterestError;
+
+  const acceptedPeopleRevealKeys = new Set(
+    (acceptedPeopleInterestRows || []).flatMap((row) => {
+      const initiatorId = row?.initiator_user_id;
+      const targetId = row?.target_user_id;
+      if (!initiatorId || !targetId) return [];
+      return [
+        `${initiatorId}:${targetId}`,
+        `${targetId}:${initiatorId}`,
+      ];
+    })
+  );
+
   // 3. Apply masking for private seekers
   const transformed = interests.map(item => {
     const seeker = item.users;
     const isAccepted = item.status === 'accepted';
-    const isPrivate = seeker.privacy_setting === 'private';
-    const shouldMask = isPrivate && !isAccepted;
+    const hasAcceptedPeopleReveal = acceptedPeopleRevealKeys.has(`${userId}:${seeker?.id}`);
+    const discoveryState = getPeopleDiscoveryState({
+      subject: seeker,
+      matchScore: typeof item.compatibility_score === 'number' ? item.compatibility_score : 100,
+      minMatch: 70,
+      hasMutualReveal: isAccepted || hasAcceptedPeopleReveal,
+    });
+    const shouldMask = discoveryState.shouldBlurProfile;
 
     let seekerData = { ...seeker };
 
@@ -107,8 +148,12 @@ async function fetchLandlordInterestsFromDB(supabase, userId) {
         createdAt: item.created_at,
         property: item.properties,
         seeker: seekerData,
-        isPrivateSeeker: isPrivate,
-        shouldMask
+        isPrivateSeeker: discoveryState.isPrivateProfile,
+        shouldMask,
+        canContactDirectly: discoveryState.isRevealed,
+        revealSource: hasAcceptedPeopleReveal ? 'people_interest' : (isAccepted ? 'property_interest' : null),
+        ctaState: discoveryState.ctaState,
+        ctaLabel: discoveryState.ctaLabel,
       };
     });
 

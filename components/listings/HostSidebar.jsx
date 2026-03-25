@@ -1,6 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import { resolveUserProfileVisibility } from '@/core/services/users/profile-privacy';
 
 export default function HostSidebar({ 
   host, 
@@ -12,7 +13,7 @@ export default function HostSidebar({
   contactButtonText,
   isPrivate
 }) {
-  const isOnline = host?.privacy_setting === 'public' &&
+  const isOnline = resolveUserProfileVisibility(host) === 'public' &&
                    host?.show_online_status !== false &&
                    host?.last_seen &&
                    (new Date() - new Date(host.last_seen)) < 5 * 60 * 1000;

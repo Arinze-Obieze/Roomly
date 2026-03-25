@@ -3,6 +3,9 @@ import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 import { sanitizeLength, sanitizeText } from '@/core/utils/sanitizers';
+import { logFeatureEvent } from '@/core/services/analytics/analytics.service';
+import { buildMatchAnalyticsMetadata } from '@/core/services/matching/presentation/match-analytics';
+import { shouldLogFirstReply } from '@/core/services/messaging/first-reply';
 import { Notifier } from '@/core/services/notifications/notifier';
 
 export async function POST(request) {
@@ -55,6 +58,18 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
+    const [{ count: existingMessagesCount }, { count: existingSenderMessagesCount }] = await Promise.all([
+      adminSupabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('conversation_id', conversationId),
+      adminSupabase
+        .from('messages')
+        .select('id', { count: 'exact', head: true })
+        .eq('conversation_id', conversationId)
+        .eq('sender_id', user.id),
+    ]);
+
     const fallbackLastMessage = attachmentType === 'image'
       ? 'Shared an image'
       : attachmentType === 'file'
@@ -99,6 +114,28 @@ export async function POST(request) {
     }).catch((notifyError) => {
       console.error('[Messages Send POST] Notification Error:', notifyError);
     });
+
+    if (shouldLogFirstReply({ existingMessagesCount, existingSenderMessagesCount })) {
+      logFeatureEvent({
+        userId: user.id,
+        featureName: 'messaging',
+        action: 'first_reply',
+        metadata: buildMatchAnalyticsMetadata({
+          surface: 'conversation_reply',
+          entityType: 'conversation',
+          userId: user.id,
+          blurred: false,
+          revealState: 'revealed',
+          extra: {
+            conversation_id: conversationId,
+            recipient_user_id: recipientId,
+            attachment_type: attachmentType || null,
+          },
+        }),
+      }).catch((analyticsError) => {
+        console.error('[Messages Send POST] Analytics Error:', analyticsError);
+      });
+    }
 
     return NextResponse.json({ success: true, data: message });
   } catch (error) {

@@ -1,14 +1,14 @@
 /**
  * POST /api/matching/recompute
  * 
- * Recomputes and caches compatibility scores between a specific seeker
- * and all active properties (or between a specific property and all active seekers).
+ * Recomputes and refreshes compatibility-score-backed cache versions between a specific seeker
+ * and all approved active properties (or between a specific property and all eligible seekers).
  * 
  * Called via internal fetch after:
  *   - A user saves their user_lifestyles or match_preferences
  *   - A landlord creates or edits a property listing
  * 
- * The DB triggers auto-DELETE stale rows. This route re-INSERTs fresh ones.
+ * The recompute service now prunes stale rows and re-INSERTs fresh ones.
  * 
  * Auth: Must be authenticated. Can only recompute their own data.
  * Body: { mode: 'seeker' | 'property', propertyId?: string }
@@ -18,11 +18,25 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
-import { bumpCacheVersion, invalidatePattern } from '@/core/utils/redis';
+import { bumpCacheVersion } from '@/core/utils/redis';
 import {
   recomputeForProperty,
   recomputeForSeeker,
 } from '@/core/services/matching/recompute-compatibility.service';
+import { rebuildFeedsForSeeker, asyncRebuildFeedsForProperty } from '@/core/services/feeds/rebuild-feed.service';
+import {
+  upsertPropertyMatchingSnapshot,
+  upsertUserMatchingSnapshot,
+} from '@/core/services/matching/features/snapshot.service';
+import {
+  asyncRebuildFindPeopleShortlistsForProperty,
+  rebuildHostFindPeopleShortlist,
+  rebuildSeekerFindLandlordsShortlist,
+} from '@/core/services/matching/precompute/find-people-shortlist';
+import {
+  getPropertyRecomputeVersionKeys,
+  getSeekerRecomputeVersionKeys,
+} from '@/core/services/matching/matching-cache-versions';
 
 export async function POST(request) {
   try {
@@ -36,11 +50,15 @@ export async function POST(request) {
 
     if (mode === 'seeker') {
       await recomputeForSeeker(adminSb, user.id);
-      // Bump user-scoped cache versions (no Redis KEYS scans)
-      await bumpCacheVersion(`v:properties:user:${user.id}`);
-      await bumpCacheVersion(`v:feed:match:user:${user.id}`);
-      await bumpCacheVersion(`v:feed:recommended:user:${user.id}`);
-      await invalidatePattern('landlord:find_people:*');
+      await Promise.all([
+        upsertUserMatchingSnapshot(adminSb, user.id),
+        rebuildFeedsForSeeker(user.id, adminSb),
+        rebuildSeekerFindLandlordsShortlist(adminSb, user.id),
+        rebuildHostFindPeopleShortlist(adminSb, user.id),
+      ]);
+      await Promise.all(
+        getSeekerRecomputeVersionKeys(user.id).map((key) => bumpCacheVersion(key))
+      );
       return NextResponse.json({ success: true, mode: 'seeker', userId: user.id });
     }
 
@@ -59,11 +77,17 @@ export async function POST(request) {
       }
 
       await recomputeForProperty(adminSb, propertyId);
-      // Bump global + property-scoped cache versions
-      await bumpCacheVersion('v:properties:global');
-      await bumpCacheVersion(`v:property:${propertyId}`);
-      await invalidatePattern('landlord:find_people:*');
-      await invalidatePattern('seeker:find_landlords:*');
+      await Promise.all([
+        upsertPropertyMatchingSnapshot(adminSb, propertyId),
+        asyncRebuildFeedsForProperty(propertyId, adminSb),
+        asyncRebuildFindPeopleShortlistsForProperty(propertyId, adminSb),
+      ]);
+      await Promise.all(
+        getPropertyRecomputeVersionKeys({
+          propertyId,
+          ownerUserId: user.id,
+        }).map((key) => bumpCacheVersion(key))
+      );
       return NextResponse.json({ success: true, mode: 'property', propertyId });
     }
 

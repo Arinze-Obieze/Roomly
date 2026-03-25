@@ -1,6 +1,7 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
-import { invalidatePattern } from '@/core/utils/redis';
+import { bumpCacheVersion } from '@/core/utils/redis';
+import { getPropertyInterestMutationVersionKeys } from '@/core/services/matching/matching-cache-versions';
 
 export async function POST(request, { params }) {
   try {
@@ -12,6 +13,23 @@ export async function POST(request, { params }) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    const { data: property, error: propertyError } = await supabase
+      .from('properties')
+      .select('id, listed_by_user_id')
+      .eq('id', propertyId)
+      .maybeSingle();
+
+    if (propertyError) throw propertyError;
+    if (!property) {
+      return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+    }
+
+    const cacheKeys = getPropertyInterestMutationVersionKeys({
+      propertyId,
+      seekerUserId: user.id,
+      hostUserId: property.listed_by_user_id,
+    });
+
     // 1. Check if interest already exists
     const { data: existing } = await supabase
       .from('property_interests')
@@ -21,9 +39,7 @@ export async function POST(request, { params }) {
       .maybeSingle();
 
     if (existing) {
-      await invalidatePattern('property:*');
-      await invalidatePattern(`seeker:interests:*`);
-      await invalidatePattern(`landlord:interests:*`);
+      await Promise.all(cacheKeys.map((key) => bumpCacheVersion(key)));
       return NextResponse.json({ 
         success: true, 
         message: 'Interest already recorded',
@@ -44,9 +60,7 @@ export async function POST(request, { params }) {
 
     if (error) throw error;
 
-    await invalidatePattern('property:*');
-    await invalidatePattern(`seeker:interests:*`);
-    await invalidatePattern(`landlord:interests:*`);
+    await Promise.all(cacheKeys.map((key) => bumpCacheVersion(key)));
 
     return NextResponse.json({
       success: true,
@@ -79,9 +93,23 @@ export async function DELETE(request, { params }) {
     
         if (error) throw error;
 
-        await invalidatePattern('property:*');
-        await invalidatePattern(`seeker:interests:*`);
-        await invalidatePattern(`landlord:interests:*`);
+        const { data: property, error: propertyError } = await supabase
+          .from('properties')
+          .select('id, listed_by_user_id')
+          .eq('id', propertyId)
+          .maybeSingle();
+
+        if (propertyError) throw propertyError;
+
+        if (property?.listed_by_user_id) {
+          await Promise.all(
+            getPropertyInterestMutationVersionKeys({
+              propertyId,
+              seekerUserId: user.id,
+              hostUserId: property.listed_by_user_id,
+            }).map((key) => bumpCacheVersion(key))
+          );
+        }
     
         return NextResponse.json({ success: true });
       } catch (error) {

@@ -1,20 +1,29 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { MdCheck, MdOutlineClose } from 'react-icons/md';
 import { PROPERTY_CATEGORIES } from '@/data/listingOptions';
 
 export default function PropertyTypeFilter({ values = [], onChange }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [draftValues, setDraftValues] = useState(values);
   const containerRef = useRef(null);
+  const committedValuesRef = useRef(values);
   const OPTIONS = PROPERTY_CATEGORIES.map((category) => ({
     id: category.value,
     label: category.label,
   }));
+  const valuesKey = useMemo(() => values.join('|'), [values]);
+
+  useEffect(() => {
+    committedValuesRef.current = values;
+    setDraftValues(values);
+  }, [valuesKey, values]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (containerRef.current && !containerRef.current.contains(event.target)) {
+        setDraftValues(committedValuesRef.current);
         setIsOpen(false);
       }
     };
@@ -24,16 +33,15 @@ export default function PropertyTypeFilter({ values = [], onChange }) {
 
   const handleSelect = (id) => {
       if (id === 'any') {
-          onChange([]);
-          setIsOpen(false);
+          setDraftValues([]);
           return;
       }
       
-      const newValues = values.includes(id) 
-        ? values.filter(v => v !== id)
-        : [...values, id];
-        
-      onChange(newValues);
+      const newValues = draftValues.includes(id) 
+        ? draftValues.filter(v => v !== id)
+        : [...draftValues, id];
+
+      setDraftValues(newValues);
   };
 
   const getLabel = () => {
@@ -72,24 +80,48 @@ export default function PropertyTypeFilter({ values = [], onChange }) {
              <button
                onClick={() => handleSelect('any')}
                className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between transition-colors ${
-                  !values || values.length === 0 ? 'bg-slate-50 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
+                  !draftValues || draftValues.length === 0 ? 'bg-slate-50 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
                }`}
              >
                 Any Type
-                {(!values || values.length === 0) && <MdCheck className="text-terracotta-600" />}
+                {(!draftValues || draftValues.length === 0) && <MdCheck className="text-terracotta-600" />}
              </button>
              {OPTIONS.map((opt) => (
                 <button
                   key={opt.id}
                   onClick={() => handleSelect(opt.id)}
                   className={`w-full text-left px-4 py-3 rounded-xl text-sm font-medium flex items-center justify-between transition-colors ${
-                     values.includes(opt.id) ? 'bg-slate-50 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
+                     draftValues.includes(opt.id) ? 'bg-slate-50 text-slate-900' : 'text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                    {opt.label}
-                   {values.includes(opt.id) && <MdCheck className="text-cyan-600" />}
+                   {draftValues.includes(opt.id) && <MdCheck className="text-cyan-600" />}
                 </button>
              ))}
+          </div>
+
+          <div className="mt-4 flex items-center justify-between gap-3 border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setDraftValues([]);
+                onChange([]);
+                setIsOpen(false);
+              }}
+              className="px-4 py-2.5 rounded-full text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+            >
+              Clear
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onChange(draftValues);
+                setIsOpen(false);
+              }}
+              className="px-5 py-2.5 rounded-full bg-terracotta-500 text-white text-sm font-semibold hover:bg-terracotta-600 transition-colors shadow-lg shadow-terracotta-500/20"
+            >
+              Apply
+            </button>
           </div>
         </div>
       )}

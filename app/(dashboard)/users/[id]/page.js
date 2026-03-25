@@ -10,6 +10,7 @@ import ReportModal from '@/components/modals/ReportModal';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import toast from 'react-hot-toast';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
+import { resolveUserProfileVisibility } from '@/core/services/users/profile-privacy';
 
 export default function HostProfilePage() {
   const params = useParams();
@@ -32,7 +33,7 @@ export default function HostProfilePage() {
         
         const { data: userData, error: userError } = await supabase
           .from('users')
-          .select('id, full_name, profile_picture, bio, created_at, is_verified, privacy_setting, last_seen, average_response_time_ms, show_online_status, show_response_time')
+          .select('id, full_name, profile_picture, bio, created_at, is_verified, privacy_setting, profile_visibility, last_seen, average_response_time_ms, show_online_status, show_response_time')
           .eq('id', userId)
           .single();
 
@@ -149,7 +150,7 @@ export default function HostProfilePage() {
     );
   }
 
-  const isOnline = host?.privacy_setting === 'public' && 
+  const isOnline = resolveUserProfileVisibility(host) === 'public' && 
                    host?.show_online_status !== false &&
                    host?.last_seen && 
                    (new Date() - new Date(host.last_seen)) < 5 * 60 * 1000;

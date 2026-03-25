@@ -9,6 +9,7 @@ import {
   MdReportProblem,
   MdReceiptLong,
   MdChatBubbleOutline,
+  MdBuild,
   MdClose
 } from "react-icons/md";
 
@@ -18,6 +19,7 @@ const NAV_ITEMS = [
   { icon: MdHomeWork, label: "Properties", path: "/superadmin/properties" },
   { icon: MdReportProblem, label: "Reports", path: "/superadmin/reports" },
   { icon: MdChatBubbleOutline, label: "Support", path: "/superadmin/support" },
+  { icon: MdBuild, label: "Operations", path: "/superadmin/operations" },
   { icon: MdReceiptLong, label: "System Logs", path: "/superadmin/system-logs" },
 ];
 

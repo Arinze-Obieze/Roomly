@@ -2,7 +2,7 @@ import InterestsManager from '@/components/dashboard/interests/InterestsManager'
 
 export const metadata = {
   title: 'My Interests | Roomly',
-  description: 'Manage the interests you have sent and received on Roomly properties.',
+  description: 'Manage the property and profile interests you have sent and received on Roomly.',
 };
 
 export default function InterestsPage() {
@@ -14,7 +14,7 @@ export default function InterestsPage() {
             My Interests
           </h1>
           <p className="text-navy-500 mt-1">
-            Track properties you applied for and manage requests for your listings.
+            Track property requests and profile interests across listings and people discovery.
           </p>
         </div>
         

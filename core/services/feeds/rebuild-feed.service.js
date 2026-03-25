@@ -1,32 +1,24 @@
 import { callRedis } from '@/core/utils/redis';
-
-// Compute the recommended score for a specific property match
-function calculateRecommendedScore(matchScore, property) {
-  // 1. Match component (70%)
-  const matchComponent = matchScore * 0.70;
-
-  // 2. Freshness component (20%)
-  // Decays from 100 to 0 over 30 days. Fast drop-off initially.
-  const ageDays = (Date.now() - new Date(property.created_at).getTime()) / (1000 * 60 * 60 * 24);
-  const freshnessBase = Math.max(0, 100 * Math.exp(-ageDays / 7)); // 7-day half-life roughly
-  const freshnessComponent = freshnessBase * 0.20;
-
-  // 3. Quality component (10%)
-  // Photos present = 50 pts, Verified host = 50 pts
-  const hasPhotos = property.property_media && property.property_media.length > 0;
-  const isVerifiedHost = property.host?.is_verified;
-  const qualityBase = (hasPhotos ? 50 : 0) + (isVerifiedHost ? 50 : 0);
-  const qualityComponent = qualityBase * 0.10;
-
-  return matchComponent + freshnessComponent + qualityComponent;
-}
+import { computeRecommendedScore } from '@/core/services/matching/scoring/recommended-score';
+import { canIncludePropertyInSeekerFeed } from '@/core/services/feeds/feed-eligibility';
+import { comparePropertyRanking } from '@/core/services/matching/ranking/shared-order';
 
 // Diversity logic: 
 // 1. Prevent dominator hosts (max 2 consecutive from same host)
 // 2. We apply a slight penalty to repeated hosts and cities to spread them out.
 function applyDiversityRanking(scoredItems) {
   // Sort initially by raw score descending
-  let items = [...scoredItems].sort((a, b) => b.score - a.score);
+  let items = [...scoredItems].sort((a, b) => comparePropertyRanking({
+    id: a.propertyId,
+    matchScore: a.matchScore,
+    createdAt: a.property?.created_at,
+    _recScore: a.score,
+  }, {
+    id: b.propertyId,
+    matchScore: b.matchScore,
+    createdAt: b.property?.created_at,
+    _recScore: b.score,
+  }, 'recommended'));
   
   const finalRanked = [];
   const hostCounts = {};
@@ -70,40 +62,72 @@ function applyDiversityRanking(scoredItems) {
 export async function rebuildFeedsForSeeker(userId, supabase) {
   if (!userId) return false;
 
-  // 1. Fetch scores > 50 + properties
-  const { data: scores, error } = await supabase
-    .from('compatibility_scores')
-    .select(`
-      property_id,
-      score,
-      property:properties (
-        id,
-        title,
-        created_at,
-        listed_by_user_id,
-        city,
-        property_media (id),
-        host:users!properties_listed_by_user_id_fkey (is_verified)
-      )
-    `)
-    .eq('seeker_id', userId)
-    .gt('score', 50)
-    .not('property', 'is', null);
+  // 1. Fetch scores > 50 + accepted interests so background feeds respect
+  // the same visibility rules as live listing discovery.
+  const [scoresRes, acceptedInterestsRes] = await Promise.all([
+    supabase
+      .from('compatibility_scores')
+      .select(`
+        property_id,
+        score,
+        property:properties (
+          id,
+          title,
+          created_at,
+          listed_by_user_id,
+          city,
+          is_active,
+          approval_status,
+          privacy_setting,
+          property_media (id),
+          host:users!listed_by_user_id (is_verified)
+        )
+      `)
+      .eq('seeker_id', userId)
+      .gt('score', 50)
+      .not('property', 'is', null),
+    supabase
+      .from('property_interests')
+      .select('property_id')
+      .eq('seeker_id', userId)
+      .eq('status', 'accepted')
+      .limit(2000),
+  ]);
+
+  const { data: scores, error } = scoresRes;
 
   if (error || !scores || scores.length === 0) {
     if (error) console.error('[rebuildFeeds] DB Error:', error);
     return false;
   }
 
+  const acceptedPropertyIds = new Set((acceptedInterestsRes.data || []).map(row => row.property_id));
+
   // Filter out any where property join failed (property is null)
-  const validItems = scores.filter(s => s.property && !Array.isArray(s.property));
+  const validItems = scores.filter(item => {
+    if (!item.property || Array.isArray(item.property)) return false;
+    return canIncludePropertyInSeekerFeed({
+      property: item.property,
+      matchScore: item.score,
+      hasAcceptedInterest: acceptedPropertyIds.has(item.property_id),
+    });
+  });
+
+  if (validItems.length === 0) {
+    return false;
+  }
 
   // 2. Score and Rank
   const scoredItems = validItems.map(item => {
     return {
       propertyId: item.property_id,
       matchScore: item.score,
-      recScoreRaw: calculateRecommendedScore(item.score, item.property),
+      recScoreRaw: computeRecommendedScore({
+        score: item.score,
+        created_at: item.property.created_at,
+        property_media: item.property.property_media,
+        host: item.property.host,
+      }),
       property: item.property
     };
   });

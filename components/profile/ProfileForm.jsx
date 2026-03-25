@@ -7,6 +7,7 @@ import { MdSave, MdCameraAlt, MdCheckCircle } from 'react-icons/md';
 import { createClient } from '@/core/utils/supabase/client';
 import toast from 'react-hot-toast';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
+import { resolveUserProfileVisibility } from '@/core/services/users/profile-privacy';
 
 export default function ProfileForm({ onCancel }) {
   const { user, updateProfile } = useAuthContext();
@@ -20,7 +21,7 @@ export default function ProfileForm({ onCancel }) {
     bio: user?.bio || '',
     date_of_birth: user?.date_of_birth || '',
     gender: user?.gender || '',
-    privacy_setting: user?.privacy_setting || 'public',
+    privacy_setting: resolveUserProfileVisibility(user),
   });
 
   // Re-populate form when the full user profile loads from AuthContext.
@@ -34,9 +35,9 @@ export default function ProfileForm({ onCancel }) {
       bio: user.bio || '',
       date_of_birth: user.date_of_birth || '',
       gender: user.gender || '',
-      privacy_setting: user.privacy_setting || 'public',
+      privacy_setting: resolveUserProfileVisibility(user),
     });
-  }, [user?.full_name, user?.phone_number, user?.bio, user?.date_of_birth, user?.gender, user?.privacy_setting]);
+  }, [user?.full_name, user?.phone_number, user?.bio, user?.date_of_birth, user?.gender, user?.privacy_setting, user?.profile_visibility]);
 
 
   const handleChange = (e) => {

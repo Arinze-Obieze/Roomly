@@ -34,7 +34,7 @@ export default function ComparisonSection() {
             </p>
         </div>
 
-        <div className="bg-white rounded-[2rem] shadow-xl border border-slate-200 overflow-hidden max-w-5xl mx-auto">
+        <div className="bg-white rounded-4xl shadow-xl border border-slate-200 overflow-hidden max-w-5xl mx-auto">
             <div className="overflow-x-auto">
                 <table className="w-full min-w-[700px]">
                     <thead>
@@ -44,7 +44,7 @@ export default function ComparisonSection() {
                             <th className="p-6 text-center text-slate-500 font-bold w-1/4">FACEBOOK GROUPS</th>
                             <th className="p-6 text-center bg-terracotta-50 text-terracotta-600 font-extrabold w-1/4 rounded-t-2xl relative">
                                 RoomFind
-                                <span className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
+                                <span className="absolute my-4 top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm">
                                     WINNER
                                 </span>
                             </th>

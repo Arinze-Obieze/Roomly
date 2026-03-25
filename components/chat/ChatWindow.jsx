@@ -45,6 +45,8 @@ export const ChatWindow = () => {
     const [showHeaderMenu, setShowHeaderMenu] = useState(false);
     const [isDeleting, setIsDeleting] = useState(false);
     const [signedUrlByPath, setSignedUrlByPath] = useState({});
+    const [conversationContext, setConversationContext] = useState(null);
+    const [loadingConversationContext, setLoadingConversationContext] = useState(false);
 
     // Editing state
     const [editingMessageId, setEditingMessageId] = useState(null);
@@ -106,6 +108,42 @@ export const ChatWindow = () => {
             setPrevScrollHeight(null);
         }
     }, [messages]);
+
+    useEffect(() => {
+        let cancelled = false;
+
+        const fetchConversationContext = async () => {
+            if (!activeConversation) {
+                setConversationContext(null);
+                return;
+            }
+
+            try {
+                setLoadingConversationContext(true);
+                const res = await fetch(`/api/messages/conversation-context?conversationId=${encodeURIComponent(activeConversation)}`);
+                const payload = await res.json().catch(() => ({}));
+
+                if (!res.ok || !payload?.context) {
+                    if (!cancelled) setConversationContext(null);
+                    return;
+                }
+
+                if (!cancelled) {
+                    setConversationContext(payload.context);
+                }
+            } catch {
+                if (!cancelled) setConversationContext(null);
+            } finally {
+                if (!cancelled) setLoadingConversationContext(false);
+            }
+        };
+
+        fetchConversationContext();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [activeConversation]);
 
     const handleLoadMore = async () => {
         if (scrollContainerRef.current) {
@@ -449,6 +487,41 @@ export const ChatWindow = () => {
                     </AnimatePresence>
                 </div>
             </motion.div>
+
+            {(loadingConversationContext || (conversationContext?.matchScore != null || conversationContext?.reasons?.length > 0)) && (
+                <div className="shrink-0 border-b border-navy-100 bg-white/95 px-4 md:px-6 py-3">
+                    <div className="max-w-3xl mx-auto">
+                        {loadingConversationContext ? (
+                            <div className="h-10 rounded-2xl bg-navy-100 animate-pulse" />
+                        ) : (
+                            <div className="rounded-2xl border border-teal-100 bg-teal-50 px-4 py-3">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {conversationContext?.matchScore != null && (
+                                        <span className="inline-flex items-center rounded-full bg-white text-teal-800 border border-teal-200 px-2.5 py-1 text-xs font-bold">
+                                            {conversationContext.matchScore}% Match
+                                        </span>
+                                    )}
+                                    <p className="text-sm font-heading font-semibold text-teal-900">
+                                        {conversationContext?.headline || 'Why this match works'}
+                                    </p>
+                                </div>
+                                {Array.isArray(conversationContext?.reasons) && conversationContext.reasons.length > 0 && (
+                                    <div className="mt-2 flex flex-wrap gap-1.5">
+                                        {conversationContext.reasons.slice(0, 3).map((reason) => (
+                                            <span
+                                                key={reason}
+                                                className="px-2 py-1 rounded-lg bg-white text-teal-800 border border-teal-100 text-[11px] font-medium"
+                                            >
+                                                {reason}
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
 
             {/* Scrollable Messages Area */}
             <div 

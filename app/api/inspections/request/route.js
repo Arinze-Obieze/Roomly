@@ -4,6 +4,8 @@ import { createAdminClient } from '@/core/utils/supabase/admin';
 import { sendEmail } from '@/core/utils/email';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 import { Notifier } from '@/core/services/notifications/notifier';
+import { logFeatureEvent } from '@/core/services/analytics/analytics.service';
+import { buildMatchAnalyticsMetadata } from '@/core/services/matching/presentation/match-analytics';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
@@ -159,6 +161,26 @@ export async function POST(req) {
         `,
       }).catch((err) => console.error('Failed to send inspection request email', err));
     }
+
+    logFeatureEvent({
+      userId: user.id,
+      featureName: 'matching',
+      action: 'inspection_requested',
+      metadata: buildMatchAnalyticsMetadata({
+        matchScore: null,
+        threshold: null,
+        surface: 'inspection_request',
+        entityType: 'property',
+        userId: user.id,
+        blurred: false,
+        revealState: 'revealed',
+        extra: {
+          target_user_id: host.id,
+          property_id: propertyId,
+          conversation_id: conversationId,
+        },
+      }),
+    }).catch(console.error);
 
     return NextResponse.json({ success: true, message });
   } catch (error) {

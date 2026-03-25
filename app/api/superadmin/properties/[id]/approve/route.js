@@ -1,11 +1,16 @@
 import { NextResponse } from 'next/server';
 import { requireSuperadmin } from '@/core/services/superadmin/guard';
 import { logSuperadminEvent } from '@/core/services/superadmin/audit';
-import { recomputeForProperty } from '@/core/services/matching/recompute-compatibility.service';
 import { createAdminClient } from '@/core/utils/supabase/admin';
-import { bumpCacheVersion, invalidatePattern } from '@/core/utils/redis';
+import { refreshPropertyMutationArtifacts } from '@/core/services/superadmin/property-mutation-refresh';
+import { validateCSRFRequest } from '@/core/utils/csrf';
 
 export async function PATCH(request, { params }) {
+  const csrfValidation = await validateCSRFRequest(request);
+  if (!csrfValidation.valid) {
+    return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
+  }
+
   const guard = await requireSuperadmin();
   if (guard.errorResponse) return guard.errorResponse;
 
@@ -31,25 +36,19 @@ export async function PATCH(request, { params }) {
       .from('properties')
       .update({ approval_status: newStatus })
       .eq('id', propertyId)
-      .select('id, title, listed_by_user_id')
+      .select('id, title, listed_by_user_id, approval_status, is_active')
       .single();
 
     if (error) throw error;
 
-    if (newStatus === 'approved') {
-      try {
-        await recomputeForProperty(createAdminClient(), propertyId);
-      } catch (recomputeError) {
-        console.error(`[Superadmin Property Approval] Recompute failed: ${recomputeError?.message || recomputeError}`);
-      }
+    try {
+      await refreshPropertyMutationArtifacts(createAdminClient(), {
+        propertyId,
+        ownerUserId: data.listed_by_user_id,
+      });
+    } catch (recomputeError) {
+      console.error(`[Superadmin Property Approval] Recompute failed: ${recomputeError?.message || recomputeError}`);
     }
-
-    await Promise.all([
-      bumpCacheVersion('v:properties:global'),
-      bumpCacheVersion(`v:property:${propertyId}`),
-      invalidatePattern('landlord:find_people:*'),
-      invalidatePattern('seeker:find_landlords:*'),
-    ]);
 
     await logSuperadminEvent(adminClient, {
       requestId: request.headers.get('x-request-id') || null,

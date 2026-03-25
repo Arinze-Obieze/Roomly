@@ -59,7 +59,7 @@ export default function InterestsManager() {
             : 'border-transparent text-navy-500 hover:text-navy-700 hover:bg-navy-50'
           }`}
         >
-          Received Requests 
+          Received Requests
           {data.received?.length > 0 && activeTab !== 'received' && (
             <span className="ml-2 inline-flex items-center justify-center bg-terracotta-100 text-terracotta-700 text-xs rounded-full h-5 w-5">
               {data.received.filter(r => r.status === 'pending').length || data.received.length}

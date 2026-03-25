@@ -5,10 +5,52 @@ import { cachedFetch, getCachedInt } from '@/core/utils/redis';
 import { handleCreateProperty } from '@/core/services/properties/create-property.service';
 import crypto from 'crypto';
 import { sanitizeLength, sanitizeText } from '@/core/utils/sanitizers';
+import {
+  canSeePrivateListing,
+  getPropertyContactState,
+  isPrivateListing,
+  shouldMaskPrivateListing,
+} from '@/core/services/matching/rules/property-visibility';
+import { getMatchConfidenceState } from '@/core/services/matching/presentation/match-confidence';
+import { buildPropertyMatchReasons } from '@/core/services/matching/presentation/match-explanations';
+import { computeRecommendedScore } from '@/core/services/matching/scoring/recommended-score';
+import { comparePropertyRanking } from '@/core/services/matching/ranking/shared-order';
+import {
+  getPropertyListCacheTtl,
+  shouldUsePropertyListCache,
+} from '@/core/services/matching/property-list-cache-strategy';
+import {
+  getPrecomputedPropertyIds,
+  hasActivePropertyFilters,
+} from '@/core/services/matching/precompute/property-feed-shortlist';
+import { propertyMatchConfidence } from '@/lib/matching/propertyMatchScore';
 
 export const runtime       = 'nodejs';
 export const bodySizeLimit = '20mb';
+const MIN_TEXT_FILTER_LENGTH = 2;
 const PERSONALIZED_SORTS = new Set(['match', 'recommended']);
+const PROPERTY_LIST_SELECT = `
+  id,
+  title,
+  description,
+  city,
+  state,
+  street,
+  price_per_month,
+  bedrooms,
+  bathrooms,
+  bills_option,
+  couples_allowed,
+  property_type,
+  offering_type,
+  privacy_setting,
+  listed_by_user_id,
+  available_from,
+  created_at,
+  amenities,
+  property_media (id, url, media_type, display_order, is_primary),
+  users!listed_by_user_id (id, full_name, profile_picture, is_verified, gender, date_of_birth)
+`;
 
 // ── Cache key generation ───────────────────────────────────────────────────
 // Per-user, per-query (includes page so each paginated slice is cached)
@@ -30,6 +72,7 @@ export async function GET(request) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     const { searchParams } = new URL(request.url);
+    const sortBy = searchParams.get('sortBy');
 
     // noStore=1 is set by the client when it calls refresh() to bypass Redis
     const skipCache = searchParams.get('noStore') === '1';
@@ -40,10 +83,14 @@ export async function GET(request) {
     };
     const cacheKey = generateCacheKey(searchParams, user?.id, versions);
 
-    // 5-min TTL; cache only for anon traffic to avoid per-user Redis key explosion.
-    const shouldUseRedisCache = !skipCache && !user;
+    const shouldUseRedisCache = shouldUsePropertyListCache({
+      hasUser: !!user,
+      sortBy,
+      skipCache,
+    });
+    const cacheTtlSeconds = getPropertyListCacheTtl({ hasUser: !!user });
     const data = shouldUseRedisCache
-      ? await cachedFetch(cacheKey, 300, () => fetchPropertiesFromDB(searchParams, user))
+      ? await cachedFetch(cacheKey, cacheTtlSeconds, () => fetchPropertiesFromDB(searchParams, user))
       : await fetchPropertiesFromDB(searchParams, user);
 
     return NextResponse.json(data);
@@ -76,6 +123,11 @@ function sanitizeOrTerm(value) {
   return cleaned.replace(/[^a-zA-Z0-9\s.'-]/g, '').trim();
 }
 
+function normalizeTextFilter(value) {
+  const sanitized = sanitizeOrTerm(value);
+  return sanitized.length >= MIN_TEXT_FILTER_LENGTH ? sanitized : '';
+}
+
 async function fetchPropertiesFromDB(searchParams, user) {
   const page      = Math.max(1, parseInt(searchParams.get('page')     || '1'));
   const pageSize  = Math.min(50, parseInt(searchParams.get('pageSize')|| '12')); // cap at 50
@@ -90,12 +142,17 @@ async function fetchPropertiesFromDB(searchParams, user) {
   let missingProfile = false;
   let allowedPrivateIds = [];
   let acceptedPrivateIds = [];
+  let seekerContext = {
+    lifestyle: null,
+    preferences: null,
+    userMeta: {},
+  };
 
   if (user) {
-    const shouldPrefetchPrivateScoreIds = !PERSONALIZED_SORTS.has(sortBy);
-    const [lifestyleCheck, prefsCheck, acceptedInterests, privateScoreIds] = await Promise.all([
-      supabase.from('user_lifestyles').select('user_id').eq('user_id', user.id).maybeSingle(),
-      supabase.from('match_preferences').select('user_id').eq('user_id', user.id).maybeSingle(),
+    const shouldPrefetchPrivateScoreIds = !['match', 'recommended'].includes(sortBy);
+    const [lifestyleCheck, prefsCheck, acceptedInterests, privateScoreIds, userMeta] = await Promise.all([
+      supabase.from('user_lifestyles').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase.from('match_preferences').select('*').eq('user_id', user.id).maybeSingle(),
       supabase
         .from('property_interests')
         .select('property_id')
@@ -111,9 +168,19 @@ async function fetchPropertiesFromDB(searchParams, user) {
           .order('score', { ascending: false })
           .limit(2000)
         : Promise.resolve({ data: [] }),
+      supabase
+        .from('users')
+        .select('id, gender, date_of_birth')
+        .eq('id', user.id)
+        .maybeSingle(),
     ]);
 
-    missingProfile = isMissingMatchProfile(lifestyleCheck.data, prefsCheck.data);
+    seekerContext = {
+      lifestyle: lifestyleCheck.data || null,
+      preferences: prefsCheck.data || null,
+      userMeta: userMeta.data || {},
+    };
+    missingProfile = isMissingMatchProfile(seekerContext.lifestyle, seekerContext.preferences);
 
     acceptedPrivateIds = (acceptedInterests.data || []).map(r => r.property_id);
     const scorePrivateIds = (privateScoreIds.data || []).map(r => r.property_id);
@@ -134,6 +201,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
       filters,
       missingProfile,
       acceptedPrivateIds,
+      seekerContext,
     });
   }
 
@@ -222,8 +290,8 @@ async function fetchPropertiesFromDB(searchParams, user) {
   const ids = pageRows.map(p => p.id);
   const { interests, scoreMap } = await fetchPerPageUserContext(supabase, user, ids);
 
-  let transformed = pageRows.map(p =>
-    transformProperty(p, interests, scoreMap, user, missingProfile, supabase)
+  const transformed = pageRows.map(p =>
+    transformProperty(p, interests, scoreMap, user, missingProfile, supabase, seekerContext)
   );
 
   return {
@@ -239,7 +307,7 @@ async function fetchPropertiesFromDB(searchParams, user) {
 }
 
 // ── Property transformer ───────────────────────────────────────────────────
-function transformProperty(property, interests, scoreMap, user, missingProfile, supabase) {
+function transformProperty(property, interests, scoreMap, user, missingProfile, supabase, seekerContext = {}) {
   const interest  = interests.find(i => i.property_id === property.id);
   const matchScore = scoreMap[property.id] ?? null;
 
@@ -258,10 +326,10 @@ function transformProperty(property, interests, scoreMap, user, missingProfile, 
     .filter(Boolean) || [];
 
   let hostName     = property.users?.full_name || 'Unknown';
-  const isPrivate  = property.privacy_setting === 'private';
+  const isPrivate  = isPrivateListing(property);
   const isOwner    = user && property.listed_by_user_id === user.id;
-  const isMutual   = interest?.status === 'accepted';
-  const maskHost   = isPrivate && !isMutual && !isOwner;
+  const hasAcceptedInterest = interest?.status === 'accepted';
+  const maskHost   = shouldMaskPrivateListing({ isPrivate, isOwner, hasAcceptedInterest });
 
   if (!user && hostName !== 'Unknown') {
     hostName = hostName.split(' ')[0];
@@ -278,21 +346,41 @@ function transformProperty(property, interests, scoreMap, user, missingProfile, 
     propertyType:     property.property_type,
     isPrivate,
     matchScore,
+    compatibilityScore: matchScore,
     missingProfile,
     interestStatus:   interest?.status || null,
     availableFrom:    property.available_from,
     createdAt:        property.created_at,
   };
 
-  const visibility = isPrivate ? 'private' : 'public';
-  const contactGate =
-    missingProfile
-      ? 'profile_required'
-      : (visibility === 'private' || matchScore === null || matchScore <= 50)
-        ? 'interest_required'
-        : 'direct';
-  const contactAllowed =
-    isOwner || contactGate === 'direct' || interest?.status === 'accepted';
+  const matchConfidence = user && !isOwner && matchScore != null
+    ? propertyMatchConfidence(
+      property,
+      seekerContext.lifestyle || null,
+      seekerContext.preferences || null,
+      seekerContext.userMeta || {},
+      null,
+      property.users || {}
+    )
+    : null;
+  const matchConfidenceState = matchConfidence != null
+    ? getMatchConfidenceState(matchConfidence)
+    : null;
+  const matchReasons = user && !isOwner && matchScore != null
+    ? buildPropertyMatchReasons({
+      property,
+      seekerLifestyle: seekerContext.lifestyle || null,
+      seekerPrefs: seekerContext.preferences || null,
+    })
+    : [];
+
+  const { visibility, contactGate, contactAllowed } = getPropertyContactState({
+    property,
+    isOwner,
+    hasAcceptedInterest,
+    matchScore,
+    missingProfile,
+  });
 
   if (maskHost) {
     const parts      = hostName.split(' ');
@@ -308,6 +396,11 @@ function transformProperty(property, interests, scoreMap, user, missingProfile, 
       isBlurry:    true,
       contactGate,
       contactAllowed,
+      matchConfidence,
+      confidenceScore: matchConfidence,
+      matchConfidenceState: matchConfidenceState?.state || null,
+      matchConfidenceLabel: matchConfidenceState?.label || null,
+      matchReasons,
       amenities:   (property.amenities || []).slice(0, 3).map(a => ({ icon: 'FaWifi', label: a })),
       verified:    false,
       host: {
@@ -329,6 +422,11 @@ function transformProperty(property, interests, scoreMap, user, missingProfile, 
     images,
     contactGate,
     contactAllowed,
+    matchConfidence,
+    confidenceScore: matchConfidence,
+    matchConfidenceState: matchConfidenceState?.state || null,
+    matchConfidenceLabel: matchConfidenceState?.label || null,
+    matchReasons,
     amenities:   (property.amenities || []).map(a => ({ icon: 'FaWifi', label: a })),
     verified:    !!(property.users?.is_verified),
     host: {
@@ -373,11 +471,7 @@ async function fetchPerPageUserContext(supabase, user, propertyIds) {
 function buildVisiblePropertiesQuery(adminSb, user, allowedPrivateIds = [], selectOptions = {}) {
   let query = adminSb
     .from('properties')
-    .select(`
-      *,
-      property_media (id, url, media_type, display_order, is_primary),
-      users!listed_by_user_id (id, full_name, profile_picture)
-    `, selectOptions)
+    .select(PROPERTY_LIST_SELECT, selectOptions)
     .eq('is_active', true)
     .eq('approval_status', 'approved');
 
@@ -419,50 +513,8 @@ function rankMatchWindow(items) {
   });
 }
 
-function rankRecommendedWindow(items) {
-  const now = new Date();
-  return items
-    .map(item => {
-      const recScore = computeRecommendedScore(item, now);
-      return { ...item, _recScore: recScore };
-    })
-    .sort((a, b) =>
-      (b._recScore - a._recScore) ||
-      ((b.matchScore ?? -1) - (a.matchScore ?? -1)) ||
-      (new Date(b.createdAt) - new Date(a.createdAt))
-    )
-    .map(({ _recScore, ...rest }) => rest);
-}
-
-function computeRecommendedScore(item, now = new Date()) {
-  const ageHours = Math.max(0, (now - new Date(item.createdAt)) / 36e5);
-  const freshness = Math.max(0, 100 - ageHours / 7.2);
-  const match = typeof item.matchScore === 'number' ? item.matchScore : 0;
-  const hasPhotos = Array.isArray(item.images) && item.images.length > 0;
-  const quality = (hasPhotos ? 50 : 0) + (item.verified ? 50 : 0);
-  return (match * 0.70) + (freshness * 0.20) + (quality * 0.10);
-}
-
-function compareDescending(a, b) {
-  if (a === b) return 0;
-  if (a == null) return 1;
-  if (b == null) return -1;
-  return a > b ? -1 : 1;
-}
-
 function compareRankedItems(a, b, sortBy) {
-  if (sortBy === 'recommended') {
-    const recDiff = (b._recScore ?? -1) - (a._recScore ?? -1);
-    if (recDiff !== 0) return recDiff;
-  }
-
-  const scoreDiff = (b.matchScore ?? -1) - (a.matchScore ?? -1);
-  if (scoreDiff !== 0) return scoreDiff;
-
-  const createdDiff = compareDescending(a.createdAt, b.createdAt);
-  if (createdDiff !== 0) return createdDiff;
-
-  return compareDescending(a.id, b.id);
+  return comparePropertyRanking(a, b, sortBy);
 }
 
 function buildPersonalizedCursor(item, sortBy) {
@@ -498,13 +550,34 @@ function stripRankingMeta(items) {
   return items.map(({ _recScore, ...rest }) => rest);
 }
 
-async function fetchScoreDrivenPage({ user, supabase, adminSb, page, pageSize, sortBy, cursor, filters, missingProfile, acceptedPrivateIds }) {
+async function fetchScoreDrivenPage({ user, supabase, adminSb, page, pageSize, sortBy, cursor, filters, missingProfile, acceptedPrivateIds, seekerContext }) {
+  if (!cursor && page === 1 && !hasActivePropertyFilters(filters)) {
+    const precomputed = await fetchPrecomputedScoreDrivenPage({
+      user,
+      supabase,
+      adminSb,
+      pageSize,
+      sortBy,
+      missingProfile,
+      acceptedPrivateIds,
+      seekerContext,
+    });
+
+    if (precomputed) {
+      return precomputed;
+    }
+  }
+
   const acceptedPrivateIdSet = new Set(acceptedPrivateIds || []);
   const seenIds = new Set();
   const collected = [];
   const now = new Date();
   const BATCH = 120;
-  const MAX_SCORE_SCAN = 5000;
+  const MAX_SCORE_SCAN = 2400;
+  const targetCandidateCount = Math.min(
+    Math.max(pageSize * (sortBy === 'recommended' ? 8 : 4), pageSize + 1),
+    160
+  );
   let scoreOffset = 0;
   let exhaustedScores = false;
 
@@ -525,11 +598,7 @@ async function fetchScoreDrivenPage({ user, supabase, adminSb, page, pageSize, s
     const ids = scoreRows.map(r => r.property_id);
     let query = adminSb
       .from('properties')
-      .select(`
-        *,
-        property_media (id, url, media_type, display_order, is_primary),
-        users!listed_by_user_id (id, full_name, profile_picture)
-      `)
+      .select(PROPERTY_LIST_SELECT)
       .in('id', ids)
       .eq('is_active', true)
       .eq('approval_status', 'approved');
@@ -550,15 +619,20 @@ async function fetchScoreDrivenPage({ user, supabase, adminSb, page, pageSize, s
       if (!prop || seenIds.has(prop.id)) continue;
 
       // Private eligibility: accept if score>=70 OR accepted interest OR owner
-      const isPrivate = prop.privacy_setting === 'private';
+      const isPrivate = isPrivateListing(prop);
       const isOwner = prop.listed_by_user_id === user.id;
       const isAccepted = acceptedPrivateIdSet.has(prop.id)
         || interests.some(i => i.property_id === prop.id && i.status === 'accepted');
-      if (isPrivate && !isOwner && !isAccepted && (typeof row.score !== 'number' || row.score < 70)) {
+      if (!canSeePrivateListing({
+        isPrivate,
+        isOwner,
+        hasAcceptedInterest: isAccepted,
+        matchScore: row.score,
+      })) {
         continue;
       }
 
-      const transformed = transformProperty(prop, interests, { [prop.id]: row.score }, user, missingProfile, supabase);
+      const transformed = transformProperty(prop, interests, { [prop.id]: row.score }, user, missingProfile, supabase, seekerContext);
       if (sortBy === 'recommended') {
         transformed._recScore = computeRecommendedScore(transformed, now);
       }
@@ -567,14 +641,23 @@ async function fetchScoreDrivenPage({ user, supabase, adminSb, page, pageSize, s
       seenIds.add(prop.id);
     }
 
+    const rankedPreview = [...collected].sort((a, b) => compareRankedItems(a, b, sortBy));
+    const filteredPreview = cursor
+      ? rankedPreview.filter(item => isRankedAfterCursor(item, cursor, sortBy))
+      : rankedPreview;
+
+    if (filteredPreview.length > pageSize && collected.length >= targetCandidateCount) {
+      break;
+    }
+
     scoreOffset += BATCH;
     if (scoreRows.length < BATCH) exhaustedScores = true;
   }
 
   // Backfill with otherwise-visible listings so public properties stay visible
   // even when a user's compatibility rows are incomplete.
-  const fallbackLimit = Math.min(Math.max(pageSize * 8, 80), 240);
-  if (collected.length < fallbackLimit) {
+  const fallbackLimit = Math.min(Math.max(targetCandidateCount, pageSize * 4), 160);
+  if (collected.length < targetCandidateCount) {
     const fallbackQuery = applyPropertyFilters(
       buildVisiblePropertiesQuery(adminSb, user, []),
       filters
@@ -591,7 +674,7 @@ async function fetchScoreDrivenPage({ user, supabase, adminSb, page, pageSize, s
       const missingIds = missingProps.map(prop => prop.id);
       const { interests, scoreMap } = await fetchPerPageUserContext(supabase, user, missingIds);
       for (const prop of missingProps) {
-        const transformed = transformProperty(prop, interests, scoreMap, user, missingProfile, supabase);
+        const transformed = transformProperty(prop, interests, scoreMap, user, missingProfile, supabase, seekerContext);
         if (sortBy === 'recommended') {
           transformed._recScore = computeRecommendedScore(transformed, now);
         }
@@ -619,6 +702,74 @@ async function fetchScoreDrivenPage({ user, supabase, adminSb, page, pageSize, s
   };
 }
 
+async function fetchPrecomputedScoreDrivenPage({ user, supabase, adminSb, pageSize, sortBy, missingProfile, acceptedPrivateIds, seekerContext }) {
+  const ids = await getPrecomputedPropertyIds(user.id, sortBy, 1, pageSize + 1);
+  if (!ids.length) return null;
+
+  const { data: props, error: propsError } = await adminSb
+    .from('properties')
+    .select(PROPERTY_LIST_SELECT)
+    .in('id', ids)
+    .eq('is_active', true)
+    .eq('approval_status', 'approved');
+
+  if (propsError) throw propsError;
+  if (!props?.length) return null;
+
+  const propMap = new Map(props.map((prop) => [prop.id, prop]));
+  const orderedProps = ids.map((id) => propMap.get(id)).filter(Boolean);
+  const visibleIds = orderedProps.map((prop) => prop.id);
+  const [{ interests, scoreMap }] = await Promise.all([
+    fetchPerPageUserContext(supabase, user, visibleIds),
+  ]);
+  const acceptedPrivateIdSet = new Set(acceptedPrivateIds || []);
+  const now = new Date();
+
+  const transformed = orderedProps
+    .map((prop) => {
+      const score = scoreMap[prop.id] ?? null;
+      const isPrivate = isPrivateListing(prop);
+      const isOwner = prop.listed_by_user_id === user.id;
+      const isAccepted = acceptedPrivateIdSet.has(prop.id)
+        || interests.some((interest) => interest.property_id === prop.id && interest.status === 'accepted');
+
+      if (!canSeePrivateListing({
+        isPrivate,
+        isOwner,
+        hasAcceptedInterest: isAccepted,
+        matchScore: score,
+      })) {
+        return null;
+      }
+
+      const item = transformProperty(prop, interests, scoreMap, user, missingProfile, supabase, seekerContext);
+      if (sortBy === 'recommended') {
+        item._recScore = computeRecommendedScore(item, now);
+      }
+      return item;
+    })
+    .filter(Boolean);
+
+  if (transformed.length < pageSize) return null;
+
+  const pageItems = transformed.slice(0, pageSize);
+  const hasMore = transformed.length > pageSize;
+  const nextCursor = hasMore
+    ? encodeCursor(buildPersonalizedCursor(pageItems[pageItems.length - 1], sortBy))
+    : null;
+
+  return {
+    data: stripRankingMeta(pageItems),
+    pagination: {
+      page: 1,
+      pageSize,
+      total: null,
+      hasMore,
+      nextCursor,
+    },
+  };
+}
+
 function parsePropertyFilters(searchParams) {
   return {
     priceRange: searchParams.get('priceRange'),
@@ -630,8 +781,8 @@ function parsePropertyFilters(searchParams) {
     amenities: searchParams.get('amenities')?.split(',').filter(Boolean),
     minBedrooms: parseInt(searchParams.get('minBedrooms')),
     minBathrooms: parseInt(searchParams.get('minBathrooms')),
-    location: sanitizeOrTerm(searchParams.get('location')),
-    search: sanitizeOrTerm(searchParams.get('search')),
+    location: normalizeTextFilter(searchParams.get('location')),
+    search: normalizeTextFilter(searchParams.get('search')),
     moveInDate: searchParams.get('moveInDate'),
     roomType: searchParams.get('roomType'),
     houseRules: searchParams.get('houseRules')?.split(',').filter(Boolean),
