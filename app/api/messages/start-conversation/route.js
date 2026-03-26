@@ -167,14 +167,16 @@ export async function POST(request) {
     let conversationId = existingConversation?.id;
 
     if (!conversationId) {
-       const { data: createdConversation, error: createError } = await adminSupabase
+      const { data: createdConversation, error: createError } = await adminSupabase
         .from('conversations')
         .insert({
           property_id: propertyId,
           tenant_id: tenantId,
           host_id: hostId,
+          started_by_user_id: user.id,
           last_message: cleanedMessage,
           last_message_at: new Date().toISOString(),
+          last_message_sender_id: user.id,
         })
         .select('id')
         .single();
@@ -187,6 +189,7 @@ export async function POST(request) {
         .update({
           last_message: cleanedMessage,
           last_message_at: new Date().toISOString(),
+          last_message_sender_id: user.id,
         })
         .eq('id', conversationId);
     }

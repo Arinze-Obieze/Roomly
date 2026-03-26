@@ -267,7 +267,7 @@ export default function HostProfilePage() {
                     <div className="text-xs font-sans text-navy-500">Listings</div>
                   </div>
                   <div className="text-center p-3 bg-navy-50 rounded-xl border border-navy-200">
-                    <div className="text-xl font-heading font-bold text-teal-600">{listings.length > 0 ? 'Active' : '—'}</div>
+                    <div className="text-base lg:text-xl font-heading font-bold text-teal-600">{listings.length > 0 ? 'Active' : '—'}</div>
                     <div className="text-xs font-sans text-navy-500">Status</div>
                   </div>
                 </div>

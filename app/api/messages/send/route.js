@@ -95,6 +95,7 @@ export async function POST(request) {
       .update({
         last_message: cleanedContent || fallbackLastMessage,
         last_message_at: message.created_at,
+        last_message_sender_id: user.id,
       })
       .eq('id', conversationId);
 

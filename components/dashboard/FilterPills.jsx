@@ -283,7 +283,7 @@ export default function FilterPills({ onOpenFilters }) {
                     <div className="flex-1">
                       <label className="text-[10px] font-bold text-navy-500 uppercase mb-1">Min</label>
                       <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-navy-400 text-xs">€</span>
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-navy-400 text-xs">€</span>
                         <input 
                           type="number"
                           value={priceRange[0] === 0 ? '' : priceRange[0]}
@@ -298,7 +298,7 @@ export default function FilterPills({ onOpenFilters }) {
                     <div className="flex-1">
                       <label className="text-[10px] font-bold text-navy-500 uppercase mb-1">Max</label>
                       <div className="relative">
-                        <span className="absolute left-3 top-2.5 text-navy-400 text-xs">€</span>
+                        <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-navy-400 text-xs">€</span>
                         <input 
                           type="number"
                           value={priceRange[1] === 0 ? '' : priceRange[1]}

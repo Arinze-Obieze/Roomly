@@ -6,8 +6,8 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
       
       {/* Date & Min Stay */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="min-w-0">
             <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
               Available From
               <span className="ml-2 text-xs font-sans font-medium text-terracotta-600">(Required)</span>
@@ -36,7 +36,7 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
             </div>
         </div>
 
-        <div>
+        <div className="min-w-0">
            <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
              Minimum Stay
              <span className="ml-2 text-xs font-sans font-medium text-navy-500">(Optional)</span>
