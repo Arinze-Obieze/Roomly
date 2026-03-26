@@ -342,19 +342,6 @@ export const ListingCard = memo(function ListingCard({ data, onSelect }) {
             </div>
         )}
 
-        {!isOwner && user && data.matchScore != null && data.matchConfidenceState && data.matchConfidenceState !== 'high' && (
-          <div className="absolute bottom-14 left-3 z-10">
-            <div className={`backdrop-blur-md px-2.5 py-1 rounded-full text-[10px] font-bold border ${
-              data.matchConfidenceState === 'low'
-                ? 'bg-amber-50/95 text-amber-800 border-amber-200'
-                : 'bg-white/95 text-navy-600 border-navy-200'
-            }`}>
-              {data.matchConfidenceLabel || 'Limited data'}
-            </div>
-          </div>
-        )}
-
-
         {/* Action Buttons */}
         <div className="absolute top-3 right-3 flex flex-col gap-2 z-30">
             {!data.isBlurry && (

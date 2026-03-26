@@ -28,12 +28,19 @@ export const ChatList = ({ activeTab, onTabChange, showArchived, setShowArchived
   // Derive all views from the single source of truth (allConversations)
   // so tab switching never hits a stale pre-filtered list from context
   const isArchived = (c) => (c.archived_by ?? []).includes(user?.id);
+  const isSentConversation = (conversation) => {
+    if (conversation?.started_by_user_id) {
+      return conversation.started_by_user_id === user?.id;
+    }
+
+    return conversation?.tenant_id === user?.id;
+  };
 
   const receivedConversations = (allConversations ?? []).filter(c =>
-    c.host_id === user?.id && !isArchived(c)
+    !isSentConversation(c) && !isArchived(c)
   );
   const sentConversations = (allConversations ?? []).filter(c =>
-    c.tenant_id === user?.id && !isArchived(c)
+    isSentConversation(c) && !isArchived(c)
   );
   const archivedList = (allConversations ?? []).filter(isArchived);
 

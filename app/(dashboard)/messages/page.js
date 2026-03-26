@@ -18,6 +18,14 @@ function MessagesPageContent() {
     const { activeConversation, setActiveConversation, allConversations, refreshConversations, fetchConversationById } = useChat();
     const initializedConversationRef = useRef(null);
 
+    const resolveConversationTab = (conversation) => {
+        if (conversation?.started_by_user_id) {
+            return conversation.started_by_user_id === user?.id ? 'sent' : 'received';
+        }
+
+        return conversation?.tenant_id === user?.id ? 'sent' : 'received';
+    };
+
     useEffect(() => {
         const conversationId = searchParams.get('conversationId');
         if (!conversationId) return;
@@ -31,7 +39,7 @@ function MessagesPageContent() {
         if (matchedConversation) {
             initializedConversationRef.current = conversationId;
             setShowArchived(false);
-            setActiveTab(matchedConversation.host_id === user?.id ? 'received' : 'sent');
+            setActiveTab(resolveConversationTab(matchedConversation));
             return;
         }
 
@@ -47,7 +55,7 @@ function MessagesPageContent() {
 
                 initializedConversationRef.current = conversationId;
                 setShowArchived(false);
-                setActiveTab(fetchedConversation.host_id === user?.id ? 'received' : 'sent');
+                setActiveTab(resolveConversationTab(fetchedConversation));
             } catch {
                 if (!cancelled) {
                     refreshConversations?.();

@@ -10,6 +10,41 @@ import { shouldMarkConversationAsRead } from '@/core/utils/dashboard-fetch-guard
 
 const ChatContext = createContext({});
 
+const attachConversationInitiators = async (supabase, conversations = []) => {
+    if (!Array.isArray(conversations) || conversations.length === 0) {
+        return conversations;
+    }
+
+    const conversationIds = conversations
+        .map((conversation) => conversation?.id)
+        .filter(Boolean);
+
+    if (conversationIds.length === 0) {
+        return conversations;
+    }
+
+    const { data: messages, error } = await supabase
+        .from('messages')
+        .select('conversation_id, sender_id, created_at, id')
+        .in('conversation_id', conversationIds)
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
+
+    if (error) throw error;
+
+    const initiatorByConversationId = new Map();
+    for (const message of messages || []) {
+        if (!initiatorByConversationId.has(message.conversation_id)) {
+            initiatorByConversationId.set(message.conversation_id, message.sender_id);
+        }
+    }
+
+    return conversations.map((conversation) => ({
+        ...conversation,
+        started_by_user_id: initiatorByConversationId.get(conversation.id) || null,
+    }));
+};
+
 export const useChat = () => useContext(ChatContext);
 
 export const ChatProvider = ({ children }) => {
@@ -74,8 +109,9 @@ export const ChatProvider = ({ children }) => {
         if (error) throw error;
         if (!data) return null;
 
+        const [conversationWithInitiator] = await attachConversationInitiators(supabase, [data]);
         const normalizedConversation = {
-            ...data,
+            ...conversationWithInitiator,
             unread_count: data.tenant_id === user?.id ? data.unread_count_tenant : data.unread_count_host
         };
 
@@ -112,7 +148,7 @@ export const ChatProvider = ({ children }) => {
             const { data, error } = await q;
 
             if (error) throw error;
-            return data;
+            return attachConversationInitiators(supabase, data || []);
         },
         getNextPageParam: (lastPage, allPages) => {
             if (lastPage.length < 20) return undefined;
