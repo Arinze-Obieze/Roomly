@@ -33,6 +33,24 @@ export default function RoomDetailsPage() {
   const matchBand = property?.matchScore != null ? getMatchBand(property.matchScore) : null;
   const isSaved = property ? isPropertySaved(property.id) : false;
   const [interestLoading, setInterestLoading] = useState(false);
+  const formatLabel = (value) => String(value || '').replaceAll('_', ' ').trim();
+  const billsLabelMap = {
+    box: 'All bills included',
+    some: 'Some bills included',
+    none: 'Bills not included',
+  };
+  const transportOptions = Array.isArray(property?.transport_options) ? property.transport_options.filter(Boolean) : [];
+  const paymentMethods = Array.isArray(property?.payment_methods) ? property.payment_methods.filter(Boolean) : [];
+  const idealFlatmateDescription = typeof property?.partner_description === 'string' ? property.partner_description.trim() : '';
+  const customBills = Array.isArray(property?.custom_bills) ? property.custom_bills.filter((bill) => bill?.name || bill?.amount) : [];
+  const lifestylePriorities = property?.lifestyle_priorities && typeof property.lifestyle_priorities === 'object'
+    ? Object.entries(property.lifestyle_priorities)
+        .filter(([, priority]) => priority && priority !== 'not_important')
+        .map(([key, priority]) => ({
+          label: formatLabel(key),
+          priority: priority === 'must_match' ? 'Must match' : 'Nice to have',
+        }))
+    : [];
 
   const handleShowInterest = async () => {
     if (!user) {
@@ -261,6 +279,111 @@ export default function RoomDetailsPage() {
                      ))}
                    </div>
                 </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5">
+                    <h3 className="text-base font-bold text-slate-900 mb-3">Rental Details</h3>
+                    <dl className="space-y-2 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-slate-500">Bills</dt>
+                        <dd className="font-medium text-slate-900 text-right">{billsLabelMap[property?.bills_option] || formatLabel(property?.bills_option) || 'Not specified'}</dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-slate-500">Minimum Stay</dt>
+                        <dd className="font-medium text-slate-900 text-right">{property?.min_stay_months ? `${property.min_stay_months} months` : 'Not specified'}</dd>
+                      </div>
+                      {property?.rental_type === 'fixed' && property?.fixed_term_duration && (
+                        <div className="flex justify-between gap-4">
+                          <dt className="text-slate-500">Fixed Term</dt>
+                          <dd className="font-medium text-slate-900 text-right">{property.fixed_term_duration} months</dd>
+                        </div>
+                      )}
+                      {paymentMethods.length > 0 && (
+                        <div className="flex justify-between gap-4">
+                          <dt className="text-slate-500">Payment</dt>
+                          <dd className="font-medium text-slate-900 text-right">{paymentMethods.map(formatLabel).join(', ')}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+
+                  <div className="bg-white border border-slate-200 rounded-2xl p-5">
+                    <h3 className="text-base font-bold text-slate-900 mb-3">Household Preferences</h3>
+                    <dl className="space-y-2 text-sm">
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-slate-500">Gender</dt>
+                        <dd className="font-medium text-slate-900 text-right">{formatLabel(property?.gender_preference) || 'Any'}</dd>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <dt className="text-slate-500">Occupation</dt>
+                        <dd className="font-medium text-slate-900 text-right">{formatLabel(property?.occupation_preference) || 'Any'}</dd>
+                      </div>
+                      {property?.age_min != null && property?.age_max != null && (
+                        <div className="flex justify-between gap-4">
+                          <dt className="text-slate-500">Age Range</dt>
+                          <dd className="font-medium text-slate-900 text-right">{property.age_min} - {property.age_max}</dd>
+                        </div>
+                      )}
+                      {property?.listed_by_role && (
+                        <div className="flex justify-between gap-4">
+                          <dt className="text-slate-500">Listed By</dt>
+                          <dd className="font-medium text-slate-900 text-right">{formatLabel(property.listed_by_role)}</dd>
+                        </div>
+                      )}
+                    </dl>
+                  </div>
+                </div>
+
+                {(transportOptions.length > 0 || customBills.length > 0 || idealFlatmateDescription || lifestylePriorities.length > 0) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {transportOptions.length > 0 && (
+                      <div className="bg-white border border-slate-200 rounded-2xl p-5">
+                        <h3 className="text-base font-bold text-slate-900 mb-3">Nearby Transport</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {transportOptions.map((option) => (
+                            <span key={option} className="px-3 py-1.5 rounded-full bg-slate-50 text-slate-700 border border-slate-200 text-xs font-medium">
+                              {formatLabel(option)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {customBills.length > 0 && (
+                      <div className="bg-white border border-slate-200 rounded-2xl p-5">
+                        <h3 className="text-base font-bold text-slate-900 mb-3">Estimated Bills</h3>
+                        <ul className="space-y-2 text-sm">
+                          {customBills.map((bill, index) => (
+                            <li key={`${bill.name || 'bill'}-${index}`} className="flex justify-between gap-4 text-slate-700">
+                              <span>{bill.name || 'Other'}</span>
+                              <span className="font-medium">{bill.amount ? `€${bill.amount}` : 'Varies'}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {idealFlatmateDescription && (
+                      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:col-span-2">
+                        <h3 className="text-base font-bold text-slate-900 mb-3">Ideal Flatmate</h3>
+                        <p className="text-sm text-slate-700 whitespace-pre-line">{idealFlatmateDescription}</p>
+                      </div>
+                    )}
+
+                    {lifestylePriorities.length > 0 && (
+                      <div className="bg-white border border-slate-200 rounded-2xl p-5 sm:col-span-2">
+                        <h3 className="text-base font-bold text-slate-900 mb-3">Lifestyle Priorities</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {lifestylePriorities.map((item) => (
+                            <span key={`${item.label}-${item.priority}`} className="px-3 py-1.5 rounded-full bg-teal-50 text-teal-800 border border-teal-100 text-xs font-medium">
+                              {item.label}: {item.priority}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {/* Compatibility Section - Gated */}
                 <div className="bg-white border border-slate-200 rounded-2xl p-6">

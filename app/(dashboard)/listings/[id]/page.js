@@ -36,6 +36,24 @@ export default function PropertyDetailsPage() {
 
   // Check if current user is the host
   const isOwner = user?.id === property?.host?.id;
+  const formatLabel = (value) => String(value || '').replaceAll('_', ' ').trim();
+  const billsLabelMap = {
+    box: 'All bills included',
+    some: 'Some bills included',
+    none: 'Bills not included',
+  };
+  const transportOptions = Array.isArray(property?.transport_options) ? property.transport_options.filter(Boolean) : [];
+  const paymentMethods = Array.isArray(property?.payment_methods) ? property.payment_methods.filter(Boolean) : [];
+  const idealFlatmateDescription = typeof property?.partner_description === 'string' ? property.partner_description.trim() : '';
+  const customBills = Array.isArray(property?.custom_bills) ? property.custom_bills.filter((bill) => bill?.name || bill?.amount) : [];
+  const lifestylePriorities = property?.lifestyle_priorities && typeof property.lifestyle_priorities === 'object'
+    ? Object.entries(property.lifestyle_priorities)
+        .filter(([, priority]) => priority && priority !== 'not_important')
+        .map(([key, priority]) => ({
+          label: formatLabel(key),
+          priority: priority === 'must_match' ? 'Must match' : 'Nice to have',
+        }))
+    : [];
 
   const handleContactHost = async () => {
     if (!user) {
@@ -250,12 +268,24 @@ export default function PropertyDetailsPage() {
                             </div>
                             <div className="flex justify-between">
                                 <dt className="text-navy-500">Bills</dt>
-                                <dd className="font-medium text-navy-950 capitalize">{property.bills_option}</dd>
+                                <dd className="font-medium text-navy-950">{billsLabelMap[property.bills_option] || formatLabel(property.bills_option) || 'Not specified'}</dd>
                             </div>
                              <div className="flex justify-between">
                                 <dt className="text-navy-500">Minimum Stay</dt>
                                 <dd className="font-medium text-navy-950">{property.min_stay_months} months</dd>
                             </div>
+                            {property.rental_type === 'fixed' && property.fixed_term_duration && (
+                              <div className="flex justify-between">
+                                  <dt className="text-navy-500">Fixed Term</dt>
+                                  <dd className="font-medium text-navy-950">{property.fixed_term_duration} months</dd>
+                              </div>
+                            )}
+                            {paymentMethods.length > 0 && (
+                              <div className="flex justify-between gap-4">
+                                  <dt className="text-navy-500 shrink-0">Payment</dt>
+                                  <dd className="font-medium text-navy-950 text-right">{paymentMethods.map(formatLabel).join(', ')}</dd>
+                              </div>
+                            )}
                         </dl>
                     </div>
                     <div className="bg-navy-50 p-4 rounded-xl border border-navy-100">
@@ -277,9 +307,66 @@ export default function PropertyDetailsPage() {
                                 <dt className="text-navy-500">Couples</dt>
                                 <dd className="font-medium text-navy-950">{property.couples_allowed ? 'Allowed' : 'Not Allowed'}</dd>
                             </div>
+                            {property.listed_by_role && (
+                              <div className="flex justify-between gap-4">
+                                  <dt className="text-navy-500">Listed By</dt>
+                                  <dd className="font-medium text-navy-950 text-right">{formatLabel(property.listed_by_role)}</dd>
+                              </div>
+                            )}
                         </dl>
                     </div>
                 </div>
+
+                {(transportOptions.length > 0 || customBills.length > 0 || idealFlatmateDescription || lifestylePriorities.length > 0) && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {transportOptions.length > 0 && (
+                      <div className="bg-white p-4 rounded-xl border border-navy-100">
+                        <h4 className="font-bold text-navy-950 mb-2">Nearby Transport</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {transportOptions.map((option) => (
+                            <span key={option} className="px-3 py-1.5 rounded-full bg-navy-50 text-navy-700 border border-navy-100 text-xs font-medium">
+                              {formatLabel(option)}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {customBills.length > 0 && (
+                      <div className="bg-white p-4 rounded-xl border border-navy-100">
+                        <h4 className="font-bold text-navy-950 mb-2">Estimated Bills</h4>
+                        <ul className="space-y-2 text-sm">
+                          {customBills.map((bill, index) => (
+                            <li key={`${bill.name || 'bill'}-${index}`} className="flex justify-between gap-4 text-navy-700">
+                              <span>{bill.name || 'Other'}</span>
+                              <span className="font-medium">{bill.amount ? `€${bill.amount}` : 'Varies'}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    {idealFlatmateDescription && (
+                      <div className="bg-white p-4 rounded-xl border border-navy-100 sm:col-span-2">
+                        <h4 className="font-bold text-navy-950 mb-2">Ideal Flatmate</h4>
+                        <p className="text-sm text-navy-700 whitespace-pre-line">{idealFlatmateDescription}</p>
+                      </div>
+                    )}
+
+                    {lifestylePriorities.length > 0 && (
+                      <div className="bg-white p-4 rounded-xl border border-navy-100 sm:col-span-2">
+                        <h4 className="font-bold text-navy-950 mb-2">Lifestyle Priorities</h4>
+                        <div className="flex flex-wrap gap-2">
+                          {lifestylePriorities.map((item) => (
+                            <span key={`${item.label}-${item.priority}`} className="px-3 py-1.5 rounded-full bg-teal-50 text-teal-800 border border-teal-100 text-xs font-medium">
+                              {item.label}: {item.priority}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 <div>
                    <h3 className="text-lg font-bold text-navy-950 mb-4">Amenities</h3>
