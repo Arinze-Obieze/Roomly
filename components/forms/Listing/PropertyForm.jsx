@@ -2,7 +2,7 @@ import { MdHome, MdInfoOutline } from 'react-icons/md';
 import SelectionCard from '../SelectionCard';
 import { PROPERTY_CATEGORIES, OFFERING_TYPES } from '@/data/listingOptions';
 
-export default function PropertyForm({ formData, handleChange }) {
+export default function PropertyForm({ formData, handleChange, errors = {} }) {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
       
@@ -15,12 +15,15 @@ export default function PropertyForm({ formData, handleChange }) {
         <select
           value={formData.property_category || ''}
           onChange={(e) => handleChange('property_category', e.target.value)}
-          className="w-full px-4 py-3 rounded-xl border border-navy-200 bg-white focus:ring-2 focus:ring-terracotta-500 outline-none font-sans"
+          className={`w-full px-4 py-3 rounded-xl border bg-white focus:ring-2 focus:ring-terracotta-500 outline-none font-sans ${
+            errors.property_category ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+          }`}
         >
           {PROPERTY_CATEGORIES.map(cat => (
             <option key={cat.value} value={cat.value}>{cat.label}</option>
           ))}
         </select>
+        {errors.property_category && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.property_category}</p>}
       </div>
 
       {/* Offering Type */}
@@ -42,6 +45,7 @@ export default function PropertyForm({ formData, handleChange }) {
             </SelectionCard>
           ))}
         </div>
+        {errors.offering_type && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.offering_type}</p>}
       </div>
 
       {/* Details Grid */}

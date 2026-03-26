@@ -1,7 +1,7 @@
 import { MdCalendarToday, MdOutlineEventAvailable, MdVideoCameraBack, MdLock, MdPublic } from 'react-icons/md';
 import InputField from '../InputField';
 
-export default function AvailabilityForm({ formData, handleChange, handleFileChange, removeFile }) {
+export default function AvailabilityForm({ formData, handleChange, handleFileChange, removeFile, errors = {} }) {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
       
@@ -18,9 +18,12 @@ export default function AvailabilityForm({ formData, handleChange, handleFileCha
                     type="date"
                     value={formData.available_from}
                     onChange={(e) => handleChange('available_from', e.target.value)}
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-navy-200 focus:ring-2 focus:ring-terracotta-500 outline-none font-sans"
+                    className={`w-full pl-11 pr-4 py-3 rounded-xl border focus:ring-2 focus:ring-terracotta-500 outline-none font-sans ${
+                      errors.available_from ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+                    }`}
                 />
             </div>
+            {errors.available_from && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.available_from}</p>}
             <div className="mt-3 flex items-center gap-2">
                  <input 
                     type="checkbox" 

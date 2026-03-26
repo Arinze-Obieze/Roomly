@@ -1,6 +1,8 @@
-import { MdPhoto, MdClose, MdVideoCameraBack } from 'react-icons/md';
+import { MdPhoto, MdClose, MdVideoCameraBack, MdAutoAwesome } from 'react-icons/md';
 
-export default function MediaUpload({ formData, handleFileChange, removeFile }) {
+export default function MediaUpload({ formData, handleFileChange, removeFile, errors = {} }) {
+  const photos = formData.photos || [];
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="text-center mb-8">
@@ -8,7 +10,7 @@ export default function MediaUpload({ formData, handleFileChange, removeFile }) 
           Add photos and videos of your property
         </h2>
         <p className="text-navy-500 font-sans">
-          Great media helps your listing stand out
+          Great media helps your listing stand out and builds trust faster
         </p>
       </div>
 
@@ -19,7 +21,11 @@ export default function MediaUpload({ formData, handleFileChange, removeFile }) 
             Photos <span className="text-xs text-terracotta-600 font-sans">(Required, at least 1, max 10)</span>
           </label>
           <div
-            className="border-2 border-dashed border-terracotta-300 rounded-xl p-8 text-center hover:border-terracotta-500 hover:bg-terracotta-50/50 transition-all cursor-pointer flex flex-col items-center justify-center relative group"
+            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all cursor-pointer flex flex-col items-center justify-center relative group ${
+              errors.photos
+                ? 'border-terracotta-400 bg-terracotta-50/60'
+                : 'border-terracotta-300 hover:border-terracotta-500 hover:bg-terracotta-50/50'
+            }`}
             onClick={() => document.getElementById('photo-upload-input').click()}
             style={{ minHeight: '120px' }}
           >
@@ -32,21 +38,34 @@ export default function MediaUpload({ formData, handleFileChange, removeFile }) 
               accept="image/*"
               multiple
               onChange={e => handleFileChange(e, 'photos')}
-              disabled={(formData.photos || []).length >= 10}
+              disabled={photos.length >= 10}
               className="hidden"
             />
             <span className="block text-xs text-navy-400 mt-3 font-sans">
-              <strong className="text-navy-600">Tip:</strong> For best results, use landscape images with a 4:3 or 3:2 aspect ratio and at least 800px wide.
+              <strong className="text-navy-600">Tip:</strong> You can publish with 1 photo, but listings with 5+ clear photos usually feel more trustworthy and complete.
             </span>
           </div>
+          {errors.photos && <p className="mt-3 text-sm text-terracotta-600 font-sans">{errors.photos}</p>}
+          {!errors.photos && (
+            <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-teal-50 px-3 py-1.5 text-xs font-medium text-teal-700">
+              <MdAutoAwesome size={14} />
+              First photo becomes the cover image seekers see first.
+            </div>
+          )}
           <div className="mt-4 grid grid-cols-2 sm:grid-cols-5 gap-3">
-            {(formData.photos || []).map((file, idx) => (
-              <div key={idx} className="relative group overflow-hidden rounded-lg border-2 border-terracotta-200 hover:border-terracotta-500 transition-all shadow-sm">
+            {photos.map((photo, idx) => (
+              <div key={photo.id || idx} className="relative group overflow-hidden rounded-lg border-2 border-terracotta-200 hover:border-terracotta-500 transition-all shadow-sm bg-navy-50">
                 <img
-                  src={typeof file === 'string' ? file : URL.createObjectURL(file)}
+                  src={photo.url}
                   alt={`Photo ${idx+1}`}
-                  className="w-full h-24 object-cover rounded-lg group-hover:scale-105 transition-transform"
+                  className={`w-full h-24 object-cover rounded-lg transition-transform ${photo.status === 'ready' ? 'group-hover:scale-105' : 'opacity-70 blur-[1px]'}`}
                 />
+                {photo.status !== 'ready' && (
+                  <div className="absolute inset-0 bg-navy-950/45 flex flex-col items-center justify-center text-white">
+                    <div className="w-6 h-6 rounded-full border-2 border-white/40 border-t-white animate-spin mb-2" />
+                    <span className="text-[11px] font-medium">Preparing...</span>
+                  </div>
+                )}
                 <button
                   type="button"
                   onClick={e => { e.stopPropagation(); removeFile('photos', idx); }}

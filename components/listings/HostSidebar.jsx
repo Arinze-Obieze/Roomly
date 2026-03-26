@@ -13,6 +13,13 @@ export default function HostSidebar({
   contactButtonText,
   isPrivate
 }) {
+  const roleLabelMap = {
+    live_in_landlord: 'Live-in Landlord',
+    live_out_landlord: 'Live-out Landlord',
+    current_tenant: 'Current Tenant',
+    agent: 'Agent / Property Manager',
+  };
+
   const isOnline = resolveUserProfileVisibility(host) === 'public' &&
                    host?.show_online_status !== false &&
                    host?.last_seen &&
@@ -65,7 +72,9 @@ export default function HostSidebar({
               <div className="font-bold text-navy-950 flex items-center gap-2">
                 {isOwner ? 'You' : host.name}
               </div>
-              <div className="text-sm text-slate-500">Joined 2024</div>
+              <div className="text-sm text-slate-500">
+                {roleLabelMap[host?.role] || 'Host'}
+              </div>
             </div>
         </div>
 

@@ -122,6 +122,7 @@ export default function RoomDetailsPage() {
                avatar: data.users?.profile_picture,
                verified: data.users?.is_verified,
                id: data.users?.id || data.listed_by_user_id,
+               role: data.listed_by_role || null,
                privacy_setting: data.users?.privacy_setting,
                last_seen: data.users?.last_seen,
                average_response_time_ms: data.users?.average_response_time_ms,

@@ -2,7 +2,7 @@ import { MdPerson } from 'react-icons/md';
 import SelectionCard from '../SelectionCard';
 import { USER_ROLES, RENTAL_TYPES } from '@/data/listingOptions';
 
-export default function BasicsForm({ formData, handleChange }) {
+export default function BasicsForm({ formData, handleChange, errors = {} }) {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
       <div className="space-y-4">
@@ -18,7 +18,9 @@ export default function BasicsForm({ formData, handleChange }) {
             <select
               value={formData.role || ''}
               onChange={(e) => handleChange('role', e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-navy-200 bg-white focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none appearance-none cursor-pointer font-sans"
+              className={`w-full pl-10 pr-4 py-3 rounded-xl border bg-white focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none appearance-none cursor-pointer font-sans ${
+                errors.role ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+              }`}
             >
               <option value="">Select your role</option>
               {USER_ROLES.map(role => (
@@ -26,6 +28,7 @@ export default function BasicsForm({ formData, handleChange }) {
               ))}
             </select>
           </div>
+          {errors.role && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.role}</p>}
         </div>
 
         <div>
@@ -55,12 +58,15 @@ export default function BasicsForm({ formData, handleChange }) {
                <select
                    value={formData.fixed_term_duration || ''}
                    onChange={(e) => handleChange('fixed_term_duration', e.target.value)}
-                   className="w-full px-4 py-3 rounded-xl border border-navy-200 bg-white focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none font-sans"
+                   className={`w-full px-4 py-3 rounded-xl border bg-white focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none font-sans ${
+                     errors.fixed_term_duration ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+                   }`}
                >
                    <option value="">Select duration</option>
                    <option value="6">6 Months</option>
                    <option value="12">12 Months</option>
                </select>
+               {errors.fixed_term_duration && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.fixed_term_duration}</p>}
              </div>
           )}
         </div>
@@ -76,9 +82,12 @@ export default function BasicsForm({ formData, handleChange }) {
               value={formData.title}
               onChange={(e) => handleChange('title', e.target.value)}
               placeholder="e.g., Spacious room in Dublin 2 near LUAS"
-              className="w-full px-4 py-3 rounded-xl border border-navy-200 focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none font-sans placeholder-navy-400"
+              className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none font-sans placeholder-navy-400 ${
+                errors.title ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+              }`}
             />
           </div>
+          {errors.title && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.title}</p>}
         </div>
 
         <div>
@@ -91,8 +100,11 @@ export default function BasicsForm({ formData, handleChange }) {
             onChange={(e) => handleChange('description', e.target.value)}
             placeholder="Describe your property...&#10;• What's the vibe?&#10;• Who are the current flatmates?&#10;• What's nearby?"
             rows={6}
-            className="w-full px-4 py-3 rounded-xl border border-navy-200 focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none resize-none font-sans placeholder-navy-400"
+            className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-terracotta-500 focus:border-terracotta-500 outline-none resize-none font-sans placeholder-navy-400 ${
+              errors.description ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+            }`}
           />
+          {errors.description && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.description}</p>}
         </div>
       </div>
     </div>

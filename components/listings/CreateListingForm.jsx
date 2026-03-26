@@ -4,7 +4,7 @@ import { createClient } from '@/core/utils/supabase/client';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuthContext } from '@/core/contexts/AuthContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import imageCompression from 'browser-image-compression';
 import { 
   MdHome, 
@@ -18,7 +18,8 @@ import {
   MdPool,
   MdFavorite,
   MdCalendarToday,
-  MdBolt
+  MdBolt,
+  MdChecklist
 } from 'react-icons/md';
 
 import Stepper from '../forms/Stepper';
@@ -45,6 +46,14 @@ const STEPS = [
   { id: 8, title: 'Availability', icon: MdCalendarToday },
 ];
 
+const createPhotoItem = ({ file = null, url = '', status = 'ready', originalName = '' }) => ({
+  id: `${status}-${Math.random().toString(36).slice(2, 10)}`,
+  file,
+  url,
+  status,
+  originalName,
+});
+
 export default function CreateListingForm({ onClose, initialData = null }) {
   const router = useRouter();
   const { user } = useAuthContext();
@@ -52,6 +61,8 @@ export default function CreateListingForm({ onClose, initialData = null }) {
   const [furthestStep, setFurthestStep] = useState(initialData ? STEPS.length : 1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [profileIncomplete, setProfileIncomplete] = useState(false);
+  const [validationErrors, setValidationErrors] = useState({});
+  const photoUrlsRef = useRef([]);
   
   const isEditing = !!initialData;
 
@@ -59,7 +70,8 @@ export default function CreateListingForm({ onClose, initialData = null }) {
     if (initialData) {
       return {
         ...initialData,
-        photos: initialData.property_media?.map(m => m.url) || [],
+        role: initialData.listed_by_role || initialData.role || '',
+        photos: initialData.property_media?.map(m => createPhotoItem({ url: m.url, status: 'ready' })) || [],
         videos: [], 
         lifestyle_priorities: initialData.lifestyle_priorities || {},
         deal_breakers: initialData.deal_breakers || [],
@@ -129,91 +141,170 @@ export default function CreateListingForm({ onClose, initialData = null }) {
     checkProfile();
   }, [user]);
 
+  useEffect(() => {
+    photoUrlsRef.current = (formData.photos || [])
+      .map((photo) => photo?.url)
+      .filter((url) => typeof url === 'string' && url.startsWith('blob:'));
+  }, [formData.photos]);
+
+  useEffect(() => {
+    return () => {
+      photoUrlsRef.current.forEach((url) => URL.revokeObjectURL(url));
+    };
+  }, []);
+
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setValidationErrors(prev => {
+      if (!prev[field]) return prev;
+      const next = { ...prev };
+      delete next[field];
+      return next;
+    });
+  };
+
+  const validateStep = (step = currentStep) => {
+    const errors = {};
+
+    if (step === 1) {
+      if (!formData.role) errors.role = 'Select who is listing this property.';
+      if (!formData.title?.trim()) errors.title = 'Add a listing title.';
+      if (!formData.description?.trim()) errors.description = 'Add a short description of the property.';
+      if (formData.rental_type === 'fixed' && !formData.fixed_term_duration) {
+        errors.fixed_term_duration = 'Select the fixed-term duration.';
+      }
+    }
+
+    if (step === 2) {
+      if (!formData.property_category) errors.property_category = 'Select a property category.';
+      if (!formData.offering_type) errors.offering_type = 'Select what is being offered.';
+    }
+
+    if (step === 3) {
+      if (!formData.state) errors.state = 'Select the county.';
+      if (!formData.city?.trim()) errors.city = 'Select or enter the city or town.';
+      if (!formData.street?.trim()) errors.street = 'Enter the property address.';
+    }
+
+    if (step === 4) {
+      if ((formData.photos || []).length === 0) {
+        errors.photos = 'Add at least 1 photo to continue.';
+      } else if ((formData.photos || []).some((photo) => photo?.status === 'preparing')) {
+        errors.photos = 'Please wait for your photos to finish preparing.';
+      }
+    }
+
+    if (step === 5) {
+      if (!formData.price_per_month) errors.price_per_month = 'Enter the monthly rent.';
+      if (!formData.deposit) errors.deposit = 'Enter the security deposit.';
+    }
+
+    if (step === 8 && !formData.available_from) {
+      errors.available_from = 'Select when the property is available from.';
+    }
+
+    return errors;
   };
 
   const handleFileChange = async (e, type) => {
     const files = Array.from(e.target.files);
-    
-    let processedFiles = [];
 
     if (type === 'photos' && files.length > 0) {
-      const toastId = toast.loading('Optimizing images...');
-      try {
-        const options = {
-          maxSizeMB: 0.8,
-          maxWidthOrHeight: 1920,
-          useWebWorker: true,
-        };
-        for (let f of files) {
-          if (f.type.startsWith('image/')) {
-            try {
-              const compressedFile = await imageCompression(f, options);
-              processedFiles.push(compressedFile);
-            } catch (err) {
-              console.error('Compression error:', err);
-              processedFiles.push(f);
-            }
+      const photoFiles = files.filter((file) => file.type.startsWith('image/'));
+      if (photoFiles.length === 0) return;
+
+      const availableSlots = Math.max(0, 10 - (formData.photos || []).length);
+      const selectedFiles = photoFiles.slice(0, availableSlots);
+      if (selectedFiles.length === 0) return;
+
+      const pendingItems = selectedFiles.map((file) =>
+        createPhotoItem({
+          url: URL.createObjectURL(file),
+          status: 'preparing',
+          originalName: file.name,
+        })
+      );
+
+      setFormData((prev) => ({
+        ...prev,
+        photos: [...(prev.photos || []), ...pendingItems],
+      }));
+
+      setValidationErrors(prev => {
+        if (!prev.photos) return prev;
+        const next = { ...prev };
+        delete next.photos;
+        return next;
+      });
+
+      const options = {
+        maxSizeMB: 0.8,
+        maxWidthOrHeight: 1920,
+        useWebWorker: true,
+      };
+
+      await Promise.all(
+        pendingItems.map(async (item, index) => {
+          const originalFile = selectedFiles[index];
+          let preparedFile = originalFile;
+
+          try {
+            preparedFile = await imageCompression(originalFile, options);
+          } catch (err) {
+            console.error('Compression error:', err);
           }
-        }
-        toast.success('Images optimized!', { id: toastId });
-      } catch (error) {
-        toast.dismiss(toastId);
-      }
+
+          setFormData((prev) => ({
+            ...prev,
+            photos: (prev.photos || []).map((photo) =>
+              photo.id === item.id
+                ? { ...photo, file: preparedFile, status: 'ready' }
+                : photo
+            ),
+          }));
+        })
+      );
     } else {
-      processedFiles = files.filter(f => type === 'videos' ? f.type.startsWith('video/') : false);
+      const processedFiles = files.filter(f => type === 'videos' ? f.type.startsWith('video/') : false);
+      setFormData(prev => {
+        const current = prev[type] || [];
+        const max = type === 'photos' ? 10 : 5;
+        const newFiles = [...current, ...processedFiles].slice(0, max);
+        return { ...prev, [type]: newFiles };
+      });
+
+      setValidationErrors(prev => {
+        if (!prev[type]) return prev;
+        const next = { ...prev };
+        delete next[type];
+        return next;
+      });
     }
 
-    setFormData(prev => {
-      const current = prev[type] || [];
-      let max = type === 'photos' ? 10 : 5;
-      let newFiles = [...current, ...processedFiles].slice(0, max);
-      return { ...prev, [type]: newFiles };
-    });
+    e.target.value = '';
   };
 
   const removeFile = (type, idx) => {
     setFormData(prev => {
       const arr = [...prev[type]];
+      const removed = arr[idx];
       arr.splice(idx, 1);
+      if (type === 'photos' && removed?.url?.startsWith('blob:')) {
+        URL.revokeObjectURL(removed.url);
+      }
       return { ...prev, [type]: arr };
     });
   };
 
   const handleNext = () => {
-    // Validation Logic
-    if (currentStep === 1) { // Basics
-        if (!formData.role || !formData.title || !formData.description) {
-            toast.error('Please fill in all basic details');
-            return;
-        }
-    }
-    if (currentStep === 2) { // Property
-        if (!formData.property_category || !formData.offering_type) {
-             toast.error('Please select property and offering types');
-             return;
-        }
-    }
-    if (currentStep === 3) { // Location
-        if (!formData.state || !formData.city || !formData.street) {
-             toast.error('Please provide a full address');
-             return;
-        }
-    }
-    if (currentStep === 4) { // Media
-        if (formData.photos.length === 0) {
-             toast.error('At least 1 photo is required');
-             return;
-        }
-    }
-    if (currentStep === 5) { // Financials
-        if (!formData.price_per_month || !formData.deposit) {
-             toast.error('Please set rent and deposit');
-             return;
-        }
+    const errors = validateStep(currentStep);
+    if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        toast.error('Please fix the highlighted fields before continuing.');
+        return;
     }
 
+    setValidationErrors({});
     setCurrentStep(prev => {
       const nextStep = Math.min(prev + 1, STEPS.length);
       setFurthestStep(f => Math.max(f, nextStep));
@@ -232,11 +323,24 @@ export default function CreateListingForm({ onClose, initialData = null }) {
   };
 
   const handleSubmit = async () => {
-    if (!formData.available_from) {
-        toast.error('Please select an availability date');
+    const errors = validateStep(8);
+    if (Object.keys(errors).length > 0) {
+        setValidationErrors(errors);
+        toast.error('Please fix the highlighted fields before publishing.');
         return;
     }
 
+    if ((formData.photos || []).some((photo) => photo?.status === 'preparing')) {
+        setValidationErrors((prev) => ({
+          ...prev,
+          photos: 'Please wait for your photos to finish preparing before publishing.',
+        }));
+        toast.error('Please wait for your photos to finish preparing.');
+        setCurrentStep(4);
+        return;
+    }
+
+    setValidationErrors({});
     setIsSubmitting(true);
     try {
         const payload = new FormData();
@@ -256,10 +360,10 @@ export default function CreateListingForm({ onClose, initialData = null }) {
         });
 
         formData.photos.forEach(photo => {
-             if (photo instanceof Blob) {
-                 payload.append('new_photos[]', photo);
-             } else {
-                 payload.append('existing_photos[]', photo);
+             if (photo?.file instanceof Blob) {
+                 payload.append('new_photos[]', photo.file, photo.originalName || photo.file.name || 'photo.jpg');
+             } else if (typeof photo?.url === 'string' && photo.url && !photo.url.startsWith('blob:')) {
+                 payload.append('existing_photos[]', photo.url);
              }
         });
         formData.videos.forEach(video => {
@@ -326,6 +430,20 @@ export default function CreateListingForm({ onClose, initialData = null }) {
             <div className="mb-5 text-xs font-sans text-navy-500 bg-navy-50 border border-navy-200 rounded-xl px-3 py-2">
               Fields marked Required are needed to publish. Optional fields help your listing rank better and can be added anytime.
             </div>
+
+            {Object.keys(validationErrors).length > 0 && (
+                <div className="bg-terracotta-50 border border-terracotta-200 rounded-2xl p-4 mb-6 flex gap-3">
+                    <MdChecklist className="text-terracotta-500 shrink-0" size={22} />
+                    <div>
+                        <h3 className="font-heading font-bold text-navy-950">A few details still need attention</h3>
+                        <ul className="mt-2 space-y-1 text-sm text-navy-700 font-sans">
+                            {Object.values(validationErrors).map((message) => (
+                                <li key={message}>{message}</li>
+                            ))}
+                        </ul>
+                    </div>
+                </div>
+            )}
             
             {profileIncomplete && (
                 <div className="bg-terracotta-50 border border-terracotta-200 rounded-2xl p-4 mb-8 flex gap-3">
@@ -339,14 +457,14 @@ export default function CreateListingForm({ onClose, initialData = null }) {
                 </div>
             )}
 
-            {currentStep === 1 && <BasicsForm formData={formData} handleChange={handleChange} />}
-            {currentStep === 2 && <PropertyForm formData={formData} handleChange={handleChange} />}
-            {currentStep === 3 && <LocationForm formData={formData} handleChange={handleChange} />}
-            {currentStep === 4 && <MediaUpload formData={formData} handleFileChange={handleFileChange} removeFile={removeFile} />}
-            {currentStep === 5 && <FinancialsForm formData={formData} handleChange={handleChange} />}
+            {currentStep === 1 && <BasicsForm formData={formData} handleChange={handleChange} errors={validationErrors} />}
+            {currentStep === 2 && <PropertyForm formData={formData} handleChange={handleChange} errors={validationErrors} />}
+            {currentStep === 3 && <LocationForm formData={formData} handleChange={handleChange} errors={validationErrors} />}
+            {currentStep === 4 && <MediaUpload formData={formData} handleFileChange={handleFileChange} removeFile={removeFile} errors={validationErrors} />}
+            {currentStep === 5 && <FinancialsForm formData={formData} handleChange={handleChange} errors={validationErrors} />}
             {currentStep === 6 && <AmenitiesForm formData={formData} handleChange={handleChange} />}
             {currentStep === 7 && <PreferencesForm formData={formData} handleChange={handleChange} />}
-            {currentStep === 8 && <AvailabilityForm formData={formData} handleChange={handleChange} handleFileChange={handleFileChange} removeFile={removeFile} />}
+            {currentStep === 8 && <AvailabilityForm formData={formData} handleChange={handleChange} handleFileChange={handleFileChange} removeFile={removeFile} errors={validationErrors} />}
 
         </div>
       </div>

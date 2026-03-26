@@ -1,7 +1,7 @@
 import { MdEuro, MdAttachMoney, MdCreditCard, MdGroup, MdPaid, MdAccountBalanceWallet, MdAdd, MdDelete } from 'react-icons/md';
 import { PAYMENT_METHODS } from '@/data/listingOptions';
 
-export default function FinancialsForm({ formData, handleChange }) {
+export default function FinancialsForm({ formData, handleChange, errors = {} }) {
   
   const togglePaymentMethod = (method) => {
     const current = formData.payment_methods || [];
@@ -45,9 +45,12 @@ export default function FinancialsForm({ formData, handleChange }) {
               value={formData.price_per_month}
               onChange={(e) => handleChange('price_per_month', e.target.value)}
               placeholder="1000"
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-navy-200 focus:ring-2 focus:ring-terracotta-500 outline-none font-sans placeholder-navy-400"
+              className={`w-full pl-11 pr-4 py-3 rounded-xl border focus:ring-2 focus:ring-terracotta-500 outline-none font-sans placeholder-navy-400 ${
+                errors.price_per_month ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+              }`}
             />
           </div>
+          {errors.price_per_month && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.price_per_month}</p>}
           <input
             type="range"
             min="100"
@@ -71,9 +74,12 @@ export default function FinancialsForm({ formData, handleChange }) {
               value={formData.deposit}
               onChange={(e) => handleChange('deposit', e.target.value)}
               placeholder="1000"
-              className="w-full pl-11 pr-4 py-3 rounded-xl border border-navy-200 focus:ring-2 focus:ring-terracotta-500 outline-none font-sans placeholder-navy-400"
+              className={`w-full pl-11 pr-4 py-3 rounded-xl border focus:ring-2 focus:ring-terracotta-500 outline-none font-sans placeholder-navy-400 ${
+                errors.deposit ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+              }`}
             />
           </div>
+          {errors.deposit && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.deposit}</p>}
         </div>
       </div>
 

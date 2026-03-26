@@ -319,6 +319,7 @@ export async function PUT(request, { params }) {
       updates = {
         title: formData.get('title'),
         description: formData.get('description'),
+        listed_by_role: formData.get('role') !== null ? (formData.get('role') || 'live_out_landlord') : undefined,
         property_type: propertyType,
         price_per_month: formData.get('price_per_month') ? Number(formData.get('price_per_month')) : undefined,
         state: formData.get('state'),

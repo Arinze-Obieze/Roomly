@@ -201,6 +201,7 @@ export async function handleCreateProperty(req) {
     const propertyData = {
       title: form.get('title'),
       description: form.get('description'),
+      listed_by_role: form.get('role') || 'live_out_landlord',
       rental_type: form.get('rental_type') || 'monthly',
       fixed_term_duration: readNumber(form, 'fixed_term_duration'),
       property_type: propertyType,

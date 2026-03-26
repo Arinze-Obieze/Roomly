@@ -117,6 +117,7 @@ export default function PropertyDetailsPage() {
               name: data.users?.full_name || 'Unknown Host',
               avatar: data.users?.profile_picture,
               id: data.users?.id,
+              role: data.listed_by_role || null,
               privacy_setting: data.users?.privacy_setting,
               last_seen: data.users?.last_seen,
               average_response_time_ms: data.users?.average_response_time_ms,

@@ -3,7 +3,7 @@ import { MdLocationOn, MdSearch, MdTrain, MdDirectionsBus, MdTranslate } from 'r
 import { COUNTIES, CITIES_TOWNS } from '@/data/locations';
 import { TRANSPORT_OPTIONS } from '@/data/listingOptions';
 
-export default function LocationForm({ formData, handleChange }) {
+export default function LocationForm({ formData, handleChange, errors = {} }) {
   const [showCityDropdown, setShowCityDropdown] = useState(false);
   const [citySearch, setCitySearch] = useState('');
   const cityWrapperRef = useRef(null);
@@ -51,11 +51,14 @@ export default function LocationForm({ formData, handleChange }) {
                  <select
                     value={formData.state || ''}
                     onChange={e => handleChange('state', e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-navy-200 bg-white focus:ring-2 focus:ring-terracotta-500 outline-none font-sans"
+                    className={`w-full px-4 py-3 rounded-xl border bg-white focus:ring-2 focus:ring-terracotta-500 outline-none font-sans ${
+                      errors.state ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+                    }`}
                   >
                     <option value="">Select County</option>
                     {COUNTIES.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
+                 {errors.state && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.state}</p>}
             </div>
             <div ref={cityWrapperRef} className="relative">
                 <label className="block text-sm font-heading font-bold text-navy-950 mb-2">
@@ -75,10 +78,13 @@ export default function LocationForm({ formData, handleChange }) {
                           setCitySearch('');
                           setShowCityDropdown(true);
                         }}
-                        className="w-full px-4 py-3 rounded-xl border border-navy-200 focus:ring-2 focus:ring-terracotta-500 outline-none font-sans placeholder-navy-400"
+                        className={`w-full px-4 py-3 rounded-xl border focus:ring-2 focus:ring-terracotta-500 outline-none font-sans placeholder-navy-400 ${
+                          errors.city ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+                        }`}
                     />
                     <MdSearch className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-400 pointer-events-none" size={20} />
                 </div>
+                {errors.city && <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.city}</p>}
                 {showCityDropdown && (
                     <div className="absolute z-10 w-full mt-1 bg-white border border-navy-200 rounded-xl shadow-xl shadow-navy-950/5 max-h-60 overflow-y-auto">
                         {filteredCities.map(city => (
@@ -108,9 +114,16 @@ export default function LocationForm({ formData, handleChange }) {
                     value={formData.street}
                     onChange={e => handleChange('street', e.target.value)}
                     placeholder="Start typing an address..."
-                    className="w-full pl-11 pr-4 py-3 rounded-xl border border-navy-200 focus:ring-2 focus:ring-terracotta-500 outline-none font-sans placeholder-navy-400"
+                    className={`w-full pl-11 pr-4 py-3 rounded-xl border focus:ring-2 focus:ring-terracotta-500 outline-none font-sans placeholder-navy-400 ${
+                      errors.street ? 'border-terracotta-400 bg-terracotta-50/40' : 'border-navy-200'
+                    }`}
                 />
             </div>
+            {errors.street ? (
+              <p className="mt-2 text-sm text-terracotta-600 font-sans">{errors.street}</p>
+            ) : (
+              <p className="mt-2 text-xs text-navy-500 font-sans">This helps us place the listing accurately and give seekers better location context.</p>
+            )}
         </div>
       </div>
 
