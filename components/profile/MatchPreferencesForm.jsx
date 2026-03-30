@@ -5,6 +5,7 @@ import { createClient } from '@/core/utils/supabase/client';
 import { MdSave, MdFilterList, MdAttachMoney, MdEdit, MdCheck, MdLocationOn, MdWork, MdCalendarToday, MdClose } from 'react-icons/md';
 import { CITIES_TOWNS } from '@/data/locations';
 import toast from 'react-hot-toast';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 const MOVE_IN_OPTIONS = [
   { value: 'immediately', label: 'Immediately (< 1 week)' },
@@ -125,7 +126,7 @@ export default function MatchPreferencesForm({ user, onComplete, initialData, ro
       if (onComplete) onComplete();
 
       // Fire-and-forget: recompute compatibility scores in the background
-      fetch('/api/matching/recompute', {
+      fetchWithCsrf('/api/matching/recompute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'seeker' }),

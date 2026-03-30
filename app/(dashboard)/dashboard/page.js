@@ -19,6 +19,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuthContext } from "@/core/contexts/AuthContext";
 import { useFilters } from "@/components/dashboard/filters/useFilters";
 import { MdGroups, MdChat, MdSearch } from "react-icons/md";
+import { fetchWithCsrf } from "@/core/utils/fetchWithCsrf";
 
 export default function HomeDashboard() {
   const router = useRouter();
@@ -118,7 +119,7 @@ export default function HomeDashboard() {
         const { hasScores, missingProfile } = await statusRes.json();
         if (hasScores || missingProfile || cancelled) return;
 
-        await fetch('/api/matching/recompute', {
+        await fetchWithCsrf('/api/matching/recompute', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ mode: 'seeker' }),

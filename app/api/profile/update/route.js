@@ -6,6 +6,7 @@ import { bumpCacheVersion } from '@/core/utils/redis';
 import { getProfileUpdateVersionKeys } from '@/core/services/matching/matching-cache-versions';
 import { normalizeUserPrivacyUpdates } from '@/core/services/users/profile-privacy';
 import { upsertUserMatchingSnapshot } from '@/core/services/matching/features/snapshot.service';
+import { validateCSRFRequest } from '@/core/utils/csrf';
 
 const ALLOWED_FIELDS = [
   'full_name',
@@ -24,6 +25,11 @@ const ALLOWED_FIELDS = [
 
 export async function PATCH(request) {
   try {
+    const csrfValidation = await validateCSRFRequest(request);
+    if (!csrfValidation.valid) {
+      return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

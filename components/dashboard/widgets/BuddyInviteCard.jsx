@@ -1,5 +1,5 @@
 
-import { MdGroupAdd, MdMailOutline } from 'react-icons/md';
+import { MdGroupAdd } from 'react-icons/md';
 
 export default function BuddyInviteCard({ onCreateGroup, onJoinGroup, compact = false }) {
   return (
@@ -33,7 +33,7 @@ export default function BuddyInviteCard({ onCreateGroup, onJoinGroup, compact = 
         </div>
       )}
 
-      <div className={`flex ${compact ? 'flex-col gap-2' : 'flex-col sm:flex-row gap-3'}`}>
+      <div className={`flex flex-col ${compact ? 'gap-2' : 'gap-3'}`}>
         <button 
             onClick={onCreateGroup}
             className={`flex-1 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors flex items-center justify-center gap-2 shadow-lg shadow-slate-900/10 active:scale-[0.98] ${compact ? 'py-2.5 text-sm' : 'py-3'}`}

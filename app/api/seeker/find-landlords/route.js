@@ -8,7 +8,8 @@ import { getMatchConfidenceState } from '@/core/services/matching/presentation/m
 import { buildPeopleMatchReasons } from '@/core/services/matching/presentation/match-explanations';
 import { comparePeopleDiscoveryRanking } from '@/core/services/matching/ranking/shared-order';
 import { computeReciprocalAcceptanceSignal } from '@/core/services/matching/scoring/reciprocal-signal';
-import { getSeekerFindLandlordsShortlistPage } from '@/core/services/matching/precompute/find-people-shortlist';
+import { fetchAllPages, fetchBatchesByIds } from '@/core/services/matching/discovery/query-utils';
+import { getSeekerFindLandlordsShortlistWindow } from '@/core/services/matching/precompute/find-people-shortlist';
 import { propertyMatchConfidence } from '@/lib/matching/propertyMatchScore';
 
 const MAX_LIMIT = 60;
@@ -92,65 +93,81 @@ async function fetchMatchedLandlords({ seekerId, minMatch, limit, page }) {
   if (precomputed) return precomputed;
 
   // 1) Get seeker's compatibility scores for ALL properties
-  const { data: scoreRows, error: scoreError } = await adminSupabase
-    .from('compatibility_scores')
-    .select('property_id, score')
-    .eq('seeker_id', seekerId)
-    .gte('score', minMatch)
-    .order('score', { ascending: false })
-    .limit(500);
-
-  if (scoreError) throw scoreError;
+  const scoreRows = await fetchAllPages((offset, pageSize) =>
+    adminSupabase
+      .from('compatibility_scores')
+      .select('property_id, score')
+      .eq('seeker_id', seekerId)
+      .gte('score', minMatch)
+      .order('score', { ascending: false })
+      .range(offset, offset + pageSize - 1)
+  );
 
   if (!scoreRows || scoreRows.length === 0) {
-    return {
-      canUseFeature: true,
-      minMatch,
-      data: [],
-      pagination: buildPagination({ page, limit, total: 0 }),
-    };
+    const acceptedOnly = await fetchAcceptedLandlordRows({ adminSupabase, seekerId });
+    if (!acceptedOnly.length) {
+      return {
+        canUseFeature: true,
+        minMatch,
+        data: [],
+        pagination: buildPagination({ page, limit, total: 0 }),
+      };
+    }
   }
 
   const propertyIds = scoreRows.map(row => row.property_id);
   const scoreByPropertyId = new Map(scoreRows.map(row => [row.property_id, row.score]));
 
   // 2) Get property details and who listed them
-  const { data: properties, error: propertiesError } = await adminSupabase
-    .from('properties')
-    .select('id, title, listed_by_user_id, offering_type, is_active, approval_status')
-    .in('id', propertyIds)
-    .eq('is_active', true)
-    .eq('approval_status', 'approved');
-
-  if (propertiesError) throw propertiesError;
-
-  const approvedPropertyIds = (properties || []).map((property) => property.id).filter(Boolean);
-  const { data: acceptedInterestRows, error: acceptedInterestsError } = approvedPropertyIds.length > 0
-    ? await adminSupabase
-      .from('property_interests')
-      .select('property_id')
-      .eq('seeker_id', seekerId)
-      .eq('status', 'accepted')
-      .in('property_id', approvedPropertyIds)
-    : { data: [], error: null };
-
-  if (acceptedInterestsError) throw acceptedInterestsError;
-
+  const acceptedInterestRows = await fetchAcceptedLandlordRows({ adminSupabase, seekerId });
   const acceptedPropertyIds = new Set((acceptedInterestRows || []).map((row) => row.property_id).filter(Boolean));
+  const acceptedPropertyRows = acceptedInterestRows
+    .map((row) => Array.isArray(row?.property) ? row.property[0] : row?.property)
+    .filter((property) => property?.id && property?.approval_status === 'approved' && property?.is_active);
+  const allPropertyIds = [...new Set([
+    ...propertyIds,
+    ...acceptedPropertyRows.map((property) => property.id),
+  ])];
+
+  const properties = await fetchBatchesByIds(
+    allPropertyIds,
+    (batch) =>
+      adminSupabase
+        .from('properties')
+        .select('id, title, listed_by_user_id, offering_type, is_active, approval_status')
+        .in('id', batch)
+        .eq('is_active', true)
+        .eq('approval_status', 'approved')
+  );
 
   // Group properties by landlord to find the "best" one per landlord
   const landlordsMap = new Map();
   for (const property of properties) {
     const score = scoreByPropertyId.get(property.id);
     const existing = landlordsMap.get(property.listed_by_user_id);
-    if (!existing || score > existing.score) {
+    if (!existing || Number(score) > Number(existing.score)) {
       landlordsMap.set(property.listed_by_user_id, {
         property_id: property.id,
         property_title: property.title,
         property_offering_type: property.offering_type || null,
-        score,
+        score: Number.isFinite(Number(score)) ? Number(score) : 0,
         isMutualInterest: acceptedPropertyIds.has(property.id),
       });
+    }
+  }
+
+  for (const property of acceptedPropertyRows) {
+    const existing = landlordsMap.get(property.listed_by_user_id);
+    if (!existing) {
+      landlordsMap.set(property.listed_by_user_id, {
+        property_id: property.id,
+        property_title: property.title,
+        property_offering_type: property.offering_type || null,
+        score: 0,
+        isMutualInterest: true,
+      });
+    } else {
+      existing.isMutualInterest = true;
     }
   }
 
@@ -166,23 +183,34 @@ async function fetchMatchedLandlords({ seekerId, minMatch, limit, page }) {
 
   let acceptedPeopleInterestRows = [];
   if (landlordIds.length > 0) {
-    const { data, error: acceptedPeopleInterestError } = await adminSupabase
-      .from('people_interests')
-      .select('initiator_user_id, target_user_id, context_property_id')
-      .eq('status', 'accepted')
-      .or(
-        [
-          `and(initiator_user_id.eq.${seekerId},target_user_id.in.(${landlordIds.join(',')}))`,
-          `and(target_user_id.eq.${seekerId},initiator_user_id.in.(${landlordIds.join(',')}))`,
-        ].join(',')
-      )
-      .limit(1000);
+    const [initiatedRows, receivedRows] = await Promise.all([
+      fetchAllPages((offset, pageSize) =>
+        adminSupabase
+          .from('people_interests')
+          .select('initiator_user_id, target_user_id, context_property_id')
+          .eq('status', 'accepted')
+          .eq('initiator_user_id', seekerId)
+          .range(offset, offset + pageSize - 1)
+      ).catch((error) => {
+        if (isMissingPeopleInterestsRelation(error)) return [];
+        throw error;
+      }),
+      fetchAllPages((offset, pageSize) =>
+        adminSupabase
+          .from('people_interests')
+          .select('initiator_user_id, target_user_id, context_property_id')
+          .eq('status', 'accepted')
+          .eq('target_user_id', seekerId)
+          .range(offset, offset + pageSize - 1)
+      ).catch((error) => {
+        if (isMissingPeopleInterestsRelation(error)) return [];
+        throw error;
+      }),
+    ]);
 
-    if (acceptedPeopleInterestError && !isMissingPeopleInterestsRelation(acceptedPeopleInterestError)) {
-      throw acceptedPeopleInterestError;
-    }
-
-    acceptedPeopleInterestRows = data || [];
+    const landlordIdSet = new Set(landlordIds);
+    acceptedPeopleInterestRows = [...initiatedRows, ...receivedRows]
+      .filter((row) => landlordIdSet.has(row?.initiator_user_id) || landlordIdSet.has(row?.target_user_id));
   }
 
   const acceptedPeopleRevealKeys = new Set(
@@ -198,27 +226,33 @@ async function fetchMatchedLandlords({ seekerId, minMatch, limit, page }) {
   );
 
   // 3) Get landlord profiles
-  const { data: hosts, error: hostsError } = await adminSupabase
-    .from('users')
-    .select('id, full_name, profile_picture, bio, is_verified, privacy_setting, profile_visibility, gender, date_of_birth')
-    .in('id', landlordIds);
-
-  if (hostsError) throw hostsError;
+  const hosts = await fetchBatchesByIds(
+    landlordIds,
+    (batch) =>
+      adminSupabase
+        .from('users')
+        .select('id, full_name, profile_picture, bio, is_verified, privacy_setting, profile_visibility, gender, date_of_birth')
+        .in('id', batch)
+  );
 
   // 4) Get host lifestyles for interests/city
-  const { data: lifestyles, error: lifestylesError } = await adminSupabase
-    .from('user_lifestyles')
-    .select('user_id, current_city, interests, cleanliness_level, overnight_guests, occupation, smoking_status, pets')
-    .in('user_id', landlordIds);
+  const lifestyles = await fetchBatchesByIds(
+    landlordIds,
+    (batch) =>
+      adminSupabase
+        .from('user_lifestyles')
+        .select('user_id, current_city, interests, cleanliness_level, overnight_guests, occupation, smoking_status, pets')
+        .in('user_id', batch)
+  );
 
-  if (lifestylesError) throw lifestylesError;
-
-  const { data: featureRows, error: featureError } = await adminSupabase
-    .from('matching_user_features')
-    .select('user_id, profile_completion_state, has_preferences')
-    .in('user_id', landlordIds);
-
-  if (featureError) throw featureError;
+  const featureRows = await fetchBatchesByIds(
+    landlordIds,
+    (batch) =>
+      adminSupabase
+        .from('matching_user_features')
+        .select('user_id, profile_completion_state, has_preferences')
+        .in('user_id', batch)
+  );
 
   const lifestyleByUserId = new Map((lifestyles || []).map((l) => [l.user_id, l]));
   const featureByUserId = new Map((featureRows || []).map((row) => [row.user_id, row]));
@@ -329,59 +363,107 @@ async function fetchPrecomputedMatchedLandlords({
   limit,
   page,
 }) {
-  const shortlist = await getSeekerFindLandlordsShortlistPage(seekerId, page, limit);
-  if (!shortlist.entries.length) return null;
+  const shortlistEntries = [];
+  const shortlistBatchSize = Math.max(limit * 3, 24);
+  let shortlistOffset = 0;
 
-  const propertyIds = [...new Set(shortlist.entries.map((entry) => entry.propertyId).filter(Boolean))];
-  const landlordIds = [...new Set(shortlist.entries.map((entry) => entry.primaryId).filter(Boolean))];
-  if (!propertyIds.length || !landlordIds.length) return null;
-
-  const [propertiesRes, hostsRes, lifestylesRes, featuresRes, acceptedPeopleRes] = await Promise.all([
-    adminSupabase
-      .from('properties')
-      .select('id, title, listed_by_user_id, offering_type, is_active, approval_status')
-      .in('id', propertyIds)
-      .eq('is_active', true)
-      .eq('approval_status', 'approved'),
-    adminSupabase
-      .from('users')
-      .select('id, full_name, profile_picture, bio, is_verified, privacy_setting, profile_visibility, gender, date_of_birth')
-      .in('id', landlordIds),
-    adminSupabase
-      .from('user_lifestyles')
-      .select('user_id, current_city, interests, cleanliness_level, overnight_guests, occupation, smoking_status, pets')
-      .in('user_id', landlordIds),
-    adminSupabase
-      .from('matching_user_features')
-      .select('user_id, profile_completion_state, has_preferences')
-      .in('user_id', landlordIds),
-    adminSupabase
-      .from('people_interests')
-      .select('initiator_user_id, target_user_id, context_property_id')
-      .eq('status', 'accepted')
-      .or(
-        [
-          `and(initiator_user_id.eq.${seekerId},target_user_id.in.(${landlordIds.join(',')}))`,
-          `and(target_user_id.eq.${seekerId},initiator_user_id.in.(${landlordIds.join(',')}))`,
-        ].join(',')
-      )
-      .limit(1000),
-  ]);
-
-  if (propertiesRes.error) throw propertiesRes.error;
-  if (hostsRes.error) throw hostsRes.error;
-  if (lifestylesRes.error) throw lifestylesRes.error;
-  if (featuresRes.error) throw featuresRes.error;
-  if (acceptedPeopleRes.error && !isMissingPeopleInterestsRelation(acceptedPeopleRes.error)) {
-    throw acceptedPeopleRes.error;
+  while (true) {
+    const shortlistWindow = await getSeekerFindLandlordsShortlistWindow(seekerId, shortlistOffset, shortlistBatchSize);
+    if (!shortlistWindow.entries.length) break;
+    shortlistEntries.push(...shortlistWindow.entries);
+    shortlistOffset += shortlistWindow.entries.length;
+    if (shortlistWindow.entries.length < shortlistBatchSize) break;
   }
 
-  const propertyById = new Map((propertiesRes.data || []).map((property) => [property.id, property]));
-  const hostById = new Map((hostsRes.data || []).map((host) => [host.id, host]));
-  const lifestyleByUserId = new Map((lifestylesRes.data || []).map((row) => [row.user_id, row]));
-  const featureByUserId = new Map((featuresRes.data || []).map((row) => [row.user_id, row]));
+  if (!shortlistEntries.length) return null;
+
+  const propertyIds = [...new Set(shortlistEntries.map((entry) => entry.propertyId).filter(Boolean))];
+  const landlordIds = [...new Set(shortlistEntries.map((entry) => entry.primaryId).filter(Boolean))];
+  if (!propertyIds.length || !landlordIds.length) return null;
+
+  let acceptedPeopleRows = [];
+  let acceptedInterestRows = [];
+  if (landlordIds.length > 0) {
+    const [acceptedPropertyRows, initiatedRows, receivedRows] = await Promise.all([
+      fetchAcceptedLandlordRows({ adminSupabase, seekerId }),
+      fetchAllPages((offset, pageSize) =>
+        adminSupabase
+          .from('people_interests')
+          .select('initiator_user_id, target_user_id, context_property_id')
+          .eq('status', 'accepted')
+          .eq('initiator_user_id', seekerId)
+          .range(offset, offset + pageSize - 1)
+      ).catch((error) => {
+        if (isMissingPeopleInterestsRelation(error)) return [];
+        throw error;
+      }),
+      fetchAllPages((offset, pageSize) =>
+        adminSupabase
+          .from('people_interests')
+          .select('initiator_user_id, target_user_id, context_property_id')
+          .eq('status', 'accepted')
+          .eq('target_user_id', seekerId)
+          .range(offset, offset + pageSize - 1)
+      ).catch((error) => {
+        if (isMissingPeopleInterestsRelation(error)) return [];
+        throw error;
+      }),
+    ]);
+
+    const landlordIdSet = new Set(landlordIds);
+    acceptedInterestRows = acceptedPropertyRows
+      .map((row) => Array.isArray(row?.property) ? row.property[0] : row?.property)
+      .filter((property) => property?.id && property?.approval_status === 'approved' && property?.is_active && landlordIdSet.has(property?.listed_by_user_id));
+    acceptedPeopleRows = [...initiatedRows, ...receivedRows]
+      .filter((row) => landlordIdSet.has(row?.initiator_user_id) || landlordIdSet.has(row?.target_user_id));
+  }
+
+  const [properties, hosts, lifestyles, featureRows] = await Promise.all([
+    fetchBatchesByIds(
+      propertyIds,
+      (batch) =>
+        adminSupabase
+          .from('properties')
+          .select('id, title, listed_by_user_id, offering_type, is_active, approval_status')
+          .in('id', batch)
+          .eq('is_active', true)
+          .eq('approval_status', 'approved')
+    ),
+    fetchBatchesByIds(
+      landlordIds,
+      (batch) =>
+        adminSupabase
+          .from('users')
+          .select('id, full_name, profile_picture, bio, is_verified, privacy_setting, profile_visibility, gender, date_of_birth')
+          .in('id', batch)
+    ),
+    fetchBatchesByIds(
+      landlordIds,
+      (batch) =>
+        adminSupabase
+          .from('user_lifestyles')
+          .select('user_id, current_city, interests, cleanliness_level, overnight_guests, occupation, smoking_status, pets')
+          .in('user_id', batch)
+    ),
+    fetchBatchesByIds(
+      landlordIds,
+      (batch) =>
+        adminSupabase
+          .from('matching_user_features')
+          .select('user_id, profile_completion_state, has_preferences')
+          .in('user_id', batch)
+    ),
+  ]);
+
+  const propertyById = new Map((properties || []).map((property) => [property.id, property]));
+  const hostById = new Map((hosts || []).map((host) => [host.id, host]));
+  const lifestyleByUserId = new Map((lifestyles || []).map((row) => [row.user_id, row]));
+  const featureByUserId = new Map((featureRows || []).map((row) => [row.user_id, row]));
+  const acceptedLandlordIds = new Set(
+    (acceptedInterestRows || []).map((property) => property?.listed_by_user_id).filter(Boolean)
+  );
   const acceptedPeopleRevealKeys = new Set(
-    (acceptedPeopleRes.data || []).flatMap((row) => {
+    acceptedPeopleRows.flatMap((row) => {
       const initiatorId = row?.initiator_user_id;
       const targetId = row?.target_user_id;
       if (!initiatorId || !targetId) return [];
@@ -389,7 +471,7 @@ async function fetchPrecomputedMatchedLandlords({
     })
   );
 
-  const data = shortlist.entries
+  const data = shortlistEntries
     .map((entry) => {
       const host = hostById.get(entry.primaryId);
       const property = propertyById.get(entry.propertyId);
@@ -398,15 +480,16 @@ async function fetchPrecomputedMatchedLandlords({
 
       const lifestyle = lifestyleByUserId.get(host.id);
       const hasAcceptedPeopleReveal = acceptedPeopleRevealKeys.has(`${seekerId}:${host.id}`);
+      const isMutualInterest = entry.accepted || acceptedLandlordIds.has(entry.primaryId);
       const discoveryState = getPeopleDiscoveryState({
         subject: host,
         matchScore: entry.score,
         minMatch,
-        hasMutualReveal: entry.accepted || hasAcceptedPeopleReveal,
+        hasMutualReveal: isMutualInterest || hasAcceptedPeopleReveal,
       });
 
       if (!discoveryState.isVisible) return null;
-      if (entry.score < minMatch && !entry.accepted) return null;
+      if (entry.score < minMatch && !isMutualInterest) return null;
 
       let displayName = host.full_name || 'Host';
       let bio = host.bio || null;
@@ -426,7 +509,7 @@ async function fetchPrecomputedMatchedLandlords({
       );
       const confidenceState = getMatchConfidenceState(matchConfidence);
       const reciprocalSignal = computeReciprocalAcceptanceSignal({
-        hasAcceptedPropertyInterest: entry.accepted,
+        hasAcceptedPropertyInterest: isMutualInterest,
         hasAcceptedPeopleInterest: hasAcceptedPeopleReveal,
       });
       const roundedMatchScore = Math.round(entry.score);
@@ -451,7 +534,7 @@ async function fetchPrecomputedMatchedLandlords({
         role: 'host',
         is_private_profile: discoveryState.isPrivateProfile,
         can_contact_directly: discoveryState.isRevealed,
-        reveal_source: hasAcceptedPeopleReveal ? 'people_interest' : (entry.accepted ? 'property_interest' : null),
+        reveal_source: hasAcceptedPeopleReveal ? 'people_interest' : (isMutualInterest ? 'property_interest' : null),
         reciprocal_signal: reciprocalSignal,
         match_confidence: matchConfidence,
         confidence_score: matchConfidence,
@@ -469,11 +552,17 @@ async function fetchPrecomputedMatchedLandlords({
     .filter(Boolean)
     .sort((a, b) => comparePeopleDiscoveryRanking(a, b));
 
+  const currentPage = data.length > 0
+    ? Math.min(page, Math.ceil(data.length / limit))
+    : DEFAULT_PAGE;
+  const offset = (currentPage - 1) * limit;
+  const paginatedData = data.slice(offset, offset + limit);
+
   return {
     canUseFeature: true,
     minMatch,
-    data,
-    pagination: buildPagination({ page, limit, total: shortlist.total || data.length }),
+    data: paginatedData,
+    pagination: buildPagination({ page: currentPage, limit, total: data.length }),
   };
 }
 
@@ -488,4 +577,18 @@ function buildPagination({ page, limit, total }) {
     hasPreviousPage: page > 1,
     hasNextPage: page < totalPages,
   };
+}
+
+async function fetchAcceptedLandlordRows({ adminSupabase, seekerId }) {
+  return fetchAllPages((offset, pageSize) =>
+    adminSupabase
+      .from('property_interests')
+      .select(`
+        property_id,
+        property:properties!inner(id, title, listed_by_user_id, offering_type, is_active, approval_status)
+      `)
+      .eq('seeker_id', seekerId)
+      .eq('status', 'accepted')
+      .range(offset, offset + pageSize - 1)
+  );
 }

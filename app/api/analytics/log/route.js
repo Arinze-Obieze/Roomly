@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { logFeatureEvent } from '@/core/services/analytics/analytics.service';
 import { validateCSRFRequest } from '@/core/utils/csrf';
-import { assertRateLimit } from '@/core/utils/rate-limit';
+import { assertRateLimit, buildRateLimitHeaders } from '@/core/utils/rate-limit';
 
 /**
  * Authenticated endpoint to log feature events from the client side.
@@ -29,9 +29,17 @@ export async function POST(request) {
     });
 
     if (!rateLimit.allowed) {
+      const headers = buildRateLimitHeaders({ limit: 120, ...rateLimit });
       return NextResponse.json(
-        { error: 'Too many analytics events. Please slow down.' },
-        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+        {
+          error: rateLimit.reason === 'backend_unavailable'
+            ? 'Analytics logging is temporarily unavailable.'
+            : 'Too many analytics events. Please slow down.',
+        },
+        {
+          status: rateLimit.reason === 'backend_unavailable' ? 503 : 429,
+          headers,
+        }
       );
     }
 

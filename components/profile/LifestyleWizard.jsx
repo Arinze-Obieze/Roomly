@@ -8,6 +8,7 @@ import { FaCannabis } from 'react-icons/fa';
 import { CITIES_TOWNS } from '@/data/locations';
 import { PROPERTY_CATEGORIES } from '@/data/listingOptions';
 import toast from 'react-hot-toast';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 const STEPS = [
   { id: 'role', title: 'Why you\'re here' },
@@ -93,7 +94,7 @@ export default function LifestyleWizard({ user, onComplete, initialData }) {
 
       // Fire-and-forget: recompute compatibility scores in the background
       // Does not block the user. DB triggers already deleted stale rows.
-      fetch('/api/matching/recompute', {
+      fetchWithCsrf('/api/matching/recompute', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode: 'seeker' }),

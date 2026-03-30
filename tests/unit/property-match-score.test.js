@@ -139,6 +139,28 @@ describe('property match score', () => {
     expect(richConfidence).toBeGreaterThanOrEqual(80);
   });
 
+  test('does not treat placeholder preference objects as full preference signal', () => {
+    const placeholderConfidence = propertyMatchConfidence(
+      baseProperty,
+      baseLifestyle,
+      { user_id: 'user-1' },
+      {},
+      null,
+      {}
+    );
+
+    const realPreferenceConfidence = propertyMatchConfidence(
+      baseProperty,
+      baseLifestyle,
+      basePrefs,
+      {},
+      null,
+      {}
+    );
+
+    expect(placeholderConfidence).toBeLessThan(realPreferenceConfidence);
+  });
+
   test('rewards closer schedule, social, and noise alignment in shared spaces', () => {
     const alignedScore = propertyMatchScore(
       {

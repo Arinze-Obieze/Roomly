@@ -37,9 +37,15 @@ import {
   getPropertyRecomputeVersionKeys,
   getSeekerRecomputeVersionKeys,
 } from '@/core/services/matching/matching-cache-versions';
+import { validateCSRFRequest } from '@/core/utils/csrf';
 
 export async function POST(request) {
   try {
+    const csrfValidation = await validateCSRFRequest(request);
+    if (!csrfValidation.valid) {
+      return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
+    }
+
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

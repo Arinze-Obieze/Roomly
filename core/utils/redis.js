@@ -16,10 +16,14 @@
 
 const REDIS_URL = process.env.UPSTASH_REDIS_REST_URL;
 const REDIS_TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN;
+let loggedMissingCredentials = false;
 
 export const callRedis = async (command, ...args) => {
   if (!REDIS_URL || !REDIS_TOKEN) {
-    console.log('[Redis] No Upstash credentials configured, caching disabled');
+    if (!loggedMissingCredentials) {
+      loggedMissingCredentials = true;
+      console.warn('[Redis] No Upstash credentials configured, Redis features disabled');
+    }
     return null;
   }
 
@@ -236,20 +240,73 @@ export const getCachedBatch = async (keys) => {
  * Increment counter (for rate limiting)
  */
 export const incrementCounter = async (key, ttlSeconds = 3600) => {
+  if (!REDIS_URL || !REDIS_TOKEN) {
+    return {
+      ok: false,
+      backend: 'unavailable',
+      reason: 'not_configured',
+      count: 0,
+      retryAfter: ttlSeconds,
+    };
+  }
+
   try {
     await checkRedisHealth();
     
-    const count = await callRedis('INCR', key);
-    const ttl = await callRedis('TTL', key);
-    
-    if (ttl === -1) {
-      await callRedis('EXPIRE', key, ttlSeconds.toString());
+    const countResult = await callRedis('INCR', key);
+    if (countResult == null) {
+      return {
+        ok: false,
+        backend: 'unavailable',
+        reason: 'increment_failed',
+        count: 0,
+        retryAfter: ttlSeconds,
+      };
     }
 
-    return count || 0;
+    const parsedCount = Number.parseInt(String(countResult), 10);
+    if (!Number.isFinite(parsedCount) || parsedCount <= 0) {
+      return {
+        ok: false,
+        backend: 'unavailable',
+        reason: 'invalid_counter_value',
+        count: 0,
+        retryAfter: ttlSeconds,
+      };
+    }
+
+    const ttlResult = await callRedis('TTL', key);
+    let ttl = Number.parseInt(String(ttlResult), 10);
+    
+    if (!Number.isFinite(ttl) || ttl < 0) {
+      const expireResult = await callRedis('EXPIRE', key, ttlSeconds.toString());
+      if (expireResult == null) {
+        return {
+          ok: false,
+          backend: 'unavailable',
+          reason: 'expire_failed',
+          count: 0,
+          retryAfter: ttlSeconds,
+        };
+      }
+      ttl = ttlSeconds;
+    }
+
+    return {
+      ok: true,
+      backend: 'redis',
+      count: parsedCount,
+      retryAfter: Math.max(1, ttl),
+    };
   } catch (err) {
     console.error('[Counter Increment] Error:', err.message);
-    return 0;
+    return {
+      ok: false,
+      backend: 'unavailable',
+      reason: 'exception',
+      count: 0,
+      retryAfter: ttlSeconds,
+    };
   }
 };
 

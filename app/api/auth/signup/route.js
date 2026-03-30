@@ -2,7 +2,7 @@ import { AuthService } from '@/core/services/auth.service';
 import { signupSchema } from '@/core/validations/auth.schema';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
-import { assertRateLimit } from '@/core/utils/rate-limit';
+import { assertRateLimit, buildRateLimitHeaders } from '@/core/utils/rate-limit';
 
 export async function POST(req) {
   try {
@@ -12,12 +12,21 @@ export async function POST(req) {
       limit: 10,
       windowSeconds: 60 * 60,
       scope: 'ip',
+      fallbackMode: 'deny',
     });
 
     if (!rateLimit.allowed) {
+      const headers = buildRateLimitHeaders({ limit: 10, ...rateLimit });
       return NextResponse.json(
-        { error: 'Too many signup attempts from this IP. Please try again later.' },
-        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+        {
+          error: rateLimit.reason === 'backend_unavailable'
+            ? 'Signup is temporarily unavailable. Please try again shortly.'
+            : 'Too many signup attempts from this IP. Please try again later.',
+        },
+        {
+          status: rateLimit.reason === 'backend_unavailable' ? 503 : 429,
+          headers,
+        }
       );
     }
 

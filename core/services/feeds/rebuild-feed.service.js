@@ -3,6 +3,15 @@ import { computeRecommendedScore } from '@/core/services/matching/scoring/recomm
 import { canIncludePropertyInSeekerFeed } from '@/core/services/feeds/feed-eligibility';
 import { comparePropertyRanking } from '@/core/services/matching/ranking/shared-order';
 
+function computeStableFeedScore(primaryScore, propertyId, createdAt) {
+  const timestamp = Date.parse(createdAt || '') || 0;
+  const normalizedTime = timestamp / 1e15;
+  const idTail = String(propertyId || '')
+    .split('')
+    .reduce((acc, char) => ((acc * 33) + char.charCodeAt(0)) % 100000, 0) / 1e10;
+  return Number(primaryScore || 0) + normalizedTime + idTail;
+}
+
 // Diversity logic: 
 // 1. Prevent dominator hosts (max 2 consecutive from same host)
 // 2. We apply a slight penalty to repeated hosts and cities to spread them out.
@@ -62,6 +71,9 @@ function applyDiversityRanking(scoredItems) {
 export async function rebuildFeedsForSeeker(userId, supabase) {
   if (!userId) return false;
 
+  const recKey = `feed:recommended:${userId}`;
+  const matchKey = `feed:match:${userId}`;
+
   // 1. Fetch scores > 50 + accepted interests so background feeds respect
   // the same visibility rules as live listing discovery.
   const [scoresRes, acceptedInterestsRes] = await Promise.all([
@@ -98,6 +110,8 @@ export async function rebuildFeedsForSeeker(userId, supabase) {
 
   if (error || !scores || scores.length === 0) {
     if (error) console.error('[rebuildFeeds] DB Error:', error);
+    await callRedis('DEL', recKey);
+    await callRedis('DEL', matchKey);
     return false;
   }
 
@@ -114,6 +128,8 @@ export async function rebuildFeedsForSeeker(userId, supabase) {
   });
 
   if (validItems.length === 0) {
+    await callRedis('DEL', recKey);
+    await callRedis('DEL', matchKey);
     return false;
   }
 
@@ -139,9 +155,6 @@ export async function rebuildFeedsForSeeker(userId, supabase) {
 
   // 3. Push to Redis using raw commands
   try {
-    const recKey = `feed:recommended:${userId}`;
-    const matchKey = `feed:match:${userId}`;
-
     // Clear old feeds
     await callRedis('DEL', recKey);
     await callRedis('DEL', matchKey);
@@ -150,7 +163,10 @@ export async function rebuildFeedsForSeeker(userId, supabase) {
     if (diversifiedRec.length > 0) {
       const recArgs = [];
       for (const item of diversifiedRec) {
-        recArgs.push(item.finalScore.toString(), item.propertyId);
+        recArgs.push(
+          computeStableFeedScore(item.finalScore, item.propertyId, item.property?.created_at).toString(),
+          item.propertyId
+        );
       }
       await callRedis('ZADD', recKey, ...recArgs);
       await callRedis('EXPIRE', recKey, '1800'); // 30 min TTL
@@ -160,7 +176,10 @@ export async function rebuildFeedsForSeeker(userId, supabase) {
     if (scoredItems.length > 0) {
       const matchArgs = [];
       for (const item of scoredItems) {
-        matchArgs.push(item.matchScore.toString(), item.propertyId);
+        matchArgs.push(
+          computeStableFeedScore(item.matchScore, item.propertyId, item.property?.created_at).toString(),
+          item.propertyId
+        );
       }
       await callRedis('ZADD', matchKey, ...matchArgs);
       await callRedis('EXPIRE', matchKey, '1800'); // 30 min TTL

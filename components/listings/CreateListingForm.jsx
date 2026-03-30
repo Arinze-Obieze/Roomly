@@ -1,6 +1,7 @@
 'use client';
 
 import { createClient } from '@/core/utils/supabase/client';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { useAuthContext } from '@/core/contexts/AuthContext';
@@ -373,7 +374,7 @@ export default function CreateListingForm({ onClose, initialData = null }) {
         const url = isEditing ? `/api/properties/${initialData.id}` : '/api/properties/create';
         const method = isEditing ? 'PUT' : 'POST';
 
-        const res = await fetch(url, { method, body: payload });
+        const res = await fetchWithCsrf(url, { method, body: payload });
         
         if (!res.ok) {
             const err = await res.json();

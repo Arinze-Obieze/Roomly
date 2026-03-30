@@ -20,6 +20,7 @@ import { getMatchConfidenceState } from '@/core/services/matching/presentation/m
 import { buildPropertyMatchReasons } from '@/core/services/matching/presentation/match-explanations';
 import { propertyMatchConfidence } from '@/lib/matching/propertyMatchScore';
 import { buildPropertyDetailCacheKey } from '@/core/services/properties/property-detail-cache';
+import { validateCSRFRequest } from '@/core/utils/csrf';
 
 const parseJsonArray = (value) => {
   if (!value) return [];
@@ -286,6 +287,11 @@ async function fetchPropertyFromDB(supabase, adminSb, id, user) {
 
 export async function PUT(request, { params }) {
   try {
+    const csrfValidation = await validateCSRFRequest(request);
+    if (!csrfValidation.valid) {
+      return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
+    }
+
     const supabase = await createClient();
     const { id } = await params;
 
@@ -585,6 +591,11 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
   try {
+    const csrfValidation = await validateCSRFRequest(request);
+    if (!csrfValidation.valid) {
+      return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
+    }
+
     const supabase = await createClient();
     const { id } = await params;
 

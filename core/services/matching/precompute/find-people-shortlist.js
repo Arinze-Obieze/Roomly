@@ -1,9 +1,8 @@
 import { callRedis } from '../../../utils/redis.js';
+import { fetchAllPages, fetchBatchesByIds } from '../discovery/query-utils.js';
 
 const HOST_SHORTLIST_TTL_SECONDS = 1800;
 const SEEKER_SHORTLIST_TTL_SECONDS = 1800;
-const HOST_MAX_CANDIDATES = 1000;
-const SEEKER_MAX_CANDIDATES = 1000;
 
 function encodeShortlistMember(primaryId, propertyId, accepted = false) {
   if (!primaryId || !propertyId) return null;
@@ -61,6 +60,10 @@ async function writeShortlist(key, rows, ttlSeconds) {
 
 export async function getHostFindPeopleShortlistPage(userId, page = 1, pageSize = 24) {
   const start = Math.max(0, (page - 1) * pageSize);
+  return getHostFindPeopleShortlistWindow(userId, start, pageSize);
+}
+
+export async function getHostFindPeopleShortlistWindow(userId, start = 0, pageSize = 24) {
   const stop = start + Math.max(0, pageSize) - 1;
   const [rangeResult, totalResult] = await Promise.all([
     callRedis('ZREVRANGE', hostShortlistKey(userId), String(start), String(stop), 'WITHSCORES'),
@@ -75,6 +78,10 @@ export async function getHostFindPeopleShortlistPage(userId, page = 1, pageSize 
 
 export async function getSeekerFindLandlordsShortlistPage(userId, page = 1, pageSize = 24) {
   const start = Math.max(0, (page - 1) * pageSize);
+  return getSeekerFindLandlordsShortlistWindow(userId, start, pageSize);
+}
+
+export async function getSeekerFindLandlordsShortlistWindow(userId, start = 0, pageSize = 24) {
   const stop = start + Math.max(0, pageSize) - 1;
   const [rangeResult, totalResult] = await Promise.all([
     callRedis('ZREVRANGE', seekerShortlistKey(userId), String(start), String(stop), 'WITHSCORES'),
@@ -93,11 +100,10 @@ export async function rebuildHostFindPeopleShortlist(adminSb, landlordId) {
   const key = hostShortlistKey(landlordId);
   const { data: approvedListings, error: listingsError } = await adminSb
     .from('properties')
-    .select('id')
-    .eq('listed_by_user_id', landlordId)
-    .eq('is_active', true)
-    .eq('approval_status', 'approved')
-    .limit(HOST_MAX_CANDIDATES);
+      .select('id')
+      .eq('listed_by_user_id', landlordId)
+      .eq('is_active', true)
+      .eq('approval_status', 'approved');
 
   if (listingsError) throw listingsError;
   if (!approvedListings?.length) {
@@ -105,9 +111,9 @@ export async function rebuildHostFindPeopleShortlist(adminSb, landlordId) {
     return false;
   }
 
-  const approvedPropertyIds = approvedListings.map((row) => row.id).filter(Boolean);
-  const [scoresRes, acceptedRes] = await Promise.all([
-    adminSb
+  const [scoreRows, acceptedRows] = await Promise.all([
+    fetchAllPages((offset, pageSize) =>
+      adminSb
       .from('compatibility_scores')
       .select(`
         seeker_id,
@@ -119,8 +125,10 @@ export async function rebuildHostFindPeopleShortlist(adminSb, landlordId) {
       .eq('property.is_active', true)
       .eq('property.approval_status', 'approved')
       .order('score', { ascending: false })
-      .limit(HOST_MAX_CANDIDATES),
-    adminSb
+      .range(offset, offset + pageSize - 1)
+    ),
+    fetchAllPages((offset, pageSize) =>
+      adminSb
       .from('property_interests')
       .select(`
         seeker_id,
@@ -131,18 +139,16 @@ export async function rebuildHostFindPeopleShortlist(adminSb, landlordId) {
       .eq('property.is_active', true)
       .eq('property.approval_status', 'approved')
       .eq('status', 'accepted')
-      .limit(HOST_MAX_CANDIDATES),
+      .range(offset, offset + pageSize - 1)
+    ),
   ]);
-
-  if (scoresRes.error) throw scoresRes.error;
-  if (acceptedRes.error) throw acceptedRes.error;
 
   const bestBySeeker = new Map();
   const acceptedKeys = new Set(
-    (acceptedRes.data || []).map((row) => `${row.seeker_id}:${row.property_id}`)
+    (acceptedRows || []).map((row) => `${row.seeker_id}:${row.property_id}`)
   );
 
-  for (const row of scoresRes.data || []) {
+  for (const row of scoreRows || []) {
     const seekerId = row?.seeker_id;
     const propertyId = row?.property_id;
     const score = Number(row?.score);
@@ -151,16 +157,24 @@ export async function rebuildHostFindPeopleShortlist(adminSb, landlordId) {
     const current = bestBySeeker.get(seekerId);
     const accepted = acceptedKeys.has(`${seekerId}:${propertyId}`);
     if (!current || score > current.score) {
-      bestBySeeker.set(seekerId, { propertyId, score, accepted });
+      bestBySeeker.set(seekerId, {
+        propertyId,
+        score,
+        accepted: accepted || !!current?.accepted,
+      });
+    } else if (accepted && !current.accepted) {
+      current.accepted = true;
     }
   }
 
-  for (const row of acceptedRes.data || []) {
+  for (const row of acceptedRows || []) {
     const seekerId = row?.seeker_id;
     const propertyId = row?.property_id;
     if (!seekerId || !propertyId) continue;
     if (!bestBySeeker.has(seekerId)) {
       bestBySeeker.set(seekerId, { propertyId, score: 0, accepted: true });
+    } else {
+      bestBySeeker.get(seekerId).accepted = true;
     }
   }
 
@@ -179,14 +193,17 @@ export async function rebuildSeekerFindLandlordsShortlist(adminSb, seekerId) {
   if (!seekerId) return false;
 
   const key = seekerShortlistKey(seekerId);
-  const [scoresRes, acceptedRes] = await Promise.all([
-    adminSb
+  const [scoreRows, acceptedRows] = await Promise.all([
+    fetchAllPages((offset, pageSize) =>
+      adminSb
       .from('compatibility_scores')
       .select('property_id, score')
       .eq('seeker_id', seekerId)
       .order('score', { ascending: false })
-      .limit(SEEKER_MAX_CANDIDATES),
-    adminSb
+      .range(offset, offset + pageSize - 1)
+    ),
+    fetchAllPages((offset, pageSize) =>
+      adminSb
       .from('property_interests')
       .select(`
         property_id,
@@ -194,28 +211,32 @@ export async function rebuildSeekerFindLandlordsShortlist(adminSb, seekerId) {
       `)
       .eq('seeker_id', seekerId)
       .eq('status', 'accepted')
-      .limit(SEEKER_MAX_CANDIDATES),
+      .range(offset, offset + pageSize - 1)
+    ),
   ]);
 
-  if (scoresRes.error) throw scoresRes.error;
-  if (acceptedRes.error) throw acceptedRes.error;
-
-  const propertyIds = (scoresRes.data || []).map((row) => row.property_id).filter(Boolean);
-  const { data: properties, error: propertiesError } = propertyIds.length > 0
-    ? await adminSb
-      .from('properties')
-      .select('id, listed_by_user_id, is_active, approval_status')
-      .in('id', propertyIds)
-      .eq('is_active', true)
-      .eq('approval_status', 'approved')
-    : { data: [], error: null };
-
-  if (propertiesError) throw propertiesError;
+  const propertyIds = (scoreRows || []).map((row) => row.property_id).filter(Boolean);
+  const properties = propertyIds.length > 0
+    ? await fetchBatchesByIds(propertyIds, (batch) =>
+      adminSb
+        .from('properties')
+        .select('id, listed_by_user_id, is_active, approval_status')
+        .in('id', batch)
+        .eq('is_active', true)
+        .eq('approval_status', 'approved')
+    )
+    : [];
 
   const propertyById = new Map((properties || []).map((row) => [row.id, row]));
   const bestByLandlord = new Map();
+  const acceptedPropertyIds = new Set(
+    (acceptedRows || []).map((row) => {
+      const property = Array.isArray(row?.property) ? row.property[0] : row?.property;
+      return property?.id || row?.property_id;
+    }).filter(Boolean)
+  );
 
-  for (const row of scoresRes.data || []) {
+  for (const row of scoreRows || []) {
     const property = propertyById.get(row?.property_id);
     const landlordId = property?.listed_by_user_id;
     const score = Number(row?.score);
@@ -226,12 +247,15 @@ export async function rebuildSeekerFindLandlordsShortlist(adminSb, seekerId) {
       bestByLandlord.set(landlordId, {
         propertyId: property.id,
         score,
-        accepted: false,
+        accepted: !!current?.accepted,
       });
+    }
+    if (acceptedPropertyIds.has(property.id) && bestByLandlord.has(landlordId)) {
+      bestByLandlord.get(landlordId).accepted = true;
     }
   }
 
-  for (const row of acceptedRes.data || []) {
+  for (const row of acceptedRows || []) {
     const property = Array.isArray(row?.property) ? row.property[0] : row?.property;
     const landlordId = property?.listed_by_user_id;
     const propertyId = property?.id || row?.property_id;
@@ -243,6 +267,8 @@ export async function rebuildSeekerFindLandlordsShortlist(adminSb, seekerId) {
         score: 0,
         accepted: true,
       });
+    } else {
+      bestByLandlord.get(landlordId).accepted = true;
     }
   }
 

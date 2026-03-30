@@ -3,6 +3,7 @@
 import { useContext, useEffect, useState, useCallback } from 'react';
 import AuthContext from './auth-context';
 import { createClient } from '@/core/utils/supabase/client';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
@@ -208,7 +209,7 @@ export function AuthProvider({ children }) {
       const previousUser = { ...user };
       setUser(prev => ({ ...prev, ...updates }));
 
-      const response = await fetch('/api/profile/update', {
+      const response = await fetchWithCsrf('/api/profile/update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),

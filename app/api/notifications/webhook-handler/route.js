@@ -9,8 +9,14 @@ import { Notifier } from '@/core/services/notifications/notifier';
  */
 export async function POST(request) {
   try {
+    const webhookSecret = process.env.SUPABASE_WEBHOOK_SECRET;
+    if (!webhookSecret) {
+      console.error('[Notification Webhook] Missing SUPABASE_WEBHOOK_SECRET');
+      return NextResponse.json({ error: 'Webhook secret is not configured' }, { status: 503 });
+    }
+
     const authHeader = request.headers.get('authorization');
-    if (!authHeader || authHeader !== `Bearer ${process.env.SUPABASE_WEBHOOK_SECRET}`) {
+    if (!authHeader || authHeader !== `Bearer ${webhookSecret}`) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

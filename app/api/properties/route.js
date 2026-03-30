@@ -21,6 +21,8 @@ import {
 } from '@/core/services/matching/property-list-cache-strategy';
 import {
   getPrecomputedPropertyIds,
+  getPrecomputedPropertyRank,
+  getPrecomputedPropertyWindow,
   hasActivePropertyFilters,
 } from '@/core/services/matching/precompute/property-feed-shortlist';
 import { propertyMatchConfidence } from '@/lib/matching/propertyMatchScore';
@@ -551,13 +553,14 @@ function stripRankingMeta(items) {
 }
 
 async function fetchScoreDrivenPage({ user, supabase, adminSb, page, pageSize, sortBy, cursor, filters, missingProfile, acceptedPrivateIds, seekerContext }) {
-  if (!cursor && page === 1 && !hasActivePropertyFilters(filters)) {
+  if (!hasActivePropertyFilters(filters)) {
     const precomputed = await fetchPrecomputedScoreDrivenPage({
       user,
       supabase,
       adminSb,
       pageSize,
       sortBy,
+      cursor,
       missingProfile,
       acceptedPrivateIds,
       seekerContext,
@@ -702,31 +705,46 @@ async function fetchScoreDrivenPage({ user, supabase, adminSb, page, pageSize, s
   };
 }
 
-async function fetchPrecomputedScoreDrivenPage({ user, supabase, adminSb, pageSize, sortBy, missingProfile, acceptedPrivateIds, seekerContext }) {
-  const ids = await getPrecomputedPropertyIds(user.id, sortBy, 1, pageSize + 1);
-  if (!ids.length) return null;
-
-  const { data: props, error: propsError } = await adminSb
-    .from('properties')
-    .select(PROPERTY_LIST_SELECT)
-    .in('id', ids)
-    .eq('is_active', true)
-    .eq('approval_status', 'approved');
-
-  if (propsError) throw propsError;
-  if (!props?.length) return null;
-
-  const propMap = new Map(props.map((prop) => [prop.id, prop]));
-  const orderedProps = ids.map((id) => propMap.get(id)).filter(Boolean);
-  const visibleIds = orderedProps.map((prop) => prop.id);
-  const [{ interests, scoreMap }] = await Promise.all([
-    fetchPerPageUserContext(supabase, user, visibleIds),
-  ]);
+async function fetchPrecomputedScoreDrivenPage({ user, supabase, adminSb, pageSize, sortBy, cursor, missingProfile, acceptedPrivateIds, seekerContext }) {
   const acceptedPrivateIdSet = new Set(acceptedPrivateIds || []);
   const now = new Date();
+  const WINDOW_SIZE = Math.max(pageSize * 3, 24);
+  let start = 0;
 
-  const transformed = orderedProps
-    .map((prop) => {
+  if (cursor?.id) {
+    const rank = await getPrecomputedPropertyRank(user.id, sortBy, cursor.id);
+    if (rank == null) return null;
+    start = rank + 1;
+  }
+
+  const collected = [];
+  let exhausted = false;
+  let windowStart = start;
+
+  while (!exhausted && collected.length < pageSize + 1) {
+    const ids = await getPrecomputedPropertyWindow(user.id, sortBy, windowStart, WINDOW_SIZE);
+    if (!ids.length) break;
+
+    const { data: props, error: propsError } = await adminSb
+      .from('properties')
+      .select(PROPERTY_LIST_SELECT)
+      .in('id', ids)
+      .eq('is_active', true)
+      .eq('approval_status', 'approved');
+
+    if (propsError) throw propsError;
+    if (!props?.length) {
+      windowStart += ids.length;
+      exhausted = ids.length < WINDOW_SIZE;
+      continue;
+    }
+
+    const propMap = new Map(props.map((prop) => [prop.id, prop]));
+    const orderedProps = ids.map((id) => propMap.get(id)).filter(Boolean);
+    const visibleIds = orderedProps.map((prop) => prop.id);
+    const { interests, scoreMap } = await fetchPerPageUserContext(supabase, user, visibleIds);
+
+    for (const prop of orderedProps) {
       const score = scoreMap[prop.id] ?? null;
       const isPrivate = isPrivateListing(prop);
       const isOwner = prop.listed_by_user_id === user.id;
@@ -739,21 +757,25 @@ async function fetchPrecomputedScoreDrivenPage({ user, supabase, adminSb, pageSi
         hasAcceptedInterest: isAccepted,
         matchScore: score,
       })) {
-        return null;
+        continue;
       }
 
       const item = transformProperty(prop, interests, scoreMap, user, missingProfile, supabase, seekerContext);
       if (sortBy === 'recommended') {
         item._recScore = computeRecommendedScore(item, now);
       }
-      return item;
-    })
-    .filter(Boolean);
+      collected.push(item);
+      if (collected.length >= pageSize + 1) break;
+    }
 
-  if (transformed.length < pageSize) return null;
+    windowStart += ids.length;
+    exhausted = ids.length < WINDOW_SIZE;
+  }
 
-  const pageItems = transformed.slice(0, pageSize);
-  const hasMore = transformed.length > pageSize;
+  if (collected.length === 0) return null;
+
+  const pageItems = collected.slice(0, pageSize);
+  const hasMore = collected.length > pageSize;
   const nextCursor = hasMore
     ? encodeCursor(buildPersonalizedCursor(pageItems[pageItems.length - 1], sortBy))
     : null;

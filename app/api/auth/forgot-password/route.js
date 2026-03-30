@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
-import { assertRateLimit } from '@/core/utils/rate-limit';
+import { assertRateLimit, buildRateLimitHeaders } from '@/core/utils/rate-limit';
 
 export async function POST(req) {
   try {
@@ -28,13 +28,22 @@ export async function POST(req) {
       key: 'auth-forgot-password',
       limit: 5,
       windowSeconds: 60 * 60,
-      scope: email.toLowerCase(),
+      scope: [email.toLowerCase(), 'ip'],
+      fallbackMode: 'deny',
     });
 
     if (!rateLimit.allowed) {
+      const headers = buildRateLimitHeaders({ limit: 5, ...rateLimit });
       return NextResponse.json(
-        { error: 'Too many password reset requests. Please try again later.' },
-        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+        {
+          error: rateLimit.reason === 'backend_unavailable'
+            ? 'Password reset is temporarily unavailable. Please try again shortly.'
+            : 'Too many password reset requests. Please try again later.',
+        },
+        {
+          status: rateLimit.reason === 'backend_unavailable' ? 503 : 429,
+          headers,
+        }
       );
     }
 

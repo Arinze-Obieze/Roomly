@@ -1,7 +1,7 @@
 import { AuthService } from '@/core/services/auth.service';
 import { loginSchema } from '@/core/validations/auth.schema';
 import { NextResponse } from 'next/server';
-import { assertRateLimit } from '@/core/utils/rate-limit';
+import { assertRateLimit, buildRateLimitHeaders } from '@/core/utils/rate-limit';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { createClient } from '@/core/utils/supabase/server';
 
@@ -25,13 +25,22 @@ export async function POST(request) {
       key: 'auth-login',
       limit: 5,
       windowSeconds: 15 * 60,
-      scope: email.toLowerCase(),
+      scope: [email.toLowerCase(), 'ip'],
+      fallbackMode: 'deny',
     });
 
     if (!rateLimit.allowed) {
+      const headers = buildRateLimitHeaders({ limit: 5, ...rateLimit });
       return NextResponse.json(
-        { error: 'Too many login attempts. Please try again in 15 minutes.' },
-        { status: 429, headers: { 'Retry-After': String(rateLimit.retryAfter) } }
+        {
+          error: rateLimit.reason === 'backend_unavailable'
+            ? 'Login is temporarily unavailable. Please try again shortly.'
+            : 'Too many login attempts. Please try again in 15 minutes.',
+        },
+        {
+          status: rateLimit.reason === 'backend_unavailable' ? 503 : 429,
+          headers,
+        }
       );
     }
 
