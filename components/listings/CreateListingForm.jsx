@@ -381,11 +381,20 @@ export default function CreateListingForm({ onClose, initialData = null }) {
              throw new Error(err.error || 'Failed to save listing');
         }
 
-        toast.success('Listing published successfully!');
-        if(onClose) {
-            onClose();
+        if (isEditing) {
+            toast.success('Listing updated successfully!');
+            if (onClose) {
+                onClose();
+            } else {
+                router.push('/dashboard');
+            }
         } else {
-            router.push('/dashboard');
+            toast.success('Your property has been submitted and is pending review. It will be reviewed shortly.');
+            if (onClose) {
+                onClose();
+            } else {
+                router.push('/my-properties');
+            }
         }
         router.refresh();
 

@@ -26,6 +26,7 @@ import NotificationList from "../notifications/NotificationList";
 import Link from "next/link";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { toast } from "react-hot-toast";
 
 const NAV_ITEMS = {
   DISCOVER: { icon: MdHome, label: "Discover", path: "/dashboard", public: true },
@@ -80,7 +81,7 @@ const UserAvatar = ({ user, size = "w-8 h-8", showName = true }) => {
   );
 };
 
-const DropdownMenu = ({ isOpen, onItemClick, onLogout }) => (
+const DropdownMenu = ({ isOpen, onItemClick, onLogout, logoutBusy = false }) => (
   isOpen && (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -93,10 +94,11 @@ const DropdownMenu = ({ isOpen, onItemClick, onLogout }) => (
           {index > 0 && <div className="h-px bg-[#F0F4F8] my-1" />}
           <button
             onClick={() => item.onClick === "logout" ? onLogout() : onItemClick(item.path)}
-            className={`w-full text-left px-4 py-3 text-sm ${item.color} ${item.hoverColor} flex items-center gap-2 transition-colors`}
+            disabled={logoutBusy && item.onClick === "logout"}
+            className={`w-full text-left px-4 py-3 text-sm ${item.color} ${item.hoverColor} flex items-center gap-2 transition-colors disabled:cursor-not-allowed disabled:opacity-60`}
           >
             <item.icon size={18} />
-            {item.label}
+            {item.onClick === "logout" && logoutBusy ? "Logging Out..." : item.label}
           </button>
         </div>
       ))}
@@ -177,10 +179,30 @@ export const Header = ({ showFilters, setShowFilters }) => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleLogout = async () => {
-    await signOut();
-    router.push('/login');
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    setIsDropdownOpen(false);
+    setIsNotificationsOpen(false);
+
+    try {
+      const result = await signOut();
+
+      if (!result?.success) {
+        throw result?.error || new Error('Logout failed');
+      }
+
+      router.replace('/login');
+      router.refresh();
+    } catch (error) {
+      console.error('Logout failed:', error);
+      toast.error('Could not log you out. Please try again.');
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   const showDesktopSearchInHeader = false;
@@ -277,6 +299,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
                             isOpen={isDropdownOpen}
                             onItemClick={(path) => router.push(path)}
                             onLogout={handleLogout}
+                            logoutBusy={isLoggingOut}
                         />
                         </div>
                     </>
@@ -322,7 +345,10 @@ export const Header = ({ showFilters, setShowFilters }) => {
 
                 <div className="relative">
                   <button 
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    onClick={() => {
+                      if (isLoggingOut) return;
+                      setIsDropdownOpen(!isDropdownOpen);
+                    }}
                     onBlur={() => setTimeout(() => setIsDropdownOpen(false), 200)}
                     className="p-2 rounded-xl hover:bg-[#F0F4F8] flex items-center gap-1"
                   >
@@ -336,6 +362,7 @@ export const Header = ({ showFilters, setShowFilters }) => {
                     isOpen={isDropdownOpen}
                     onItemClick={(path) => router.push(path)}
                     onLogout={handleLogout}
+                    logoutBusy={isLoggingOut}
                   />
                 </div>
               </>
