@@ -6,6 +6,7 @@ import toast from 'react-hot-toast';
 import { useSavedProperties } from '@/core/contexts/SavedPropertiesContext';
 import { useConfirmation } from '@/core/contexts/ConfirmationContext';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 
 export default function MyListingCard({ property, onEdit, onDelete }) {
   const [isDeleting, setIsDeleting] = useState(false);
@@ -33,7 +34,7 @@ export default function MyListingCard({ property, onEdit, onDelete }) {
 
     setIsDeleting(true);
     try {
-      const response = await fetch(`/api/properties/${property.id}`, {
+      const response = await fetchWithCsrf(`/api/properties/${property.id}`, {
         method: 'DELETE',
       });
 
