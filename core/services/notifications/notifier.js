@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { sendEmail } from '@/core/utils/email';
+import { buildSiteUrl } from '@/core/utils/site-url';
 
 /**
  * Unified Notifier Service
@@ -56,7 +57,7 @@ export const Notifier = {
                 <p style="color: #475569; font-size: 16px; line-height: 1.5;">${message}</p>
                 ${link ? `
                   <div style="margin-top: 24px;">
-                    <a href="${process.env.NEXT_PUBLIC_SITE_URL}${link}" style="display: inline-block; background-color: #0f172a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
+                    <a href="${buildSiteUrl(link)}" style="display: inline-block; background-color: #0f172a; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">
                       View Details
                     </a>
                   </div>

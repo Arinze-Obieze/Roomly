@@ -3,13 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
-
-const sanitizeNextPath = (value) => {
-  if (!value || typeof value !== 'string') return '/dashboard';
-  if (!value.startsWith('/')) return '/dashboard';
-  if (value.startsWith('//')) return '/dashboard';
-  return value;
-};
+import { resolvePostAuthPath } from '@/core/utils/auth/post-auth-redirect';
 
 function AuthCodeErrorContent() {
   const router = useRouter();
@@ -18,7 +12,7 @@ function AuthCodeErrorContent() {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const nextPath = useMemo(() => sanitizeNextPath(searchParams.get('next')), [searchParams]);
+  const nextPath = useMemo(() => resolvePostAuthPath(searchParams.get('next')), [searchParams]);
   const message = searchParams.get('message') || 'This confirmation link is invalid, expired, or could not be processed.';
 
   useEffect(() => {

@@ -6,6 +6,7 @@ import { validateCSRFRequest } from '@/core/utils/csrf';
 import { Notifier } from '@/core/services/notifications/notifier';
 import { logFeatureEvent } from '@/core/services/analytics/analytics.service';
 import { buildMatchAnalyticsMetadata } from '@/core/services/matching/presentation/match-analytics';
+import { buildSiteUrl } from '@/core/utils/site-url';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_RE = /^\d{2}:\d{2}$/;
@@ -187,7 +188,7 @@ export async function POST(req) {
                 ${emailBody}
               </p>
               <div style="margin: 30px 0;">
-                <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://roomfind.ie'}/messages" style="background-color: #0891b2; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
+                <a href="${buildSiteUrl('/messages')}" style="background-color: #0891b2; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">
                   View Messages
                 </a>
               </div>

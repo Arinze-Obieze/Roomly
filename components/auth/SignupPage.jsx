@@ -12,6 +12,7 @@ import AuthHeader from '../layout/AuthHeader';
 import SubmitButton from '../forms/SubmitButton';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/core/hooks/useAuth';
+import { resolvePostAuthPath } from '@/core/utils/auth/post-auth-redirect';
 
 // Zod Schema
 const signupSchema = z.object({
@@ -34,7 +35,7 @@ const signupSchema = z.object({
 function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') || '';
+  const redirectTo = resolvePostAuthPath(searchParams.get('redirectTo'));
   
   const { signup, signInWithGoogle, loading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
@@ -102,11 +103,7 @@ function SignupForm() {
         router.push('/login');
       } else {
         toast.success('Account created successfully!');
-        if (redirectTo) {
-          router.push(redirectTo);
-        } else {
-          router.push('/dashboard');
-        }
+        router.push(redirectTo);
       }
     }
   };
@@ -120,7 +117,7 @@ function SignupForm() {
 
         <button
             onClick={async () => {
-                const options = redirectTo ? { redirectTo: `${window.location.origin}${redirectTo}` } : undefined;
+                const options = { redirectTo: `${window.location.origin}${redirectTo}` };
                 const { error } = await signInWithGoogle(options);
                 if (error) toast.error(error.message);
             }}

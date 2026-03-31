@@ -4,6 +4,7 @@ import { useContext, useEffect, useState, useCallback } from 'react';
 import AuthContext from './auth-context';
 import { createClient } from '@/core/utils/supabase/client';
 import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
+import { extractPostAuthPath } from '@/core/utils/auth/post-auth-redirect';
 
 export const useAuthContext = () => {
   const context = useContext(AuthContext);
@@ -262,16 +263,7 @@ export function AuthProvider({ children }) {
       const supabase = createClient();
       const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/+$/, '') ||
         (typeof window !== 'undefined' ? window.location.origin : '');
-      let nextPath = '/dashboard';
-
-      if (options?.redirectTo) {
-        try {
-          const redirectUrl = new URL(options.redirectTo, siteUrl);
-          nextPath = `${redirectUrl.pathname}${redirectUrl.search}${redirectUrl.hash}`;
-        } catch {
-          nextPath = options.redirectTo;
-        }
-      }
+      const nextPath = extractPostAuthPath(options?.redirectTo, siteUrl);
 
       const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(nextPath)}`;
       const { data, error } = await supabase.auth.signInWithOAuth({

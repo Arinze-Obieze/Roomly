@@ -3,6 +3,7 @@ import { signupSchema } from '@/core/validations/auth.schema';
 import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { assertRateLimit, buildRateLimitHeaders } from '@/core/utils/rate-limit';
+import { buildSiteUrl } from '@/core/utils/site-url';
 
 export async function POST(req) {
   try {
@@ -45,8 +46,7 @@ export async function POST(req) {
 
     let signUpData;
     try {
-        const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin).replace(/\/+$/, '');
-        const redirectUrl = `${baseUrl}/auth/confirm`;
+        const redirectUrl = buildSiteUrl('/auth/confirm');
         signUpData = await AuthService.signup({ email, password, fullName, phone, redirectUrl });
     } catch (error) {
         if (error.code === 'DUPLICATE_EMAIL') {

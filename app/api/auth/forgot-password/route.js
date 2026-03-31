@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import { assertRateLimit, buildRateLimitHeaders } from '@/core/utils/rate-limit';
+import { buildSiteUrl } from '@/core/utils/site-url';
 
 export async function POST(req) {
   try {
@@ -53,8 +54,7 @@ export async function POST(req) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
-    const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin).replace(/\/+$/, '');
-    const redirectUrl = `${baseUrl}/reset-password`;
+    const redirectUrl = buildSiteUrl('/reset-password');
 
     // Send password reset email
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

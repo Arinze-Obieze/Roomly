@@ -3,6 +3,7 @@ import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { sendBuddyInvite } from '@/core/utils/email';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { buildSiteUrl } from '@/core/utils/site-url';
 import crypto from 'crypto';
 
 // Rate limit tracking for buddy invites (in-memory for dev; use Redis for prod)
@@ -135,10 +136,7 @@ export async function POST(request) {
     if (inviteError) throw inviteError;
 
     // 6. Send Email
-    const envSiteUrl = (process.env.NEXT_PUBLIC_SITE_URL || '').trim().replace(/\/+$/, '');
-    const requestOrigin = new URL(request.url).origin.replace(/\/+$/, '');
-    const baseUrl = (envSiteUrl || requestOrigin).replace(/\/+$/, '');
-    const inviteLink = `${baseUrl}/dashboard/buddy/join?token=${token}`;
+    const inviteLink = buildSiteUrl(`/dashboard/buddy/join?token=${token}`);
 
     // Get inviter name
     const { data: profile } = await supabase

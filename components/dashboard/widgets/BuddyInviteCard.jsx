@@ -1,4 +1,3 @@
-
 import { MdGroupAdd } from 'react-icons/md';
 
 export default function BuddyInviteCard({ onCreateGroup, onJoinGroup, compact = false }) {
@@ -23,7 +22,7 @@ export default function BuddyInviteCard({ onCreateGroup, onJoinGroup, compact = 
                     "Coordinate viewings via group chat"
                 ].map((step, i) => (
                     <div key={i} className="flex items-center gap-3">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-lg bg-slate-900 text-white text-xs font-bold flex items-center justify-center">
+                        <span className="shrink-0 w-6 h-6 rounded-lg bg-slate-900 text-white text-xs font-bold flex items-center justify-center">
                             {i + 1}
                         </span>
                         <span className="text-sm text-slate-600 font-medium">{step}</span>

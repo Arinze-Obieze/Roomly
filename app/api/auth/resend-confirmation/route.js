@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { buildSiteUrl } from '@/core/utils/site-url';
 
 const resendAttempts = new Map();
 
@@ -51,8 +52,7 @@ export async function POST(req) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
     );
 
-    const baseUrl = (process.env.NEXT_PUBLIC_SITE_URL || new URL(req.url).origin).replace(/\/+$/, '');
-    const redirectUrl = `${baseUrl}/auth/confirm`;
+    const redirectUrl = buildSiteUrl('/auth/confirm');
 
     await supabase.auth.resend({
       type: 'signup',

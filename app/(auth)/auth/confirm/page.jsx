@@ -4,20 +4,14 @@ import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/core/utils/supabase/client';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
-
-const sanitizeNextPath = (value) => {
-  if (!value || typeof value !== 'string') return '/dashboard';
-  if (!value.startsWith('/')) return '/dashboard';
-  if (value.startsWith('//')) return '/dashboard';
-  return value;
-};
+import { resolvePostAuthPath } from '@/core/utils/auth/post-auth-redirect';
 
 function AuthConfirmContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [errorMessage, setErrorMessage] = useState('');
 
-  const nextPath = useMemo(() => sanitizeNextPath(searchParams.get('next')), [searchParams]);
+  const nextPath = useMemo(() => resolvePostAuthPath(searchParams.get('next')), [searchParams]);
 
   useEffect(() => {
     let mounted = true;

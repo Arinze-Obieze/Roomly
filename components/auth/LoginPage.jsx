@@ -12,6 +12,7 @@ import AuthHeader from '../layout/AuthHeader';
 import SubmitButton from '../forms/SubmitButton';
 import toast from 'react-hot-toast';
 import { useAuth } from '@/core/hooks/useAuth';
+import { resolvePostAuthPath } from '@/core/utils/auth/post-auth-redirect';
 
 // Zod Schema
 const loginSchema = z.object({
@@ -23,7 +24,7 @@ const loginSchema = z.object({
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirectTo') || '/dashboard';
+  const redirectTo = resolvePostAuthPath(searchParams.get('redirectTo'));
   
   const { login, signInWithGoogle, loading: authLoading } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
