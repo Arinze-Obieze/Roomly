@@ -4,13 +4,13 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuthContext } from '@/core/contexts/AuthContext';
 import { MdSave, MdCameraAlt, MdCheckCircle } from 'react-icons/md';
-import { createClient } from '@/core/utils/supabase/client';
+import { fetchWithCsrf } from '@/core/utils/fetchWithCsrf';
 import toast from 'react-hot-toast';
 import GlobalSpinner from '@/components/ui/GlobalSpinner';
 import { resolveUserProfileVisibility } from '@/core/services/users/profile-privacy';
 
 export default function ProfileForm({ onCancel }) {
-  const { user, updateProfile } = useAuthContext();
+  const { user, updateProfile, refreshSession } = useAuthContext();
   const [loading, setLoading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -59,41 +59,41 @@ export default function ProfileForm({ onCancel }) {
 
     try {
       setLoading(true);
-      const supabase = createClient();
-      
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}-${Math.random()}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      const { success, error } = await updateProfile({ profile_picture: publicUrl });
-      
-      if (success) {
-        toast.success('Avatar updated!');
-      } else {
-        throw error;
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('Image must be 5MB or smaller');
       }
+
+      const body = new FormData();
+      body.append('file', file);
+
+      const response = await fetchWithCsrf('/api/profile/avatar', {
+        method: 'POST',
+        body,
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok || !payload?.success || !payload?.data?.profile_picture) {
+        throw new Error(payload?.error || 'Failed to upload avatar');
+      }
+
+      setPreviewUrl(payload.data.profile_picture);
+      await refreshSession();
+      toast.success('Avatar updated!');
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      toast.error('Failed to upload avatar');
+      toast.error(error?.message || 'Failed to upload avatar');
       setPreviewUrl(null);
     } finally {
       setLoading(false);
+      e.target.value = '';
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (loading) return;
     setLoading(true);
+    setSaveSuccess(false);
 
     const payload = {
       ...formData,
@@ -114,7 +114,7 @@ export default function ProfileForm({ onCancel }) {
       }
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error(error?.message || 'Failed to update profile');
     } finally {
       setLoading(false);
     }

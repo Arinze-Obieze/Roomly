@@ -191,6 +191,7 @@ export default function SettingsPanel() {
   }, [user?.id]);
 
   const patchSetting = useCallback(async (field, value) => {
+    const previousValue = settings[field];
     // Optimistic update — toggle immediately for instant feedback
     setSettings(prev => ({ ...prev, [field]: value }));
     setSaving(true);
@@ -205,11 +206,11 @@ export default function SettingsPanel() {
     } catch (err) {
       toast.error(err.message || 'Could not save setting');
       // Rollback the optimistic update
-      setSettings(prev => ({ ...prev, [field]: !value }));
+      setSettings(prev => ({ ...prev, [field]: previousValue }));
     } finally {
       setSaving(false);
     }
-  }, [updateProfile]);
+  }, [settings, updateProfile]);
 
   const handleDeleteAccount = async () => {
     if (deleteInput.trim().toLowerCase() !== 'delete my account') {

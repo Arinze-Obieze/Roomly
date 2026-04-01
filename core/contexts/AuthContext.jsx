@@ -197,6 +197,7 @@ export function AuthProvider({ children }) {
   };
 
   const updateProfile = async (updates) => {
+    const previousUser = { ...user };
     try {
       // Validate updates to prevent invalid data
       if (!updates || typeof updates !== 'object') {
@@ -206,14 +207,13 @@ export function AuthProvider({ children }) {
         };
       }
 
-      // Save original state for rollback
-      const previousUser = { ...user };
       setUser(prev => ({ ...prev, ...updates }));
 
       const response = await fetchWithCsrf('/api/profile/update', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
+        timeoutMs: 12000,
       });
       const payload = await response.json().catch(() => ({}));
 
@@ -231,11 +231,13 @@ export function AuthProvider({ children }) {
       return { success: true };
     } catch (error) {
       // Rollback on unexpected error
-      setUser(user);
+      setUser(previousUser);
       console.error('Unexpected error updating profile:', error);
       return { 
         success: false, 
-        error: 'Failed to update profile. Please try again.',
+        error: error?.name === 'AbortError'
+          ? 'Profile update timed out. Please try again.'
+          : 'Failed to update profile. Please try again.',
         details: error
       };
     }
