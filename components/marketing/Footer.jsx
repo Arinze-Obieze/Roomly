@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { FaInstagram, FaFacebook } from 'react-icons/fa';
+import { FaInstagram, FaFacebook, FaTiktok } from 'react-icons/fa';
 
 export default function Footer() {
   const currentYear = new Date().getFullYear();
@@ -48,6 +48,7 @@ export default function Footer() {
             <div className="flex items-center gap-4 pt-2">
               <SocialLink href="https://www.instagram.com/roomfind.ie?igsh=dG80eXB5Y2k5bWgw" icon={<FaInstagram size={20} />} ariaLabel="Instagram" />
               <SocialLink href="#" icon={<FaFacebook size={20} />} ariaLabel="Facebook" />
+              <SocialLink href="https://www.tiktok.com/@roomfind?_r=1&_t=ZN-95Az5jujhoM" icon={<FaTiktok size={20} />} ariaLabel="TikTok" />
             </div>
           </div>
 

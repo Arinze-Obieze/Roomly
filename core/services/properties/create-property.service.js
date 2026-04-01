@@ -8,6 +8,7 @@ import { asyncRebuildFeedsForProperty } from '@/core/services/feeds/rebuild-feed
 import { upsertPropertyMatchingSnapshot } from '@/core/services/matching/features/snapshot.service';
 import { asyncRebuildFindPeopleShortlistsForProperty } from '@/core/services/matching/precompute/find-people-shortlist';
 import { getPropertyCreationVersionKeys } from '@/core/services/matching/matching-cache-versions';
+import { notifySuperadminsOfPendingProperty } from '@/core/services/properties/property-approval-notifications';
 
 const FILE_LIMITS = {
   IMAGE_MAX_BYTES: 5 * 1024 * 1024,
@@ -353,6 +354,16 @@ export async function handleCreateProperty(req) {
         ownerUserId: user.id,
       }).map((key) => bumpCacheVersion(key))
     );
+
+    try {
+      await notifySuperadminsOfPendingProperty({
+        property,
+        creatorUserId: user.id,
+        creatorName: user.user_metadata?.full_name || user.email || 'A landlord',
+      });
+    } catch (notificationError) {
+      console.error('[Property Create] Superadmin notification failed:', notificationError?.message || notificationError);
+    }
 
     return NextResponse.json({
       success: true,
