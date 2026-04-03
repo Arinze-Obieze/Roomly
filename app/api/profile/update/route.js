@@ -5,6 +5,7 @@ import { ensureUserProfile } from '@/core/utils/auth/ensureUserProfile';
 import { bumpCacheVersion } from '@/core/utils/redis';
 import { getProfileUpdateVersionKeys } from '@/core/services/matching/matching-cache-versions';
 import { normalizeUserPrivacyUpdates } from '@/core/services/users/profile-privacy';
+import { normalizeUserProfileUpdates } from '@/core/services/users/profile-update';
 import { upsertUserMatchingSnapshot } from '@/core/services/matching/features/snapshot.service';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 
@@ -48,7 +49,9 @@ export async function PATCH(request) {
       return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 });
     }
 
-    const normalizedUpdates = normalizeUserPrivacyUpdates(updates);
+    const normalizedUpdates = normalizeUserProfileUpdates(
+      normalizeUserPrivacyUpdates(updates)
+    );
 
     const admin = createAdminClient();
     const { data, error } = await admin
