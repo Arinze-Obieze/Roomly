@@ -20,17 +20,8 @@ import { getMatchConfidenceState } from '@/core/services/matching/presentation/m
 import { buildPropertyMatchReasons } from '@/core/services/matching/presentation/match-explanations';
 import { propertyMatchConfidence } from '@/lib/matching/propertyMatchScore';
 import { buildPropertyDetailCacheKey } from '@/core/services/properties/property-detail-cache';
+import { buildPropertyMultipartUpdates, parseJsonArrayField } from '@/core/services/properties/property-multipart-updates';
 import { validateCSRFRequest } from '@/core/utils/csrf';
-
-const parseJsonArray = (value) => {
-  if (!value) return [];
-  try {
-    const parsed = JSON.parse(value);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-};
 
 const normalizeMediaPath = (value) => {
   if (!value || typeof value !== 'string') return '';
@@ -305,46 +296,7 @@ export async function PUT(request, { params }) {
 
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData();
-      const propertyType = formData.get('property_category') || formData.get('property_type');
-      const squareMeters = formData.get('floor_area') || formData.get('square_meters');
-
-      // ─── Derive filter columns (same logic as create service) ──────────────
-      const billsOption = formData.get('bills_option') || 'some';
-      const billsIncluded = billsOption === 'box';
-
-      const dealBreakers = (() => {
-        try { const r = formData.get('deal_breakers'); return r ? JSON.parse(r) : []; } catch { return []; }
-      })();
-      const couplesAllowed = formData.get('couples_allowed') === 'true';
-      const houseRules = [];
-      if (!dealBreakers.includes('smokers'))  houseRules.push('no_smoking');
-      if (!dealBreakers.includes('pets'))     houseRules.push('pets_allowed');
-      if (couplesAllowed)                     houseRules.push('couples_welcome');
-      if (!dealBreakers.includes('students')) houseRules.push('students_welcome');
-
-      updates = {
-        title: formData.get('title'),
-        description: formData.get('description'),
-        listed_by_role: formData.get('role') !== null ? (formData.get('role') || 'live_out_landlord') : undefined,
-        property_type: propertyType,
-        price_per_month: formData.get('price_per_month') ? Number(formData.get('price_per_month')) : undefined,
-        state: formData.get('state'),
-        city: formData.get('city'),
-        street: formData.get('street'),
-        bedrooms: formData.get('bedrooms') ? Number(formData.get('bedrooms')) : undefined,
-        bathrooms: formData.get('bathrooms') ? Number(formData.get('bathrooms')) : undefined,
-        square_meters: squareMeters ? Number(squareMeters) : undefined,
-        available_from: formData.get('available_from'),
-        amenities: parseJsonArray(formData.get('amenities')),
-        bills_option: billsOption,
-        bills_included: billsIncluded,
-        deal_breakers: dealBreakers,
-        house_rules: houseRules,
-        room_type: formData.get('room_type') || null,
-      };
-      updates = Object.fromEntries(
-        Object.entries(updates).filter(([, value]) => value !== undefined)
-      );
+      updates = buildPropertyMultipartUpdates(formData);
 
       const existingPhotoPaths = formData
         .getAll('existing_photos[]')
@@ -529,7 +481,7 @@ export async function PUT(request, { params }) {
       updates.square_meters = updates.floor_area;
     }
     if (typeof updates.amenities === 'string') {
-      updates.amenities = parseJsonArray(updates.amenities);
+      updates.amenities = parseJsonArrayField(updates.amenities);
     }
     updates = Object.fromEntries(
       Object.entries(updates).filter(([, value]) => value !== undefined)

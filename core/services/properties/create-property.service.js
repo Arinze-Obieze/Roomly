@@ -9,6 +9,7 @@ import { upsertPropertyMatchingSnapshot } from '@/core/services/matching/feature
 import { asyncRebuildFindPeopleShortlistsForProperty } from '@/core/services/matching/precompute/find-people-shortlist';
 import { getPropertyCreationVersionKeys } from '@/core/services/matching/matching-cache-versions';
 import { notifySuperadminsOfPendingProperty } from '@/core/services/properties/property-approval-notifications';
+import { readNullableStringField } from '@/core/services/properties/property-multipart-updates';
 
 const FILE_LIMITS = {
   IMAGE_MAX_BYTES: 5 * 1024 * 1024,
@@ -211,7 +212,7 @@ export async function handleCreateProperty(req) {
       bathrooms: bathrooms ?? 0,
       square_meters: readNumber(form, 'floor_area') ?? readNumber(form, 'square_meters'),
       year_built: readNumber(form, 'year_built'),
-      ber_rating: form.get('ber_rating'),
+      ber_rating: readNullableStringField(form.get('ber_rating')),
       state: form.get('state'),
       city: form.get('city'),
       street: form.get('street'),
