@@ -116,8 +116,17 @@ export default function CreateListingForm({ onClose, initialData = null }) {
     )),
   });
 
+  const hashSubmissionFingerprint = (fingerprint) => {
+    let hash = 2166136261;
+    for (let index = 0; index < fingerprint.length; index += 1) {
+      hash ^= fingerprint.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `fp-${(hash >>> 0).toString(16)}`;
+  };
+
   const getSubmissionKey = () => {
-    const fingerprint = computeSubmissionFingerprint();
+    const fingerprint = hashSubmissionFingerprint(computeSubmissionFingerprint());
     if (!submissionKeyRef.current || lastSubmissionFingerprintRef.current !== fingerprint) {
       submissionKeyRef.current = globalThis.crypto?.randomUUID?.() || `listing-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
       lastSubmissionFingerprintRef.current = fingerprint;
