@@ -298,8 +298,34 @@ export async function PUT(request, { params }) {
       const formData = await request.formData();
       updates = buildPropertyMultipartUpdates(formData);
 
+      const { data: existingProperty } = await supabase
+        .from('properties')
+        .select('listed_by_user_id')
+        .eq('id', id)
+        .single();
+
+      if (!existingProperty) {
+        return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      }
+
+      if (existingProperty.listed_by_user_id !== user.id) {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      }
+
+      const { data: currentMedia, error: mediaQueryError } = await supabase
+        .from('property_media')
+        .select('id, url, media_type, display_order, is_primary')
+        .eq('property_id', id)
+        .order('display_order', { ascending: true });
+
+      if (mediaQueryError) throw mediaQueryError;
+
       const existingPhotoPaths = formData
         .getAll('existing_photos[]')
+        .map((value) => normalizeMediaPath(String(value)))
+        .filter(Boolean);
+      const existingVideoPathsRaw = formData
+        .getAll('existing_videos[]')
         .map((value) => normalizeMediaPath(String(value)))
         .filter(Boolean);
       const newPhotos = formData
@@ -321,18 +347,30 @@ export async function PUT(request, { params }) {
         }
       }
 
-      const { data: existingProperty } = await supabase
-        .from('properties')
-        .select('listed_by_user_id')
-        .eq('id', id)
-        .single();
+      const currentImages = (currentMedia || []).filter((item) => item.media_type === 'image');
+      const currentVideos = (currentMedia || []).filter((item) => item.media_type === 'video');
 
-      if (!existingProperty) {
-        return NextResponse.json({ error: 'Property not found' }, { status: 404 });
+      const requestedImageSet = new Set(existingPhotoPaths);
+      const requestedVideoSet = new Set(
+        existingVideoPathsRaw.length > 0
+          ? existingVideoPathsRaw
+          : currentVideos.map((item) => normalizeMediaPath(item.url))
+      );
+      const keptImages = currentImages.filter((item) => requestedImageSet.has(normalizeMediaPath(item.url)));
+      const deletedImages = currentImages.filter((item) => !requestedImageSet.has(normalizeMediaPath(item.url)));
+      const keptVideos = currentVideos.filter((item) => requestedVideoSet.has(normalizeMediaPath(item.url)));
+      const deletedVideos = currentVideos.filter((item) => !requestedVideoSet.has(normalizeMediaPath(item.url)));
+
+      if (keptImages.length + newPhotos.length === 0) {
+        return NextResponse.json({ error: 'At least one photo is required' }, { status: 400 });
       }
 
-      if (existingProperty.listed_by_user_id !== user.id) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
+      if (keptImages.length + newPhotos.length > 10) {
+        return NextResponse.json({ error: 'Maximum 10 photos allowed' }, { status: 400 });
+      }
+
+      if (keptVideos.length + newVideos.length > 5) {
+        return NextResponse.json({ error: 'Maximum 5 videos allowed' }, { status: 400 });
       }
 
       const { data: propertyData, error: propertyError } = await supabase
@@ -344,36 +382,21 @@ export async function PUT(request, { params }) {
 
       if (propertyError) throw propertyError;
 
-      const { data: currentMedia, error: mediaQueryError } = await supabase
-        .from('property_media')
-        .select('id, url, media_type, display_order, is_primary')
-        .eq('property_id', id)
-        .order('display_order', { ascending: true });
-
-      if (mediaQueryError) throw mediaQueryError;
-
-      const currentImages = (currentMedia || []).filter((item) => item.media_type === 'image');
-      const currentVideos = (currentMedia || []).filter((item) => item.media_type === 'video');
-
-      const requestedImageSet = new Set(existingPhotoPaths);
-      const keptImages = currentImages.filter((item) => requestedImageSet.has(normalizeMediaPath(item.url)));
-      const deletedImages = currentImages.filter((item) => !requestedImageSet.has(normalizeMediaPath(item.url)));
-
-      if (keptImages.length + newPhotos.length === 0) {
-        return NextResponse.json({ error: 'At least one photo is required' }, { status: 400 });
-      }
-
-      if (keptImages.length + newPhotos.length > 10) {
-        return NextResponse.json({ error: 'Maximum 10 photos allowed' }, { status: 400 });
-      }
-
-      if (currentVideos.length + newVideos.length > 5) {
-        return NextResponse.json({ error: 'Maximum 5 videos allowed' }, { status: 400 });
-      }
-
       if (deletedImages.length > 0) {
         const idsToDelete = deletedImages.map((item) => item.id);
         const pathsToDelete = deletedImages
+          .map((item) => normalizeMediaPath(item.url))
+          .filter((path) => path && !path.startsWith('http'));
+
+        await supabase.from('property_media').delete().in('id', idsToDelete);
+        if (pathsToDelete.length > 0) {
+          await supabase.storage.from('property-media').remove(pathsToDelete);
+        }
+      }
+
+      if (deletedVideos.length > 0) {
+        const idsToDelete = deletedVideos.map((item) => item.id);
+        const pathsToDelete = deletedVideos
           .map((item) => normalizeMediaPath(item.url))
           .filter((path) => path && !path.startsWith('http'));
 

@@ -10,6 +10,12 @@ import { asyncRebuildFindPeopleShortlistsForProperty } from '@/core/services/mat
 import { getPropertyCreationVersionKeys } from '@/core/services/matching/matching-cache-versions';
 import { notifySuperadminsOfPendingProperty } from '@/core/services/properties/property-approval-notifications';
 import { readNullableStringField } from '@/core/services/properties/property-multipart-updates';
+import {
+  claimPropertyCreateIdempotency,
+  clearPropertyCreateIdempotency,
+  getPropertyCreateIdempotencyState,
+  storePropertyCreateIdempotencyResult,
+} from '@/core/services/properties/property-create-idempotency';
 
 const FILE_LIMITS = {
   IMAGE_MAX_BYTES: 5 * 1024 * 1024,
@@ -102,6 +108,8 @@ const cleanupUploadedFiles = async (supabase, paths) => {
 };
 
 export async function handleCreateProperty(req) {
+  let userId = null;
+  let idempotencyKey = null;
   try {
     const supabase = await createClient();
     const {
@@ -113,21 +121,71 @@ export async function handleCreateProperty(req) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
     }
 
+    userId = user.id;
+    idempotencyKey = req.headers.get('x-idempotency-key')?.trim() || null;
+    const requestFingerprint = req.headers.get('x-idempotency-fingerprint')?.trim() || null;
+
+    if (idempotencyKey) {
+      const existingState = await getPropertyCreateIdempotencyState(user.id, idempotencyKey);
+
+      if (
+        existingState?.status === 'completed' &&
+        existingState?.requestFingerprint === requestFingerprint &&
+        existingState?.response
+      ) {
+        return NextResponse.json({
+          ...existingState.response,
+          idempotentReplay: true,
+        });
+      }
+
+      if (
+        existingState?.status === 'in_progress' &&
+        existingState?.requestFingerprint === requestFingerprint
+      ) {
+        return NextResponse.json(
+          {
+            success: true,
+            inProgress: true,
+            message: 'Listing submission already in progress. Please wait a moment.',
+          },
+          { status: 202 }
+        );
+      }
+
+      const claim = await claimPropertyCreateIdempotency(user.id, idempotencyKey, requestFingerprint);
+      if (!claim.ok) {
+        const stateAfterClaim = await getPropertyCreateIdempotencyState(user.id, idempotencyKey);
+        if (
+          stateAfterClaim?.status === 'completed' &&
+          stateAfterClaim?.requestFingerprint === requestFingerprint &&
+          stateAfterClaim?.response
+        ) {
+          return NextResponse.json({
+            ...stateAfterClaim.response,
+            idempotentReplay: true,
+          });
+        }
+      }
+    }
+
+    const fail = async (error, status = 500) => {
+      await clearPropertyCreateIdempotency(user.id, idempotencyKey);
+      return NextResponse.json({ error }, { status });
+    };
+
     const form = await req.formData();
     const propertyType = form.get('property_category') || form.get('property_type');
 
     const requiredFields = ['title', 'description', 'price_per_month', 'state', 'city', 'street'];
     for (const field of requiredFields) {
       if (!form.get(field)) {
-        return NextResponse.json({ error: `Missing field: ${field}` }, { status: 400 });
+        return fail(`Missing field: ${field}`, 400);
       }
     }
 
     if (!propertyType) {
-      return NextResponse.json(
-        { error: 'Missing field: property_category (or property_type)' },
-        { status: 400 }
-      );
+      return fail('Missing field: property_category (or property_type)', 400);
     }
 
     const pricePerMonth = readNumber(form, 'price_per_month');
@@ -137,50 +195,50 @@ export async function handleCreateProperty(req) {
     const longitude = readNumber(form, 'longitude');
 
     if (pricePerMonth === null || pricePerMonth <= 0) {
-      return NextResponse.json({ error: 'Price per month must be a positive number' }, { status: 400 });
+      return fail('Price per month must be a positive number', 400);
     }
 
     if (bedrooms !== null && bedrooms < 0) {
-      return NextResponse.json({ error: 'Bedrooms cannot be negative' }, { status: 400 });
+      return fail('Bedrooms cannot be negative', 400);
     }
 
     if (bathrooms !== null && bathrooms < 0) {
-      return NextResponse.json({ error: 'Bathrooms cannot be negative' }, { status: 400 });
+      return fail('Bathrooms cannot be negative', 400);
     }
 
     if (latitude !== null && (latitude < -90 || latitude > 90)) {
-      return NextResponse.json({ error: 'Invalid latitude (must be between -90 and 90)' }, { status: 400 });
+      return fail('Invalid latitude (must be between -90 and 90)', 400);
     }
 
     if (longitude !== null && (longitude < -180 || longitude > 180)) {
-      return NextResponse.json({ error: 'Invalid longitude (must be between -180 and 180)' }, { status: 400 });
+      return fail('Invalid longitude (must be between -180 and 180)', 400);
     }
 
     const { photos, videos } = collectMediaFiles(form);
 
     if (photos.length < 1) {
-      return NextResponse.json({ error: 'At least one photo is required' }, { status: 400 });
+      return fail('At least one photo is required', 400);
     }
 
     if (photos.length > 10) {
-      return NextResponse.json({ error: 'Maximum 10 photos allowed' }, { status: 400 });
+      return fail('Maximum 10 photos allowed', 400);
     }
 
     if (videos.length > 5) {
-      return NextResponse.json({ error: 'Maximum 5 videos allowed' }, { status: 400 });
+      return fail('Maximum 5 videos allowed', 400);
     }
 
     for (const file of photos) {
       const result = validateFile(file, 'image');
       if (!result.valid) {
-        return NextResponse.json({ error: `File validation failed: ${result.error}` }, { status: 400 });
+        return fail(`File validation failed: ${result.error}`, 400);
       }
     }
 
     for (const file of videos) {
       const result = validateFile(file, 'video');
       if (!result.valid) {
-        return NextResponse.json({ error: `File validation failed: ${result.error}` }, { status: 400 });
+        return fail(`File validation failed: ${result.error}`, 400);
       }
     }
 
@@ -261,11 +319,11 @@ export async function handleCreateProperty(req) {
         propertyInsertError.message?.toLowerCase().includes('row-level security');
 
       if (isPermissionError) {
-        return NextResponse.json({ error: 'Permission denied' }, { status: 403 });
+        return fail('Permission denied', 403);
       }
 
       console.error('[Property Create] Property insert failed');
-      return NextResponse.json({ error: 'Failed to create property' }, { status: 500 });
+      return fail('Failed to create property', 500);
     }
 
     const mediaRecords = [];
@@ -332,7 +390,7 @@ export async function handleCreateProperty(req) {
       console.error('[Property Create] Media processing failed');
       await cleanupUploadedFiles(supabase, uploadedPaths);
       await cleanupProperty(supabase, property.id);
-      return NextResponse.json({ error: 'Failed to process media files' }, { status: 500 });
+      return fail('Failed to process media files', 500);
     }
 
     // Recompute compatibility synchronously for this new property so production
@@ -366,11 +424,15 @@ export async function handleCreateProperty(req) {
       console.error('[Property Create] Superadmin notification failed:', notificationError?.message || notificationError);
     }
 
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       property_id: property.id,
-    });
+    };
+    await storePropertyCreateIdempotencyResult(user.id, idempotencyKey, requestFingerprint, responsePayload);
+
+    return NextResponse.json(responsePayload);
   } catch (error) {
+    await clearPropertyCreateIdempotency(userId, idempotencyKey);
     console.error('[Property Create] Unexpected error');
     return NextResponse.json({ error: 'Failed to create property' }, { status: 500 });
   }

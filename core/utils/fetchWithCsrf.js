@@ -11,7 +11,6 @@ function withTimeout(timeoutMs = 15000) {
 export async function fetchWithCsrf(url, options = {}) {
   const timeoutMs = options.timeoutMs ?? 15000;
   const csrfTimeout = withTimeout(timeoutMs);
-  const requestTimeout = withTimeout(timeoutMs);
 
   const csrfRes = await fetch('/api/csrf-token', {
     signal: csrfTimeout.signal,
@@ -29,6 +28,7 @@ export async function fetchWithCsrf(url, options = {}) {
   };
 
   const { timeoutMs: _timeoutMs, signal: providedSignal, ...restOptions } = options;
+  const requestTimeout = withTimeout(timeoutMs);
 
   if (providedSignal) {
     providedSignal.addEventListener('abort', () => requestTimeout.clear(), { once: true });

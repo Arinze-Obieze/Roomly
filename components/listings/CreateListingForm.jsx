@@ -25,6 +25,7 @@ import {
 
 import Stepper from '../forms/Stepper';
 import FooterNav from '../forms/FooterNav';
+import { buildInitialListingFormData, createPhotoItem } from '@/core/services/properties/listing-form-state';
 
 // Sub-forms
 import BasicsForm from '../forms/Listing/BasicsForm';
@@ -47,14 +48,6 @@ const STEPS = [
   { id: 8, title: 'Availability', icon: MdCalendarToday },
 ];
 
-const createPhotoItem = ({ file = null, url = '', status = 'ready', originalName = '' }) => ({
-  id: `${status}-${Math.random().toString(36).slice(2, 10)}`,
-  file,
-  url,
-  status,
-  originalName,
-});
-
 export default function CreateListingForm({ onClose, initialData = null }) {
   const router = useRouter();
   const { user } = useAuthContext();
@@ -64,73 +57,12 @@ export default function CreateListingForm({ onClose, initialData = null }) {
   const [profileIncomplete, setProfileIncomplete] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
   const photoUrlsRef = useRef([]);
+  const submissionKeyRef = useRef(null);
+  const lastSubmissionFingerprintRef = useRef(null);
   
   const isEditing = !!initialData;
 
-  const [formData, setFormData] = useState(() => {
-    if (initialData) {
-      return {
-        ...initialData,
-        role: initialData.listed_by_role || initialData.role || '',
-        photos: initialData.property_media?.map(m => createPhotoItem({ url: m.url, status: 'ready' })) || [],
-        videos: [], 
-        lifestyle_priorities: initialData.lifestyle_priorities || {},
-        deal_breakers: initialData.deal_breakers || [],
-        amenities: initialData.amenities || [],
-        transport_options: initialData.transport_options || [],
-        payment_methods: initialData.payment_methods || [],
-      };
-    }
-    return {
-      // Basics
-      role: '',
-      rental_type: 'monthly',
-      title: '',
-      description: '',
-      // Property
-      property_category: 'apartment',
-      offering_type: 'private_room',
-      bedrooms: 1,
-      bathrooms: 1,
-      floor_area: '',
-      year_built: '',
-      ber_rating: '',
-      // Location
-      state: '',
-      city: '',
-      street: '',
-      latitude: null,
-      longitude: null,
-      transport_options: [],
-      is_gaeltacht: false,
-      // Media
-      photos: [],
-      videos: [],
-      // Financials
-      price_per_month: '',
-      deposit: '',
-      bills_option: 'some',
-      custom_bills: [],
-      couples_allowed: false,
-      payment_methods: [],
-      // Amenities
-      amenities: [],
-      // Preferences
-      occupation_preference: 'any',
-      gender_preference: 'any',
-      age_min: 18,
-      age_max: 99,
-      lifestyle_priorities: {},
-      deal_breakers: [],
-      partner_description: '',
-      // Availability
-      available_from: '',
-      is_immediate: false,
-      min_stay_months: 6,
-      accept_viewings: true,
-      is_public: true,
-    };
-  });
+  const [formData, setFormData] = useState(() => buildInitialListingFormData(initialData));
 
   useEffect(() => {
     const checkProfile = async () => {
@@ -162,6 +94,39 @@ export default function CreateListingForm({ onClose, initialData = null }) {
       delete next[field];
       return next;
     });
+  };
+
+  const computeSubmissionFingerprint = () => JSON.stringify({
+    ...formData,
+    photos: (formData.photos || []).map((photo) => ({
+      url: photo?.url || null,
+      originalName: photo?.originalName || photo?.file?.name || null,
+      size: photo?.file?.size || null,
+      type: photo?.file?.type || null,
+      status: photo?.status || null,
+    })),
+    videos: (formData.videos || []).map((video) => (
+      typeof video === 'string'
+        ? { url: video }
+        : {
+            name: video?.name || null,
+            size: video?.size || null,
+            type: video?.type || null,
+          }
+    )),
+  });
+
+  const getSubmissionKey = () => {
+    const fingerprint = computeSubmissionFingerprint();
+    if (!submissionKeyRef.current || lastSubmissionFingerprintRef.current !== fingerprint) {
+      submissionKeyRef.current = globalThis.crypto?.randomUUID?.() || `listing-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+      lastSubmissionFingerprintRef.current = fingerprint;
+    }
+
+    return {
+      key: submissionKeyRef.current,
+      fingerprint,
+    };
   };
 
   const validateStep = (step = currentStep) => {
@@ -368,17 +333,38 @@ export default function CreateListingForm({ onClose, initialData = null }) {
              }
         });
         formData.videos.forEach(video => {
-             if (video instanceof Blob) payload.append('new_videos[]', video);
+             if (video instanceof Blob) {
+                 payload.append('new_videos[]', video);
+             } else if (typeof video === 'string' && video) {
+                 payload.append('existing_videos[]', video);
+             }
         });
 
         const url = isEditing ? `/api/properties/${initialData.id}` : '/api/properties/create';
         const method = isEditing ? 'PUT' : 'POST';
+        const requestOptions = { method, body: payload };
 
-        const res = await fetchWithCsrf(url, { method, body: payload });
+        if (!isEditing) {
+            const { key, fingerprint } = getSubmissionKey();
+            requestOptions.headers = {
+                'x-idempotency-key': key,
+                'x-idempotency-fingerprint': fingerprint,
+            };
+            requestOptions.timeoutMs = 60000;
+        } else {
+            requestOptions.timeoutMs = 45000;
+        }
+
+        const res = await fetchWithCsrf(url, requestOptions);
+        const payloadResponse = await res.json().catch(() => ({}));
         
         if (!res.ok) {
-            const err = await res.json();
-             throw new Error(err.error || 'Failed to save listing');
+             throw new Error(payloadResponse.error || 'Failed to save listing');
+        }
+
+        if (payloadResponse?.inProgress) {
+            toast.success(payloadResponse.message || 'Listing submission is still being processed. Please check My Properties shortly.');
+            return;
         }
 
         if (isEditing) {
@@ -400,7 +386,11 @@ export default function CreateListingForm({ onClose, initialData = null }) {
 
     } catch (error) {
         console.error(error);
-        toast.error(error.message);
+        toast.error(
+            error?.name === 'AbortError'
+                ? 'The upload is taking longer than expected. Please wait a moment, then check My Properties before trying again.'
+                : error.message
+        );
     } finally {
         setIsSubmitting(false);
     }
