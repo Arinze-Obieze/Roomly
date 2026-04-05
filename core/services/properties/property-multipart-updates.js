@@ -66,7 +66,6 @@ export function buildPropertyMultipartUpdates(formData) {
     amenities: parseJsonArrayField(get('amenities')),
     deposit: readOptionalNumberField(get('deposit')),
     bills_option: billsOption,
-    bills_included: billsOption === 'box',
     custom_bills: parseJsonArrayField(get('custom_bills')),
     couples_allowed: couplesAllowed,
     payment_methods: parseJsonArrayField(get('payment_methods')),

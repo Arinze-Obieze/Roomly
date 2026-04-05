@@ -35,6 +35,7 @@ export default function MyPropertiesPage() {
           *,
           property_media (
             url,
+            media_type,
             is_primary,
             display_order
           )

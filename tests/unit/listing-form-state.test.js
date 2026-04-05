@@ -5,6 +5,7 @@ describe('listing form state', () => {
   test('separates existing images and videos when editing a property', () => {
     const initialData = {
       listed_by_role: 'live_out_landlord',
+      property_type: 'apartment',
       property_media: [
         { url: 'image-one.jpg', media_type: 'image' },
         { url: 'video-one.mp4', media_type: 'video' },
@@ -20,6 +21,7 @@ describe('listing form state', () => {
     const formData = buildInitialListingFormData(initialData);
 
     expect(formData.role).toBe('live_out_landlord');
+    expect(formData.property_category).toBe('apartment');
     expect(formData.photos).toHaveLength(2);
     expect(formData.photos.map((photo) => photo.url)).toEqual([
       'image-one.jpg',

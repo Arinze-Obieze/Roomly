@@ -13,6 +13,7 @@ export function buildInitialListingFormData(initialData = null) {
     return {
       ...initialData,
       role: initialData.listed_by_role || initialData.role || '',
+      property_category: initialData.property_category || initialData.property_type || '',
       photos: initialData.property_media
         ?.filter((media) => media.media_type === 'image')
         .map((media) => createPhotoItem({ url: media.url, status: 'ready' })) || [],

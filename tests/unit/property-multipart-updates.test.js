@@ -77,4 +77,17 @@ describe('property multipart update builder', () => {
       room_type: null,
     });
   });
+
+  test('does not attempt to update generated bills_included column', () => {
+    const formData = new FormData();
+    formData.append('title', 'Test');
+    formData.append('description', 'Test');
+    formData.append('bills_option', 'box');
+    formData.append('deal_breakers', JSON.stringify([]));
+
+    const updates = buildPropertyMultipartUpdates(formData);
+
+    expect(updates.bills_option).toBe('box');
+    expect(updates).not.toHaveProperty('bills_included');
+  });
 });
