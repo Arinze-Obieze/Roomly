@@ -86,6 +86,25 @@ export default function CreateListingForm({ onClose, initialData = null }) {
     };
   }, []);
 
+  useEffect(() => {
+    if (!isEditing) return undefined;
+
+    const headers = Array.from(document.querySelectorAll('header'));
+    headers.forEach((header) => {
+      header.style.display = 'none';
+      header.dataset.listingEditHidden = 'true';
+    });
+
+    return () => {
+      headers.forEach((header) => {
+        if (header.dataset.listingEditHidden === 'true') {
+          header.style.display = '';
+          delete header.dataset.listingEditHidden;
+        }
+      });
+    };
+  }, [isEditing]);
+
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     setValidationErrors(prev => {
