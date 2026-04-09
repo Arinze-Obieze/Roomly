@@ -22,6 +22,7 @@ import { propertyMatchConfidence } from '@/lib/matching/propertyMatchScore';
 import { buildPropertyDetailCacheKey } from '@/core/services/properties/property-detail-cache';
 import { buildPropertyMultipartUpdates, parseJsonArrayField } from '@/core/services/properties/property-multipart-updates';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 const normalizeMediaPath = (value) => {
   if (!value || typeof value !== 'string') return '';
@@ -493,6 +494,24 @@ export async function PUT(request, { params }) {
         }).map((key) => bumpCacheVersion(key)),
       ]);
 
+      await logActivityEvent({
+        adminClient: createAdminClient(),
+        request,
+        userId: user.id,
+        service: 'properties',
+        action: 'update_property',
+        status: 'success',
+        message: `Updated property ${id}`,
+        metadata: {
+          property_id: id,
+          mode: 'multipart',
+          updated_fields: Object.keys(updates),
+          deleted_image_count: deletedImages.length,
+          deleted_video_count: deletedVideos.length,
+          new_media_count: newMediaRows.length,
+        },
+      });
+
       return NextResponse.json(propertyData);
     }
 
@@ -552,10 +571,34 @@ export async function PUT(request, { params }) {
       }).map((key) => bumpCacheVersion(key)),
     ]);
 
+    await logActivityEvent({
+      adminClient: createAdminClient(),
+      request,
+      userId: user.id,
+      service: 'properties',
+      action: 'update_property',
+      status: 'success',
+      message: `Updated property ${id}`,
+      metadata: {
+        property_id: id,
+        mode: 'json',
+        updated_fields: Object.keys(updates),
+      },
+    });
+
     return NextResponse.json(data);
 
   } catch (error) {
     console.error('[Property Details PUT] Error:', error);
+    await logActivityEvent({
+      request,
+      service: 'properties',
+      action: 'update_property',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to update property: ${error.message || error}`,
+      metadata: {},
+    });
 
     return NextResponse.json(
       { error: 'Failed to update property' },
@@ -612,10 +655,32 @@ export async function DELETE(request, { params }) {
       }).map((key) => bumpCacheVersion(key)),
     ]);
 
+    await logActivityEvent({
+      request,
+      userId: user.id,
+      service: 'properties',
+      action: 'delete_property',
+      status: 'success',
+      message: `Deleted property ${id}`,
+      metadata: {
+        property_id: id,
+        owner_user_id: existingProperty.listed_by_user_id,
+      },
+    });
+
     return NextResponse.json({ success: true });
 
   } catch (error) {
     console.error('[Property Details DELETE] Error:', error);
+    await logActivityEvent({
+      request,
+      service: 'properties',
+      action: 'delete_property',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to delete property: ${error.message || error}`,
+      metadata: {},
+    });
 
     return NextResponse.json(
       { error: 'Failed to delete property' },

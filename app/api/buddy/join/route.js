@@ -3,6 +3,7 @@ import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 import { Notifier } from '@/core/services/notifications/notifier';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function POST(request) {
   try {
@@ -140,6 +141,22 @@ export async function POST(request) {
       console.error('[Buddy Join Notification Error]:', nError);
     }
 
+    await logActivityEvent({
+      adminClient: adminSupabase,
+      request,
+      userId: user.id,
+      service: 'buddy',
+      action: existingMember ? 'rejoin_buddy_group' : 'join_buddy_group',
+      status: 'success',
+      message: `${existingMember ? 'Rejoined' : 'Joined'} buddy group ${invite.group_id}`,
+      metadata: {
+        group_id: invite.group_id,
+        invite_id: invite.id,
+        already_member: false,
+        reactivated_member: !!existingMember,
+      },
+    });
+
     return NextResponse.json({ 
         success: true, 
         groupId: invite.group_id,
@@ -148,6 +165,15 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Error joining group:', error);
+    await logActivityEvent({
+      request,
+      service: 'buddy',
+      action: 'join_buddy_group',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to join buddy group: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

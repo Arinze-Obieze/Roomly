@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function DELETE(request, { params }) {
   try {
@@ -45,9 +46,31 @@ export async function DELETE(request, { params }) {
       throw deleteError;
     }
 
+    await logActivityEvent({
+      adminClient: adminSupabase,
+      request,
+      userId: user.id,
+      service: 'buddy',
+      action: 'delete_buddy_group',
+      status: 'success',
+      message: `Deleted buddy group ${groupId}`,
+      metadata: {
+        group_id: groupId,
+      },
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[Buddy Group DELETE] Error:', error);
+    await logActivityEvent({
+      request,
+      service: 'buddy',
+      action: 'delete_buddy_group',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to delete buddy group: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: error.message || 'Failed to delete group' }, { status: 500 });
   }
 }
@@ -111,9 +134,32 @@ export async function PATCH(request, { params }) {
       throw updateError;
     }
 
+    await logActivityEvent({
+      adminClient: adminSupabase,
+      request,
+      userId: user.id,
+      service: 'buddy',
+      action: 'update_buddy_group',
+      status: 'success',
+      message: `Updated buddy group ${groupId}`,
+      metadata: {
+        group_id: groupId,
+        group_name: updatedGroup.name,
+      },
+    });
+
     return NextResponse.json({ success: true, group: updatedGroup });
   } catch (error) {
     console.error('[Buddy Group PATCH] Error:', error);
+    await logActivityEvent({
+      request,
+      service: 'buddy',
+      action: 'update_buddy_group',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to update buddy group: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: error.message || 'Failed to update group settings' }, { status: 500 });
   }
 }

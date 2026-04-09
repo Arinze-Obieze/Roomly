@@ -5,6 +5,7 @@ import { sendBuddyInvite } from '@/core/utils/email';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 import { buildSiteUrl } from '@/core/utils/site-url';
 import crypto from 'crypto';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 // Rate limit tracking for buddy invites (in-memory for dev; use Redis for prod)
 const inviteAttempts = new Map();
@@ -154,6 +155,20 @@ export async function POST(request) {
         groupName: group.name
     });
 
+    await logActivityEvent({
+        request,
+        userId: user.id,
+        service: 'buddy',
+        action: 'send_buddy_invite',
+        status: 'success',
+        message: `Sent buddy invite for group ${groupId} to ${email.toLowerCase()}`,
+        metadata: {
+            group_id: groupId,
+            invite_email: email.toLowerCase(),
+            email_sent: !!emailResult.success,
+        },
+    });
+
     return NextResponse.json({ 
         success: true, 
         emailSent: emailResult.success,
@@ -162,6 +177,15 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Error sending invite:', error);
+    await logActivityEvent({
+        request,
+        service: 'buddy',
+        action: 'send_buddy_invite',
+        status: 'failed',
+        level: 'error',
+        message: `Failed to send buddy invite: ${error.message || error}`,
+        metadata: {},
+    });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

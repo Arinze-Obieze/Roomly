@@ -8,6 +8,7 @@ import { normalizeUserPrivacyUpdates } from '@/core/services/users/profile-priva
 import { normalizeUserProfileUpdates } from '@/core/services/users/profile-update';
 import { upsertUserMatchingSnapshot } from '@/core/services/matching/features/snapshot.service';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 const ALLOWED_FIELDS = [
   'full_name',
@@ -69,9 +70,31 @@ export async function PATCH(request) {
       getProfileUpdateVersionKeys(user.id).map((key) => bumpCacheVersion(key))
     );
 
+    await logActivityEvent({
+      adminClient: admin,
+      request,
+      userId: user.id,
+      service: 'profile',
+      action: 'update_profile',
+      status: 'success',
+      message: `Updated profile for user ${user.id}`,
+      metadata: {
+        updated_fields: Object.keys(normalizedUpdates),
+      },
+    });
+
     return NextResponse.json({ success: true, data });
   } catch (error) {
     console.error('[profile/update PATCH]', error);
+    await logActivityEvent({
+      request,
+      service: 'profile',
+      action: 'update_profile',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to update profile: ${error?.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: error?.message || 'Failed to update profile' }, { status: 500 });
   }
 }

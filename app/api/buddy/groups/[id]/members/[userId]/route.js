@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function DELETE(request, { params }) {
   try {
@@ -84,6 +85,21 @@ export async function DELETE(request, { params }) {
       throw updateError;
     }
 
+    await logActivityEvent({
+      adminClient: adminSupabase,
+      request,
+      userId: user.id,
+      service: 'buddy',
+      action: isSelf ? 'leave_buddy_group' : 'remove_buddy_group_member',
+      status: 'success',
+      message: `${isSelf ? 'Left' : 'Removed member from'} buddy group ${groupId}`,
+      metadata: {
+        group_id: groupId,
+        target_user_id: targetUserId,
+        action: isSelf ? 'left' : 'removed',
+      },
+    });
+
     return NextResponse.json({
       success: true,
       action: isSelf ? 'left' : 'removed',
@@ -91,6 +107,15 @@ export async function DELETE(request, { params }) {
     });
   } catch (error) {
     console.error('[Buddy Group Member DELETE] Error:', error);
+    await logActivityEvent({
+      request,
+      service: 'buddy',
+      action: 'update_buddy_group_membership',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to update buddy group membership: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: error.message || 'Failed to update membership' }, { status: 500 });
   }
 }

@@ -10,6 +10,7 @@ import { asyncRebuildFindPeopleShortlistsForProperty } from '@/core/services/mat
 import { getPropertyCreationVersionKeys } from '@/core/services/matching/matching-cache-versions';
 import { notifySuperadminsOfPendingProperty } from '@/core/services/properties/property-approval-notifications';
 import { readNullableStringField } from '@/core/services/properties/property-multipart-updates';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 import {
   claimPropertyCreateIdempotency,
   clearPropertyCreateIdempotency,
@@ -424,6 +425,22 @@ export async function handleCreateProperty(req) {
       console.error('[Property Create] Superadmin notification failed:', notificationError?.message || notificationError);
     }
 
+    await logActivityEvent({
+      adminClient: createAdminClient(),
+      request: req,
+      userId: user.id,
+      service: 'properties',
+      action: 'create_property',
+      status: 'success',
+      message: `Created property ${property.id}`,
+      metadata: {
+        property_id: property.id,
+        city: property.city,
+        approval_status: property.approval_status,
+        media_count: mediaRecords.length,
+      },
+    });
+
     const responsePayload = {
       success: true,
       property_id: property.id,
@@ -434,6 +451,16 @@ export async function handleCreateProperty(req) {
   } catch (error) {
     await clearPropertyCreateIdempotency(userId, idempotencyKey);
     console.error('[Property Create] Unexpected error');
+    await logActivityEvent({
+      request: req,
+      userId,
+      service: 'properties',
+      action: 'create_property',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to create property: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: 'Failed to create property' }, { status: 500 });
   }
 }

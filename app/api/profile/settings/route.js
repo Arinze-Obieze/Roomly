@@ -6,6 +6,7 @@ import { normalizeUserPrivacyUpdates } from '@/core/services/users/profile-priva
 import { upsertUserMatchingSnapshot } from '@/core/services/matching/features/snapshot.service';
 import { getProfileUpdateVersionKeys } from '@/core/services/matching/matching-cache-versions';
 import { bumpCacheVersion } from '@/core/utils/redis';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 /**
  * PATCH /api/profile/settings
@@ -52,6 +53,7 @@ export async function PATCH(request) {
     }
 
     const normalizedUpdates = normalizeUserPrivacyUpdates(updates);
+    const admin = createAdminClient();
 
     const { error } = await supabase
       .from('users')
@@ -60,14 +62,36 @@ export async function PATCH(request) {
 
     if (error) throw error;
 
-    await upsertUserMatchingSnapshot(createAdminClient(), user.id);
+    await upsertUserMatchingSnapshot(admin, user.id);
     await Promise.all(
       getProfileUpdateVersionKeys(user.id).map((key) => bumpCacheVersion(key))
     );
 
+    await logActivityEvent({
+      adminClient: admin,
+      request,
+      userId: user.id,
+      service: 'profile',
+      action: 'update_profile_settings',
+      status: 'success',
+      message: `Updated profile settings for user ${user.id}`,
+      metadata: {
+        updated_fields: Object.keys(normalizedUpdates),
+      },
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[profile/settings PATCH]', error);
+    await logActivityEvent({
+      request,
+      service: 'profile',
+      action: 'update_profile_settings',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to update profile settings: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

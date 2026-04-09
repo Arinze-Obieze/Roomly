@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import { MdRefresh, MdSearch } from 'react-icons/md';
 
 const LEVELS = ['', 'error', 'warn', 'info', 'debug'];
+const SERVICES = ['', 'superadmin', 'support', 'moderation', 'messaging', 'buddy', 'profile', 'properties', 'auth', 'app'];
+const STATUSES = ['', 'success', 'failed', 'pending', 'in_progress'];
 
 const badgeClass = (level) => {
   if (level === 'error') return 'bg-rose-50 text-rose-700 border-rose-200';
@@ -124,21 +126,29 @@ export default function SystemLogsTable() {
             ))}
           </select>
 
-          <input
-            type="text"
+          <select
             value={service}
-            onChange={(e) => { setPage(1); setService(e.target.value.trim()); }}
-            placeholder="Service"
+            onChange={(e) => { setPage(1); setService(e.target.value); }}
             className="px-3 py-2 border border-slate-200 rounded-lg text-sm"
-          />
+          >
+            {SERVICES.map((entry) => (
+              <option key={entry || 'all-services'} value={entry}>
+                {entry ? `Service: ${entry}` : 'All services'}
+              </option>
+            ))}
+          </select>
 
-          <input
-            type="text"
+          <select
             value={status}
-            onChange={(e) => { setPage(1); setStatus(e.target.value.trim()); }}
-            placeholder="Status"
+            onChange={(e) => { setPage(1); setStatus(e.target.value); }}
             className="px-3 py-2 border border-slate-200 rounded-lg text-sm"
-          />
+          >
+            {STATUSES.map((entry) => (
+              <option key={entry || 'all-statuses'} value={entry}>
+                {entry ? `Status: ${entry}` : 'All statuses'}
+              </option>
+            ))}
+          </select>
 
           <label className="flex items-center gap-2 text-sm text-slate-700 whitespace-nowrap cursor-pointer">
             <input

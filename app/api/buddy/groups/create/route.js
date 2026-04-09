@@ -2,6 +2,7 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function POST(request) {
   try {
@@ -60,12 +61,33 @@ export async function POST(request) {
       throw memberError;
     }
 
+    await logActivityEvent({
+      request,
+      userId: user.id,
+      service: 'buddy',
+      action: 'create_buddy_group',
+      status: 'success',
+      message: `Created buddy group ${group.id}`,
+      metadata: {
+        group_id: group.id,
+        group_name: group.name,
+      },
+    });
+
     return NextResponse.json({ success: true, data: group });
 
   } catch (error) {
     console.error('Error creating buddy group:', error);
+    await logActivityEvent({
+      request,
+      service: 'buddy',
+      action: 'create_buddy_group',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to create buddy group: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
-
 
