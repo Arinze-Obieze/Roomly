@@ -36,7 +36,7 @@ export default function SuperAdminDashboard() {
     const fetchMetrics = async () => {
       setMetricsLoading(true);
       try {
-        const response = await fetch('/api/superadmin/metrics', { cache: 'no-store' });
+        const response = await fetch(`/api/superadmin/metrics?range=${range}`, { cache: 'no-store' });
         const payload = await response.json().catch(() => ({}));
 
         if (!response.ok) {
@@ -66,7 +66,7 @@ export default function SuperAdminDashboard() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [range]);
 
   useEffect(() => {
     let active = true;
@@ -107,7 +107,7 @@ export default function SuperAdminDashboard() {
       {
         title: 'Total Users',
         value: metricValue(metrics?.totalUsers),
-        subtitle: `${metricValue(metrics?.newUsersThisWeek)} new this week`,
+        subtitle: `${metricValue(metrics?.newUsersInRange)} new in last ${range} days`,
         icon: MdPeople,
         color: 'blue',
         href: '/superadmin/users',
@@ -129,17 +129,17 @@ export default function SuperAdminDashboard() {
         href: '/superadmin/reports',
       },
       {
-        title: 'Logs Today',
-        value: metricValue(metrics?.errorLogsToday),
+        title: `Errors (${range}d)`,
+        value: metricValue(metrics?.errorLogsInRange),
         subtitle: `${metricValue(metrics?.totalLogs)} total logs`,
         icon: MdBugReport,
         color: 'amber',
         href: '/superadmin/system-logs',
       },
       {
-        title: 'Weekly Growth',
-        value: `+${metricValue(metrics?.newUsersThisWeek)}`,
-        subtitle: 'User signups in last 7 days',
+        title: `User Growth (${range}d)`,
+        value: `+${metricValue(metrics?.newUsersInRange)}`,
+        subtitle: `User signups in last ${range} days`,
         icon: MdTrendingUp,
         color: 'indigo',
         href: '/superadmin/users',
@@ -162,27 +162,27 @@ export default function SuperAdminDashboard() {
       },
       {
         title: 'Discovery Activity',
-        value: metricValue(metrics?.discoveryEventsToday),
-        subtitle: 'Events logged today',
+        value: metricValue(metrics?.discoveryEventsInRange),
+        subtitle: `Events logged in last ${range} days`,
         icon: MdSearch,
         color: 'rose',
       },
       {
         title: 'New Chats',
-        value: metricValue(metrics?.conversationsToday),
-        subtitle: 'Started today',
+        value: metricValue(metrics?.conversationsInRange),
+        subtitle: `Started in last ${range} days`,
         icon: MdMessage,
         color: 'teal',
       },
       {
         title: 'New Buddy Groups',
-        value: metricValue(metrics?.buddyGroupsToday),
-        subtitle: 'Created today',
+        value: metricValue(metrics?.buddyGroupsInRange),
+        subtitle: `Created in last ${range} days`,
         icon: MdGroup,
         color: 'indigo',
       },
     ],
-    [metrics]
+    [metrics, range]
   );
 
   return (
@@ -243,6 +243,7 @@ export default function SuperAdminDashboard() {
 
       <MatchQualityPanel
         data={metrics?.matchQuality}
+        range={range}
         loading={metricsLoading}
       />
 

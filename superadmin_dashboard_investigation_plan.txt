@@ -1,0 +1,71 @@
+Superadmin Dashboard Investigation and Fix Plan
+Date: 2026-04-06
+
+Findings
+
+1. The dashboard range toggle is only partially implemented.
+- The buttons in app/superadmin/page.js update the local range state.
+- The trend charts fetch /api/superadmin/charts?range=... and do react to the selected window.
+- The stat cards come from /api/superadmin/metrics, which previously ignored the selected range.
+- The match quality panel copy is hardcoded to "Last 7 days", so the product experience makes the 7d/30d/90d toggle feel broken.
+
+2. Error logging is not working end to end.
+- The superadmin logs page and the dashboard error charts depend on activity_logs.
+- Most API routes write failures only to console.error / console.warn and never persist those failures to activity_logs.
+- The current audit helper is used mainly by superadmin routes and a few auth flows, so the logs shown to admins are incomplete.
+
+3. Important user actions are not consistently instrumented.
+- Support ticket creation and support replies are not written to activity_logs.
+- User report creation is not written to activity_logs.
+- Messaging logs only some milestones, not the full lifecycle.
+- A large number of important operational failures are invisible to the superadmin dashboard because they never reach activity_logs.
+
+4. Report moderation is not server-owned.
+- components/superadmin/reports/ReportsTable.jsx reads and updates the reports table directly from the browser via the client Supabase SDK.
+- There was no app/api/superadmin/reports route in the repo.
+- That means moderation actions are not consistently guarded, normalized, or audited.
+
+5. Request correlation is weak.
+- Some admin routes try to write request_id from x-request-id.
+- There is no shared request-id helper or consistent propagation across the code paths inspected.
+- The logs UI includes a request column, but it will often be empty.
+
+6. Support admin routes bypass the shared audit pattern.
+- app/api/superadmin/support/route.js checks superadmin status manually and writes no activity_logs entries.
+- Failures are only printed to console.
+
+Plan
+
+Phase 1: Make observability trustworthy
+- Add a shared request-id helper.
+- Add a shared activity log helper that safely writes structured rows to activity_logs.
+- Reuse that helper from superadmin audit code.
+- Start logging important success/failure events in support and reports flows.
+
+Phase 2: Fix admin ownership of sensitive operations
+- Create app/api/superadmin/reports/route.js for report listing and moderation.
+- Move the reports dashboard off direct client-Supabase mutations and onto guarded server APIs.
+- Add audit entries for report fetches and status updates.
+
+Phase 3: Make the dashboard range real
+- Pass the selected range into /api/superadmin/metrics.
+- Make range-sensitive metrics update with the toggle.
+- Make match quality analytics use the selected range and update the UI copy accordingly.
+
+Phase 4: Expand instrumentation coverage
+- Add activity logs for support ticket creation, support ticket replies, report creation, and other high-value user/admin actions.
+- Capture failure states in activity_logs, not just console logs.
+- Backfill other important routes after the core admin surfaces are fixed.
+
+Phase 5: Verification
+- Test report moderation through the new server route.
+- Test support admin actions and ticket replies with audit writes.
+- Test that 7d/30d/90d changes the metric payload and the rendered dashboard labels.
+
+Implementation order recommended
+
+1. Shared observability helpers
+2. Superadmin reports API and UI migration
+3. Superadmin support auditing
+4. Range-aware metrics and match-quality panel
+5. Broader instrumentation rollout

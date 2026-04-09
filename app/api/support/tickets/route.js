@@ -3,6 +3,7 @@ import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 import { notifySuperadmins } from '@/core/services/superadmin/superadmin-notifications';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function GET() {
   try {
@@ -103,9 +104,33 @@ export async function POST(req) {
       console.error('[API Support POST] Superadmin notification failed:', notificationError);
     }
 
+    await logActivityEvent({
+      adminClient: adminSupabase,
+      request: req,
+      userId: user.id,
+      service: 'support',
+      action: 'create_support_ticket',
+      status: 'success',
+      message: `Created support ticket ${ticket.id}`,
+      metadata: {
+        ticket_id: ticket.id,
+        category,
+        subject,
+      },
+    });
+
     return NextResponse.json({ data: ticket });
   } catch (error) {
     console.error('[API Support POST] Error:', error);
+    await logActivityEvent({
+      request: req,
+      service: 'support',
+      action: 'create_support_ticket',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to create support ticket: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: 'Failed to create ticket' }, { status: 500 });
   }
 }

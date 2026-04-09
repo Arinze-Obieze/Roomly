@@ -33,7 +33,7 @@ const BAND_COPY = {
   },
 };
 
-export default function MatchQualityPanel({ data, loading = false }) {
+export default function MatchQualityPanel({ data, range = 7, loading = false }) {
   if (loading) {
     return <div className="rounded-2xl border border-slate-200 bg-white p-6 min-h-[260px] animate-pulse" />;
   }
@@ -46,7 +46,7 @@ export default function MatchQualityPanel({ data, loading = false }) {
         <div>
           <h2 className="text-lg font-semibold text-slate-900">Match Quality Funnel</h2>
           <p className="text-sm text-slate-500">
-            Last 7 days of how recommendations performed, from being shown to a user through interest and chat creation.
+            Last {range} days of how recommendations performed, from being shown to a user through interest and chat creation.
           </p>
         </div>
       </div>

@@ -2,6 +2,7 @@ import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function POST(request) {
     try {
@@ -45,9 +46,33 @@ export async function POST(request) {
 
         if (deleteError) throw deleteError;
 
+        await logActivityEvent({
+            adminClient: supabaseAdmin,
+            request,
+            userId: user.id,
+            service: 'messaging',
+            action: 'delete_conversation',
+            status: 'success',
+            message: `Deleted conversation ${conversationId}`,
+            metadata: {
+                conversation_id: conversationId,
+                tenant_id: conv.tenant_id,
+                host_id: conv.host_id,
+            },
+        });
+
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error('Delete conversation error:', error);
+        await logActivityEvent({
+            request,
+            service: 'messaging',
+            action: 'delete_conversation',
+            status: 'failed',
+            level: 'error',
+            message: `Failed to delete conversation: ${error.message || error}`,
+            metadata: {},
+        });
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

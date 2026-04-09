@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function POST(request) {
   try {
@@ -67,9 +68,32 @@ export async function POST(request) {
       throw updateConversationError;
     }
 
+    await logActivityEvent({
+      adminClient: admin,
+      request,
+      userId: user.id,
+      service: 'messaging',
+      action: 'mark_conversation_read',
+      status: 'success',
+      message: `Marked conversation ${conversationId} as read`,
+      metadata: {
+        conversation_id: conversationId,
+        unread_field: unreadField,
+      },
+    });
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('[Messages Mark Read POST] Error:', error);
+    await logActivityEvent({
+      request,
+      service: 'messaging',
+      action: 'mark_conversation_read',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to mark messages as read: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json(
       { error: error?.message || 'Failed to mark messages as read' },
       { status: 500 }

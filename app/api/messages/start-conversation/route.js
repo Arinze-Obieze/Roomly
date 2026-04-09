@@ -8,6 +8,7 @@ import { Notifier } from '@/core/services/notifications/notifier';
 import { getPropertyContactState } from '@/core/services/matching/rules/property-visibility';
 import { getPeopleContactState } from '@/core/services/matching/presentation/people-discovery-state';
 import { buildMatchAnalyticsMetadata } from '@/core/services/matching/presentation/match-analytics';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 /**
  * Polymorphic endpoint to start a conversation between a Seeker and a Host
@@ -243,9 +244,36 @@ export async function POST(request) {
       },
     }).catch(console.error);
 
+    await logActivityEvent({
+      adminClient: adminSupabase,
+      request,
+      userId: user.id,
+      service: 'messaging',
+      action: existingConversation ? 'resume_conversation' : 'start_conversation',
+      status: 'success',
+      message: `${existingConversation ? 'Resumed' : 'Started'} conversation ${conversationId}`,
+      metadata: {
+        conversation_id: conversationId,
+        property_id: propertyId,
+        target_user_id: targetId,
+        recipient_user_id: recipientId,
+        created_new: !existingConversation,
+        role: isLandlordContactingSeeker ? 'host' : 'tenant',
+      },
+    });
+
     return NextResponse.json({ success: true, conversationId });
   } catch (error) {
     console.error('[Start Conversation POST] Error:', error);
+    await logActivityEvent({
+      request,
+      service: 'messaging',
+      action: 'start_conversation',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to start conversation: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json(
       { error: error.message || 'Failed to start conversation' },
       { status: 500 }

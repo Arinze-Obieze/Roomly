@@ -1,28 +1,16 @@
-import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { requireSuperadmin } from '@/core/services/superadmin/guard';
+import { logSuperadminEvent } from '@/core/services/superadmin/audit';
 
-export async function GET() {
+export async function GET(request) {
+  const guard = await requireSuperadmin();
+  if (guard.errorResponse) return guard.errorResponse;
+
+  const { adminClient, user } = guard;
+
   try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify superadmin status
-    const { data: profile } = await supabase
-      .from('users')
-      .select('is_superadmin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_superadmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const { data: tickets, error } = await supabase
+    const { data: tickets, error } = await adminClient
       .from('support_tickets')
       .select(`
         *,
@@ -36,8 +24,26 @@ export async function GET() {
 
     if (error) throw error;
 
+    await logSuperadminEvent(adminClient, {
+      request,
+      userId: user.id,
+      action: 'list_support_tickets',
+      status: 'success',
+      message: `Loaded support tickets (${tickets?.length || 0} rows)`,
+      metadata: { total: tickets?.length || 0 },
+    });
+
     return NextResponse.json({ data: tickets });
   } catch (error) {
+    await logSuperadminEvent(adminClient, {
+      request,
+      userId: user.id,
+      level: 'error',
+      action: 'list_support_tickets',
+      status: 'failed',
+      message: `Failed to fetch support tickets: ${error.message || error}`,
+      metadata: {},
+    });
     console.error('[API Admin Support GET] Error:', error);
     return NextResponse.json({ error: 'Failed to fetch tickets' }, { status: 500 });
   }
@@ -50,23 +56,10 @@ export async function PATCH(req) {
       return NextResponse.json({ error: csrfValidation.error }, { status: 403 });
     }
 
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+    const guard = await requireSuperadmin();
+    if (guard.errorResponse) return guard.errorResponse;
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Verify superadmin status
-    const { data: profile } = await supabase
-      .from('users')
-      .select('is_superadmin')
-      .eq('id', user.id)
-      .single();
-
-    if (!profile?.is_superadmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const { adminClient, user } = guard;
 
     const body = await req.json();
     const { ticketId, status, priority } = body;
@@ -76,7 +69,7 @@ export async function PATCH(req) {
     if (priority) updates.priority = priority;
     updates.updated_at = new Date().toISOString();
 
-    const { data: ticket, error } = await supabase
+    const { data: ticket, error } = await adminClient
       .from('support_tickets')
       .update(updates)
       .eq('id', ticketId)
@@ -85,8 +78,29 @@ export async function PATCH(req) {
 
     if (error) throw error;
 
+    await logSuperadminEvent(adminClient, {
+      request: req,
+      userId: user.id,
+      action: 'update_support_ticket',
+      status: 'success',
+      message: `Updated support ticket ${ticketId}`,
+      metadata: { ticket_id: ticketId, updates },
+    });
+
     return NextResponse.json({ data: ticket });
   } catch (error) {
+    const guard = await requireSuperadmin();
+    if (!guard.errorResponse) {
+      await logSuperadminEvent(guard.adminClient, {
+        request: req,
+        userId: guard.user.id,
+        level: 'error',
+        action: 'update_support_ticket',
+        status: 'failed',
+        message: `Failed to update support ticket: ${error.message || error}`,
+        metadata: {},
+      });
+    }
     console.error('[API Admin Support PATCH] Error:', error);
     return NextResponse.json({ error: 'Failed to update ticket' }, { status: 500 });
   }

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/core/utils/supabase/server';
 import { createAdminClient } from '@/core/utils/supabase/admin';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function POST(request) {
   try {
@@ -49,16 +50,54 @@ export async function POST(request) {
 
     if (reportError) {
       console.error("[POST /api/reports] DB Insert Error:", reportError);
+      await logActivityEvent({
+        adminClient: admin,
+        request,
+        userId: user.id,
+        service: 'moderation',
+        action: 'create_report',
+        status: 'failed',
+        level: 'error',
+        message: `Failed to submit report: ${reportError.message || reportError}`,
+        metadata: {
+          reported_item_type,
+          reported_item_id,
+        },
+      });
       return NextResponse.json(
         { error: reportError?.message || 'Failed to submit report. Please try again.' },
         { status: 500 }
       );
     }
 
+    await logActivityEvent({
+      adminClient: admin,
+      request,
+      userId: user.id,
+      service: 'moderation',
+      action: 'create_report',
+      status: 'success',
+      message: `Created report ${report.id}`,
+      metadata: {
+        report_id: report.id,
+        reported_item_type,
+        reported_item_id,
+      },
+    });
+
     return NextResponse.json({ success: true, report_id: report.id }, { status: 201 });
 
   } catch (err) {
     console.error("[POST /api/reports] Unhandled Exception:", err);
+    await logActivityEvent({
+      request,
+      service: 'moderation',
+      action: 'create_report',
+      status: 'failed',
+      level: 'error',
+      message: `Unexpected report creation error: ${err.message || err}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }

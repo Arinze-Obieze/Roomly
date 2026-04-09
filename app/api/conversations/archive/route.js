@@ -1,6 +1,7 @@
 import { createClient } from '@/core/utils/supabase/server';
 import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function POST(request) {
     try {
@@ -58,9 +59,31 @@ export async function POST(request) {
 
         if (updateError) throw updateError;
 
+        await logActivityEvent({
+            request,
+            userId: user.id,
+            service: 'messaging',
+            action: archive ? 'archive_conversation' : 'unarchive_conversation',
+            status: 'success',
+            message: `${archive ? 'Archived' : 'Unarchived'} conversation ${conversationId}`,
+            metadata: {
+                conversation_id: conversationId,
+                archived: !!archive,
+            },
+        });
+
         return NextResponse.json({ success: true, archived: archive });
     } catch (error) {
         console.error('Archive conversation error:', error);
+        await logActivityEvent({
+            request,
+            service: 'messaging',
+            action: 'archive_conversation',
+            status: 'failed',
+            level: 'error',
+            message: `Failed to update conversation archive state: ${error.message || error}`,
+            metadata: {},
+        });
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }

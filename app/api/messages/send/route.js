@@ -7,6 +7,7 @@ import { logFeatureEvent } from '@/core/services/analytics/analytics.service';
 import { buildMatchAnalyticsMetadata } from '@/core/services/matching/presentation/match-analytics';
 import { shouldLogFirstReply } from '@/core/services/messaging/first-reply';
 import { Notifier } from '@/core/services/notifications/notifier';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function POST(request) {
   try {
@@ -138,9 +139,36 @@ export async function POST(request) {
       });
     }
 
+    await logActivityEvent({
+      adminClient: adminSupabase,
+      request,
+      userId: user.id,
+      service: 'messaging',
+      action: 'send_message',
+      status: 'success',
+      message: `Sent message ${message.id} in conversation ${conversationId}`,
+      metadata: {
+        conversation_id: conversationId,
+        message_id: message.id,
+        recipient_user_id: recipientId,
+        has_attachment: hasAttachment,
+        attachment_type: attachmentType || null,
+        is_first_reply: shouldLogFirstReply({ existingMessagesCount, existingSenderMessagesCount }),
+      },
+    });
+
     return NextResponse.json({ success: true, data: message });
   } catch (error) {
     console.error('[Messages Send POST] Error:', error);
+    await logActivityEvent({
+      request,
+      service: 'messaging',
+      action: 'send_message',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to send message: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json(
       { error: error?.message || 'Failed to send message' },
       { status: 500 }

@@ -1,13 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { createClient } from "@/core/utils/supabase/client";
+import { useState, useEffect } from "react";
 import { MdCheck, MdClose, MdOpenInNew } from "react-icons/md";
 import { toast } from "sonner";
 import Link from "next/link";
+import { fetchWithCsrf } from "@/core/utils/fetchWithCsrf";
 
 export default function ReportsTable() {
-  const supabase = useMemo(() => createClient(), []);
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("pending");
@@ -15,22 +14,16 @@ export default function ReportsTable() {
   const fetchReports = async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from('reports')
-        .select(`
-          *,
-          reporter:reporter_id(id, full_name, email)
-        `)
-        .order('created_at', { ascending: false });
+      const response = await fetch(`/api/superadmin/reports?status=${encodeURIComponent(filter)}`, {
+        cache: "no-store",
+      });
+      const payload = await response.json().catch(() => ({}));
 
-      if (filter !== "all") {
-        query = query.eq("status", filter);
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to load reports");
       }
 
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setReports(data || []);
+      setReports(payload.reports || []);
     } catch (error) {
       console.error("Error fetching reports:", error);
       toast.error("Failed to load reports");
@@ -41,16 +34,20 @@ export default function ReportsTable() {
 
   useEffect(() => {
     fetchReports();
-  }, [filter, supabase]);
+  }, [filter]);
 
   const updateReportStatus = async (reportId, newStatus) => {
     try {
-      const { error } = await supabase
-        .from('reports')
-        .update({ status: newStatus })
-        .eq('id', reportId);
-        
-      if (error) throw error;
+      const response = await fetchWithCsrf("/api/superadmin/reports", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reportId, status: newStatus }),
+      });
+      const payload = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to update report status");
+      }
       
       toast.success(`Report marked as ${newStatus}`);
       fetchReports();

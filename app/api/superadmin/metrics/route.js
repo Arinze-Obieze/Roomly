@@ -4,6 +4,8 @@ import { logSuperadminEvent } from '@/core/services/superadmin/audit';
 import { cachedFetch } from '@/core/utils/redis';
 import { summarizeMatchFeatureEvents } from '@/core/services/analytics/match-metrics';
 
+const clamp = (n, min, max) => Math.min(Math.max(n, min), max);
+
 const safeCount = async (promiseFactory) => {
   try {
     const { count, error } = await promiseFactory();
@@ -16,30 +18,32 @@ const safeCount = async (promiseFactory) => {
   }
 };
 
-export async function GET() {
+export async function GET(request) {
   const guard = await requireSuperadmin();
   if (guard.errorResponse) return guard.errorResponse;
 
   const { adminClient, user } = guard;
-  const payload = await cachedFetch('superadmin:metrics:v2', 60, async () => {
-    const oneWeekAgo = new Date();
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-    const sevenDaysAgoIso = oneWeekAgo.toISOString();
+  const { searchParams } = new URL(request.url);
+  const range = clamp(Number(searchParams.get('range') || 30), 7, 180);
+  const payload = await cachedFetch(`superadmin:metrics:v3:${range}`, 60, async () => {
+    const rangeStart = new Date();
+    rangeStart.setDate(rangeStart.getDate() - range);
+    const rangeStartIso = rangeStart.toISOString();
 
     const [
       totalUsers,
-      newUsersThisWeek,
+      newUsersInRange,
       totalProperties,
       activeProperties,
       totalReports,
       pendingReports,
       totalLogs,
-      errorLogsToday,
+      errorLogsInRange,
       totalSupportTickets,
       openSupportTickets,
-      discoveryEventsToday,
-      conversationsToday,
-      buddyGroupsToday,
+      discoveryEventsInRange,
+      conversationsInRange,
+      buddyGroupsInRange,
       matchFeatureEventsResult,
     ] = await Promise.all([
       safeCount(() => adminClient.from('users').select('*', { count: 'exact', head: true })),
@@ -47,7 +51,7 @@ export async function GET() {
         adminClient
           .from('users')
           .select('*', { count: 'exact', head: true })
-          .gte('created_at', oneWeekAgo.toISOString())
+          .gte('created_at', rangeStartIso)
       ),
       safeCount(() => adminClient.from('properties').select('*', { count: 'exact', head: true })),
       safeCount(() =>
@@ -58,44 +62,36 @@ export async function GET() {
         adminClient.from('reports').select('*', { count: 'exact', head: true }).eq('status', 'pending')
       ),
       safeCount(() => adminClient.from('activity_logs').select('*', { count: 'exact', head: true })),
-      safeCount(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return adminClient
+      safeCount(() =>
+        adminClient
           .from('activity_logs')
           .select('*', { count: 'exact', head: true })
           .eq('level', 'error')
-          .gte('created_at', today.toISOString());
-      }),
+          .gte('created_at', rangeStartIso)
+      ),
       safeCount(() => adminClient.from('support_tickets').select('*', { count: 'exact', head: true })),
       safeCount(() =>
         adminClient.from('support_tickets').select('*', { count: 'exact', head: true }).in('status', ['open', 'in_progress'])
       ),
-      safeCount(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return adminClient
+      safeCount(() =>
+        adminClient
           .from('feature_events')
           .select('*', { count: 'exact', head: true })
           .eq('feature_name', 'discovery')
-          .gte('created_at', today.toISOString());
-      }),
-      safeCount(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return adminClient
+          .gte('created_at', rangeStartIso)
+      ),
+      safeCount(() =>
+        adminClient
           .from('conversations')
           .select('*', { count: 'exact', head: true })
-          .gte('created_at', today.toISOString());
-      }),
-      safeCount(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        return adminClient
+          .gte('created_at', rangeStartIso)
+      ),
+      safeCount(() =>
+        adminClient
           .from('buddy_groups')
           .select('*', { count: 'exact', head: true })
-          .gte('created_at', today.toISOString());
-      }),
+          .gte('created_at', rangeStartIso)
+      ),
       adminClient
         .from('feature_events')
         .select('action, metadata, created_at')
@@ -112,7 +108,7 @@ export async function GET() {
           'start_conversation',
           'first_reply',
         ])
-        .gte('created_at', sevenDaysAgoIso)
+        .gte('created_at', rangeStartIso)
         .limit(5000),
     ]);
 
@@ -130,31 +126,34 @@ export async function GET() {
 
     return {
       generatedAt: new Date().toISOString(),
+      range,
       metrics: {
         totalUsers,
-        newUsersThisWeek,
+        newUsersInRange,
         totalProperties,
         activeProperties,
         totalReports,
         pendingReports,
         totalLogs,
-        errorLogsToday,
+        errorLogsInRange,
         totalSupportTickets,
         openSupportTickets,
-        discoveryEventsToday,
-        conversationsToday,
-        buddyGroupsToday,
+        discoveryEventsInRange,
+        conversationsInRange,
+        buddyGroupsInRange,
         matchQuality,
       },
     };
   });
 
   await logSuperadminEvent(adminClient, {
+    request,
     userId: user.id,
     action: 'get_metrics',
     status: 'success',
-    message: 'Loaded superadmin dashboard metrics',
+    message: `Loaded superadmin dashboard metrics for ${range} day window`,
     metadata: {
+      range,
       failed_metrics: Object.entries(payload.metrics)
         .filter(([, value]) => value?.ok === false)
         .map(([key]) => key),

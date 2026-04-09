@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { validateCSRFRequest } from '@/core/utils/csrf';
 import { Notifier } from '@/core/services/notifications/notifier';
 import { notifySuperadmins } from '@/core/services/superadmin/superadmin-notifications';
+import { logActivityEvent } from '@/core/services/observability/activity-log';
 
 export async function GET(req, { params }) {
   try {
@@ -139,9 +140,32 @@ export async function POST(req, { params }) {
       }
     }
 
+    await logActivityEvent({
+      request: req,
+      userId: user.id,
+      service: 'support',
+      action: role === 'admin' ? 'reply_support_ticket_as_admin' : 'reply_support_ticket_as_user',
+      status: 'success',
+      message: `Added support message to ticket ${id}`,
+      metadata: {
+        ticket_id: id,
+        sender_role: role,
+        has_attachment: !!attachmentData,
+      },
+    });
+
     return NextResponse.json({ data: message });
   } catch (error) {
     console.error('[API Support Messages POST] Error:', error);
+    await logActivityEvent({
+      request: req,
+      service: 'support',
+      action: 'reply_support_ticket',
+      status: 'failed',
+      level: 'error',
+      message: `Failed to send support ticket message: ${error.message || error}`,
+      metadata: {},
+    });
     return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
   }
 }
