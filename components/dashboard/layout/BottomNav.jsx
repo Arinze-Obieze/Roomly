@@ -23,7 +23,7 @@ export const BottomNav = () => {
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-30">
       {/* Glass container with brand border and rounded top */}
-      <div className="backdrop-blur-xl bg-white/80 border-t border-[#BCCCDC] rounded-t-3xl px-3 py-2 shadow-soft safe-area-bottom">
+      <div className="backdrop-blur-xl bg-white/80 border-t border-[#BCCCDC] rounded-t-3xl px-3 pt-1 pb-[calc(env(safe-area-inset-bottom)+2px)] shadow-soft">
         <div className="flex items-end justify-around">
           {/* Discover */}
           <BottomNavItem
@@ -42,7 +42,7 @@ export const BottomNav = () => {
           />
 
           {/* Middle – Listings (primary action, elevated) */}
-          <div className="relative -top-5">
+          <div className="relative -top-3">
             <motion.button
               onClick={() => router.push('/my-properties')}
               className="flex flex-col items-center"
