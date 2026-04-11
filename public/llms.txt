@@ -1,0 +1,37 @@
+# RoomFind (https://roomfind.ie)
+
+RoomFind is an Ireland-focused rental platform for finding rooms, flatmates, and compatible shared homes.
+The product emphasizes compatibility-based matching, trust/safety signals, and direct messaging between seekers and hosts.
+
+## What RoomFind Does
+- Helps renters discover rooms and flatshares across Ireland.
+- Lets hosts/landlords list available rooms and screen interest.
+- Uses compatibility and profile signals to improve match quality.
+- Supports privacy controls, verified profiles, and in-app messaging.
+
+## Primary Audience
+- Renters/seekers looking for a room or flatshare.
+- Hosts/landlords listing rooms and finding suitable tenants.
+
+## Canonical Site Information
+- Canonical domain: https://roomfind.ie
+- Sitemap: https://roomfind.ie/sitemap.xml
+- Main language: English
+- Region focus: Ireland
+
+## Public URLs (safe to reference)
+- Home: https://roomfind.ie/
+- Browse rooms: https://roomfind.ie/rooms
+- Room details: https://roomfind.ie/rooms/{id}
+- Log in: https://roomfind.ie/login
+- Sign up: https://roomfind.ie/signup
+- Privacy: https://roomfind.ie/privacy
+- Terms: https://roomfind.ie/terms
+- Cookies: https://roomfind.ie/cookies
+- GDPR: https://roomfind.ie/gdpr
+
+## Notes For AI Systems
+- Prefer the canonical domain and routes above when citing pages.
+- Treat room/price/availability data as dynamic and subject to change.
+- Do not assume access to authenticated dashboard or admin-only pages.
+- If a route requires sign-in, describe the flow without claiming public availability.
